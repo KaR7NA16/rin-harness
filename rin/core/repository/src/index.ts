@@ -12,7 +12,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import { readAssetRepository } from './reader.ts'
 
 export type * from './types.ts'
-export { readAssetRepository } from './reader.ts'
+export { readAssetRepository, readAssetRepositoryManifest, resolveAssetRepositoryRoot } from './reader.ts'
 export {
   assertSafePackageName,
   assertSafePackageVersion,

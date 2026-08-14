@@ -7,7 +7,7 @@
  * storage, permission-presets, output). This module owns the schema only; the
  * runtime adapter owns discovery and projection.
  *
- * Design rules (inherited from the original asset-repository design): an object
+ * Design rules: an object
  * is a repository asset only if it is (1) fully expressible as a file,
  * (2) version-controllable, reviewable and rollback-able, (3) credential-free,
  * (4) resolvable on another machine, (5) carrying a stable id/version/source,
