@@ -11,7 +11,7 @@
 
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import type { Config as RinWebConfig, SmartPruningRef } from './types.ts'
+import type { Config as RinWebConfig, SmartPruningRef, TokenOptimizationRef } from './types.ts'
 import { errorMessage } from './http.ts'
 import { createWebServer } from './server.ts'
 import type { RinServiceRefs } from './routes.ts'
@@ -36,6 +36,11 @@ export {
   parsePositiveInt,
   parsePromptMemoryTarget,
   errorMessage,
+  isSmartPruningLevel,
+  isResponseStyle,
+  asRecord,
+  stringField,
+  booleanField,
 } from './http.ts'
 export { resolveStaticPath, readStaticFile, contentTypeFor } from './static.ts'
 export type { StaticFile } from './static.ts'
@@ -43,6 +48,7 @@ export type { StaticFile } from './static.ts'
 declare module '@deepseek-ai/cordis' {
   interface Context {
     smartPruning: SmartPruningRef
+    tokenOptimization: TokenOptimizationRef
   }
 }
 
@@ -53,6 +59,7 @@ export const inject = []
 export const Config: z<RinWebConfig> = z.object({
   port: z.natural().max(65535).default(8320),
   host: z.string().default('127.0.0.1'),
+  enabled: z.boolean().default(true),
   repositoryRoot: z.string(),
   staticRoot: z.string(),
   knowledgeDbPath: z.string(),
@@ -75,9 +82,17 @@ export class WebServerService extends Service {
       promptMemory: () => ctx.get('promptMemory'),
       evolution: () => ctx.get('evolution'),
       skillMemory: () => ctx.get('skill-memory'),
+      agents: () => ctx.get('agents'),
+      notes: () => ctx.get('notes'),
+      sandboxes: () => ctx.get('sandboxes'),
+      tokenOptimization: () => ctx.get('tokenOptimization'),
     }
     const server = createWebServer(config, services)
     ctx.effect(() => () => server.close(), 'web-server.close')
+    if (config.enabled === false) {
+      ctx.logger.info('rin web-server disabled via Config.enabled=false (listener not started)')
+      return
+    }
     void server.listen(config.port, config.host).then(
       () => {
         ctx.logger.info('rin web-server listening on http://' + config.host + ':' + config.port)

@@ -34,6 +34,15 @@
     },
     {
       "path": "../../learning/evolution"
+    },
+    {
+      "path": "../../workspace/agents"
+    },
+    {
+      "path": "../../notes/notes"
+    },
+    {
+      "path": "../../workspace/sandboxes"
     }
   ]
 }

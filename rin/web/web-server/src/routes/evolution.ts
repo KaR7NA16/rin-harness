@@ -20,6 +20,8 @@ import type { RinServiceRefs } from '../routes.ts'
 export async function handle(
   pathname: string,
   _search: string,
+  _method: string,
+  _body: unknown,
   services: RinServiceRefs,
   _config: Config,
 ): Promise<JsonResponse | null> {

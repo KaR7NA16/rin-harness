@@ -1,0 +1,29 @@
+apiVersion: rin.dev/v1
+kind: EnvironmentPackageCatalog
+metadata:
+  id: r-packages
+  name: R packages
+  version: 1.0.0
+spec:
+  ecosystem: r
+  packages:
+    - { id: r-ggplot2, name: ggplot2 }
+    - { id: r-dplyr, name: dplyr }
+    - { id: r-tidyr, name: tidyr }
+    - { id: r-readr, name: readr }
+    - { id: r-readxl, name: readxl }
+    - { id: r-data.table, name: data.table }
+    - { id: r-lubridate, name: lubridate }
+    - { id: r-stringr, name: stringr }
+    - { id: r-purrr, name: purrr }
+    - { id: r-broom, name: broom }
+    - { id: r-forecast, name: forecast }
+    - { id: r-MASS, name: MASS }
+    - { id: r-lme4, name: lme4 }
+    - { id: r-igraph, name: igraph }
+    - { id: r-rmarkdown, name: rmarkdown }
+    - { id: r-knitr, name: knitr }
+    - { id: r-patchwork, name: patchwork }
+    - { id: r-jsonlite, name: jsonlite }
+    - { id: r-httr2, name: httr2 }
+    - { id: r-arrow, name: arrow }

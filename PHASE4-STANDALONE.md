@@ -1,11 +1,11 @@
 # PHASE4-STANDALONE — 独立端口 Web UI
 
 > 决策：**不动 dsh 原生 Web UI**，用独立端口跑 @rin 自己的 Web UI。
-> 该决策取代 PHASE4-CLIENT.md 的 SlotMap 集成技术路线（后者仅保留「功能映射表」作功能清单参考）。
+> 该决策取代早前的 SlotMap 集成技术路线（PHASE4-CLIENT.md 已删除，其「功能适配映射表」并入 MIGRATION.md §4.2）。
 
 ## 1. 为什么转向
 
-PHASE4-CLIENT.md 的 SlotMap 集成方案有三个真机前置缺口：
+SlotMap 集成方案有三个真机前置缺口：
 
 1. 自建 `rin.workspace.*` 槽位要并入 `gen-client-catalog` 生成器。
 2. @rin host 服务缺 typert 生成的 Remote API 半（client 取数前置依赖）。
@@ -58,6 +58,6 @@ Base: `http://<host>:<port>`（默认 `http://127.0.0.1:8320`）。
 - `/api/skill-memory/overview` → `ctx['skill-memory'].createStore` + 路径助手枚举。
 - 前端 `@rin/web-ui`（Vite + React + Router，8 页），源码在 `rin/web/web-ui/`，真机构建（沙箱 vite spawn 被拦）。
 
-## 5. 与 PHASE4-CLIENT.md 的关系
+## 5. 与 MIGRATION.md 的关系
 
-PHASE4-CLIENT.md 的「功能适配映射表」（设计参考页面 → host 数据源）仍有效，作为这个独立前端要覆盖哪些面板的功能清单；但其 SlotMap/typert/tsdown 集成技术路线作废。
+MIGRATION.md §4.2 的「功能适配映射表」（设计参考页面 → host 数据源）是独立前端要覆盖哪些面板的功能清单；§4.1 定义三面共存策略（dsh 原生 Web UI 3080 保留可开关 / rin Web UI 8320 / rin TUI）。SlotMap/typert/tsdown 集成技术路线作废。

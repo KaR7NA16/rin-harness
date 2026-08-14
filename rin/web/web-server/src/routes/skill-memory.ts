@@ -3,20 +3,17 @@
  *
  * Read-only skill-memory overview. Creates the store via
  * ctx['skill-memory'].createStore(roots), then enumerates the skill-memory
- * directory and reads each skill's STATS.json + SUMMARY.md. Returns null for
- * any pathname it does not claim.
+ * directory and reads each skill's STATS.json + SUMMARY.md. The three layout
+ * constants and the two root helpers are inlined here so this module carries
+ * no runtime dependency on @rin/skill-memory (web-server stays zero-runtime-dep;
+ * the skill-memory service type is imported type-only via routes.ts). Returns
+ * null for any pathname it does not claim.
  *
  * @module @rin/web-server
  */
 
 import { readFile, readdir } from 'node:fs/promises'
-import { resolve } from 'node:path'
-import {
-  getGlobalSkillMemoryRoot,
-  getProjectSkillMemoryRoot,
-  SKILL_MEMORY_STATS_FILENAME,
-  SKILL_MEMORY_SUMMARY_FILENAME,
-} from '@rin/skill-memory'
+import { join, resolve } from 'node:path'
 import type { Config, JsonResponse, SkillMemoryRootsConfig } from '../types.ts'
 import {
   error,
@@ -26,10 +23,24 @@ import {
 } from '../http.ts'
 import type { RinServiceRefs } from '../routes.ts'
 
+/** The skill-memory directory name under a config root (mirrors @rin/skill-memory). */
+const SKILL_MEMORY_DIRNAME = 'skill-memory'
+/** The per-skill stats sidecar file name (mirrors @rin/skill-memory). */
+const SKILL_MEMORY_STATS_FILENAME = 'STATS.json'
+/** The per-skill summary file name (mirrors @rin/skill-memory). */
+const SKILL_MEMORY_SUMMARY_FILENAME = 'SUMMARY.md'
+
+/** Resolve a config root to its skill-memory directory. */
+function skillMemoryRoot(configRoot: string): string {
+  return join(configRoot, SKILL_MEMORY_DIRNAME).normalize('NFC')
+}
+
 /** Dispatch the skill-memory pathnames; null for anything else. */
 export async function handle(
   pathname: string,
   _search: string,
+  _method: string,
+  _body: unknown,
   services: RinServiceRefs,
   config: Config,
 ): Promise<JsonResponse | null> {
@@ -72,9 +83,9 @@ async function skillMemoryOverviewRoute(services: RinServiceRefs, config: Config
 
 async function listSkillMemoryOverview(roots: SkillMemoryRootsConfig): Promise<SkillMemoryOverviewRecord[]> {
   const scopes = [
-    { root: getGlobalSkillMemoryRoot(roots.globalConfigRoot), scope: 'global' as const },
+    { root: skillMemoryRoot(roots.globalConfigRoot), scope: 'global' as const },
     ...(roots.projectConfigRoot
-      ? [{ root: getProjectSkillMemoryRoot(roots.projectConfigRoot), scope: 'project' as const }]
+      ? [{ root: skillMemoryRoot(roots.projectConfigRoot), scope: 'project' as const }]
       : []),
   ]
   const records: SkillMemoryOverviewRecord[] = []

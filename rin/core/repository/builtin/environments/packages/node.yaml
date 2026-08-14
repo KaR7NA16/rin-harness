@@ -1,0 +1,10 @@
+apiVersion: rin.dev/v1
+kind: EnvironmentPackageCatalog
+metadata:
+  id: node-packages
+  name: Node.js packages
+  version: 1.0.0
+spec:
+  ecosystem: node
+  # 旧目录仅含 '@anthropic-ai/claude-code'（CC 产品残余，迁移时砍掉）。
+  packages: []

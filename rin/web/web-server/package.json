@@ -21,15 +21,16 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^"
   },
-  "dependencies": {
-    "@rin/skill-memory": "workspace:^"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",
+    "@rin/agents": "workspace:^",
     "@rin/evolution": "workspace:^",
     "@rin/knowledge": "workspace:^",
+    "@rin/notes": "workspace:^",
     "@rin/prompt-memory": "workspace:^",
+    "@rin/sandboxes": "workspace:^",
     "@rin/session-search": "workspace:^",
     "@rin/skill-memory": "workspace:^",
     "typescript": "^6.0.3",

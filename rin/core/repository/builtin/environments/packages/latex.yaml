@@ -1,0 +1,23 @@
+apiVersion: rin.dev/v1
+kind: EnvironmentPackageCatalog
+metadata:
+  id: latex-packages
+  name: LaTeX packages
+  version: 1.0.0
+spec:
+  ecosystem: latex
+  packages:
+    - { id: latex-latexmk, name: latexmk }
+    - { id: latex-amsmath, name: amsmath }
+    - { id: latex-mathtools, name: mathtools }
+    - { id: latex-siunitx, name: siunitx }
+    - { id: latex-booktabs, name: booktabs }
+    - { id: latex-geometry, name: geometry }
+    - { id: latex-graphicx, name: graphicx }
+    - { id: latex-xcolor, name: xcolor }
+    - { id: latex-hyperref, name: hyperref }
+    - { id: latex-cleveref, name: cleveref }
+    - { id: latex-biblatex, name: biblatex }
+    - { id: latex-biber, name: biber }
+    - { id: latex-listings, name: listings }
+    - { id: latex-pgfplots, name: pgfplots }

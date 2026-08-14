@@ -3,12 +3,15 @@
  *
  * Wires the JSON API routes and the static frontend into one node:http
  * server. Owns no cordis concepts; index.ts wraps it as a Cordis service.
+ * GET/HEAD serve the API and static files; POST is accepted for /api/*
+ * (JSON body, capped at 1 MiB) so the write endpoints can mutate host state.
  *
  * @module @rin/web-server
  */
 
 import { createServer } from 'node:http'
 import type { IncomingMessage, Server, ServerResponse } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { fileURLToPath } from 'node:url'
 import type { Config, JsonResponse } from './types.ts'
 import { errorMessage } from './http.ts'
@@ -20,10 +23,13 @@ import type { StaticFile } from './static.ts'
 /** Default static frontend root: the package's static/ directory. */
 const DEFAULT_STATIC_ROOT = fileURLToPath(new URL('../static/', import.meta.url))
 
+/** Upper bound on a POST /api/* JSON body. */
+const MAX_BODY_BYTES = 1024 * 1024
+
 /** A startable HTTP server handle owned by the plugin. */
 export interface RinWebServer {
-  /** Start listening; resolves once the socket is bound. */
-  listen(port: number, host: string): Promise<void>
+  /** Start listening; resolves with the bound address once the socket is open. */
+  listen(port: number, host: string): Promise<AddressInfo>
   /** Stop the server; resolves once the socket is closed. */
   close(): Promise<void>
 }
@@ -47,12 +53,17 @@ export function createWebServer(config: Config, services: RinServiceRefs): RinWe
   })
 
   return {
-    listen(port: number, host: string): Promise<void> {
-      return new Promise<void>((resolveListen, rejectListen) => {
+    listen(port: number, host: string): Promise<AddressInfo> {
+      return new Promise<AddressInfo>((resolveListen, rejectListen) => {
         server.once('error', rejectListen)
         server.listen(port, host, () => {
           server.off('error', rejectListen)
-          resolveListen()
+          const address = server.address()
+          if (address === null || typeof address === 'string') {
+            rejectListen(new Error('rin web-server: unexpected listen address'))
+            return
+          }
+          resolveListen(address)
         })
       })
     },
@@ -71,23 +82,65 @@ async function handleRequest(
   config: Config,
   staticRoot: string,
 ): Promise<void> {
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    respondError(res, 405, 'method not allowed')
-    return
-  }
-  const headOnly = req.method === 'HEAD'
+  const method = req.method ?? 'GET'
   const url = new URL(req.url ?? '/', 'http://localhost')
-  const response = await routeApi(url.pathname, url.search, services, config)
-  if (response !== null) {
-    respondJson(res, response, headOnly)
+  const isApi = url.pathname.startsWith('/api/')
+
+  if (method === 'GET' || method === 'HEAD') {
+    const headOnly = method === 'HEAD'
+    const response = await routeApi(url.pathname, url.search, method, undefined, services, config)
+    if (response !== null) {
+      respondJson(res, response, headOnly)
+      return
+    }
+    const file = await readStaticFile(staticRoot, url.pathname)
+    if (file === null) {
+      respondError(res, 404, 'not found')
+      return
+    }
+    respondStatic(res, file, headOnly)
     return
   }
-  const file = await readStaticFile(staticRoot, url.pathname)
-  if (file === null) {
+
+  if (method === 'POST' && isApi) {
+    const bodyResult = await readJsonBody(req)
+    if (!bodyResult.ok) {
+      respondError(res, bodyResult.status, bodyResult.message)
+      return
+    }
+    const response = await routeApi(url.pathname, url.search, method, bodyResult.value, services, config)
+    if (response !== null) {
+      respondJson(res, response, false)
+      return
+    }
     respondError(res, 404, 'not found')
     return
   }
-  respondStatic(res, file, headOnly)
+
+  respondError(res, 405, 'method not allowed')
+}
+
+/** Read and parse a POST body, enforcing the 1 MiB cap and JSON syntax. */
+async function readJsonBody(
+  req: IncomingMessage,
+): Promise<{ ok: true; value: unknown } | { ok: false; status: number; message: string }> {
+  const chunks: Buffer[] = []
+  let total = 0
+  for await (const chunk of req) {
+    const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
+    total += buffer.length
+    if (total > MAX_BODY_BYTES) {
+      return { ok: false, status: 413, message: 'request body exceeds 1 MiB' }
+    }
+    chunks.push(buffer)
+  }
+  if (chunks.length === 0) return { ok: true, value: undefined }
+  const text = Buffer.concat(chunks).toString('utf-8')
+  try {
+    return { ok: true, value: JSON.parse(text) }
+  } catch {
+    return { ok: false, status: 400, message: 'invalid JSON body' }
+  }
 }
 
 function respondJson(res: ServerResponse, response: JsonResponse, headOnly: boolean): void {

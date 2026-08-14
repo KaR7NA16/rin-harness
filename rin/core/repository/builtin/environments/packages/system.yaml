@@ -1,0 +1,17 @@
+apiVersion: rin.dev/v1
+kind: EnvironmentPackageCatalog
+metadata:
+  id: system-packages
+  name: System packages
+  version: 1.0.0
+spec:
+  ecosystem: system
+  packages:
+    - { id: system-git, name: git }
+    - { id: system-make, name: make }
+    - { id: system-gcc, name: gcc }
+    - { id: system-g++, name: g++ }
+    - { id: system-python3, name: python3 }
+    - { id: system-nodejs, name: nodejs }
+    - { id: system-npm, name: npm }
+    - { id: system-pkg-config, name: pkg-config }

@@ -1,0 +1,14 @@
+version: 2
+kind: AgentConfiguration
+name: rin-base
+description: 默认科研/开发 agent，挂载 scientific-base 环境
+systemPrompt: >-
+  你运行在 rin-harness 内环境中。默认使用科学计算环境（scientific-base）：
+  安装由仓库环境计划管理，执行由沙箱承接。遵守用户给出的工作规则，
+  在需要环境能力时优先使用仓库声明的工具链。
+permissionMode: default
+tools: []
+resources:
+  environmentProfileId: scientific-base
+  skillIds: []
+  workflowIds: []

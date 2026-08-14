@@ -13,6 +13,11 @@ import {
   mounted,
   mountedValue,
   errorMessage,
+  isSmartPruningLevel,
+  isResponseStyle,
+  asRecord,
+  stringField,
+  booleanField,
 } from '../src/http.ts'
 
 describe('parseBoolean', () => {
@@ -113,6 +118,10 @@ describe('response shaping', () => {
       promptMemory: false,
       evolution: true,
       skillMemory: false,
+      agents: true,
+      notes: true,
+      sandboxes: false,
+      tokenOptimization: true,
     })).toEqual({
       status: 200,
       body: {
@@ -128,6 +137,10 @@ describe('response shaping', () => {
           promptMemory: false,
           evolution: true,
           skillMemory: false,
+          agents: true,
+          notes: true,
+          sandboxes: false,
+          tokenOptimization: true,
         },
       },
     })
@@ -153,5 +166,42 @@ describe('response shaping', () => {
   test('errorMessage coerces thrown values', () => {
     expect(errorMessage(new Error('boom'))).toBe('boom')
     expect(errorMessage('plain')).toBe('plain')
+  })
+})
+
+describe('isSmartPruningLevel', () => {
+  test('accepts the three levels and rejects everything else', () => {
+    expect(isSmartPruningLevel('conservative')).toBe(true)
+    expect(isSmartPruningLevel('balanced')).toBe(true)
+    expect(isSmartPruningLevel('aggressive')).toBe(true)
+    expect(isSmartPruningLevel('bogus')).toBe(false)
+    expect(isSmartPruningLevel(1)).toBe(false)
+    expect(isSmartPruningLevel(null)).toBe(false)
+  })
+})
+
+describe('isResponseStyle', () => {
+  test('accepts off/caveman/ponytail and rejects others', () => {
+    expect(isResponseStyle('off')).toBe(true)
+    expect(isResponseStyle('caveman')).toBe(true)
+    expect(isResponseStyle('ponytail')).toBe(true)
+    expect(isResponseStyle('rtk')).toBe(false)
+    expect(isResponseStyle(undefined)).toBe(false)
+  })
+})
+
+describe('asRecord / stringField / booleanField', () => {
+  test('asRecord narrows plain objects only', () => {
+    expect(asRecord({ a: 1 })).toEqual({ a: 1 })
+    expect(asRecord([1, 2])).toBeUndefined()
+    expect(asRecord(null)).toBeUndefined()
+    expect(asRecord('x')).toBeUndefined()
+  })
+  test('stringField and booleanField read typed values', () => {
+    expect(stringField({ a: 'v' }, 'a')).toBe('v')
+    expect(stringField({}, 'a')).toBeUndefined()
+    expect(stringField({ a: 1 }, 'a')).toBeUndefined()
+    expect(booleanField({ b: true }, 'b')).toBe(true)
+    expect(booleanField({ b: 'yes' }, 'b')).toBeUndefined()
   })
 })

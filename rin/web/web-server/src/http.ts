@@ -16,6 +16,8 @@ import type {
   JsonResponse,
   PromptMemoryTarget,
   RepositoryQuery,
+  ResponseStyle,
+  SmartPruningLevel,
   SmartPruningStatusBody,
 } from './types.ts'
 
@@ -144,4 +146,32 @@ export function mountedValue(key: string, value: unknown): JsonResponse {
 export function errorMessage(err: unknown): string {
   if (err instanceof Error) return err.message
   return String(err)
+}
+
+/** Narrow a value to one of the three smart-pruning levels. */
+export function isSmartPruningLevel(value: unknown): value is SmartPruningLevel {
+  return value === 'conservative' || value === 'balanced' || value === 'aggressive'
+}
+
+/** Narrow a value to one of the three response-compression styles. */
+export function isResponseStyle(value: unknown): value is ResponseStyle {
+  return value === 'off' || value === 'caveman' || value === 'ponytail'
+}
+
+/** Narrow an unknown JSON body to a plain object, or undefined when not an object. */
+export function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined
+  return value as Record<string, unknown>
+}
+
+/** Read a string field, or undefined when absent or not a string. */
+export function stringField(record: Record<string, unknown>, key: string): string | undefined {
+  const value = record[key]
+  return typeof value === 'string' ? value : undefined
+}
+
+/** Read a boolean field, or undefined when absent or not a boolean. */
+export function booleanField(record: Record<string, unknown>, key: string): boolean | undefined {
+  const value = record[key]
+  return typeof value === 'boolean' ? value : undefined
 }

@@ -1,8 +1,8 @@
 /**
  * rin web-server — core (v1) routes.
  *
- * Health, smart-pruning status, repository read, and environment plan. Returns
- * null for any pathname it does not claim.
+ * Health, smart-pruning status/write, repository read, and environment plan.
+ * Returns null for any pathname it does not claim.
  *
  * @module @rin/web-server
  */
@@ -10,10 +10,14 @@
 import type { ResolverCapabilities } from '@rin/repository'
 import type { Config, JsonResponse, SmartPruningStatusBody } from '../types.ts'
 import {
+  asRecord,
   error,
   errorMessage,
   healthResponse,
+  isSmartPruningLevel,
   json,
+  mounted,
+  notMounted,
   parseEnvironmentPlanQuery,
   parseRepositoryQuery,
   smartPruningStatusResponse,
@@ -24,6 +28,8 @@ import type { RinServiceRefs } from '../routes.ts'
 export async function handle(
   pathname: string,
   search: string,
+  method: string,
+  body: unknown,
   services: RinServiceRefs,
   config: Config,
 ): Promise<JsonResponse | null> {
@@ -36,6 +42,8 @@ export async function handle(
       return environmentPlanRoute(search, services, config)
     case '/api/smart-pruning/status':
       return smartPruningRoute(services)
+    case '/api/smart-pruning/set':
+      return smartPruningSetRoute(method, body, services)
     default:
       return null
   }
@@ -51,6 +59,10 @@ function healthRoute(services: RinServiceRefs): JsonResponse {
     promptMemory: services.promptMemory() !== undefined,
     evolution: services.evolution() !== undefined,
     skillMemory: services.skillMemory() !== undefined,
+    agents: services.agents() !== undefined,
+    notes: services.notes() !== undefined,
+    sandboxes: services.sandboxes() !== undefined,
+    tokenOptimization: services.tokenOptimization() !== undefined,
   })
 }
 
@@ -60,6 +72,29 @@ function smartPruningRoute(services: RinServiceRefs): JsonResponse {
     ? { mounted: false }
     : { mounted: true, ...smartPruning.getStatus() }
   return smartPruningStatusResponse(body)
+}
+
+function smartPruningSetRoute(method: string, body: unknown, services: RinServiceRefs): JsonResponse {
+  const smartPruning = services.smartPruning()
+  if (smartPruning === undefined) return notMounted()
+  if (method !== 'POST') return error(405, 'method not allowed; POST /api/smart-pruning/set')
+  const fields = asRecord(body)
+  if (fields === undefined) return error(400, 'request body must be a JSON object')
+  const hasEnabled = 'enabled' in fields
+  const hasLevel = 'level' in fields
+  if (!hasEnabled && !hasLevel) return error(400, 'at least one of enabled or level is required')
+  let status = smartPruning.getStatus()
+  if (hasEnabled) {
+    if (typeof fields.enabled !== 'boolean') return error(400, 'enabled must be a boolean')
+    status = smartPruning.setEnabled(fields.enabled)
+  }
+  if (hasLevel) {
+    if (!isSmartPruningLevel(fields.level)) {
+      return error(400, 'level must be conservative, balanced, or aggressive')
+    }
+    status = smartPruning.setLevel(fields.level)
+  }
+  return mounted(status)
 }
 
 async function repositoryRoute(

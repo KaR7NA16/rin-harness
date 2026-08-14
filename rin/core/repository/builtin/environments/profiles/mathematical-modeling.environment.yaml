@@ -1,0 +1,19 @@
+apiVersion: rin.dev/v1
+kind: EnvironmentProfile
+metadata:
+  id: mathematical-modeling
+  name: Mathematical modeling
+  version: 1.0.0
+spec:
+  packages:
+    - system-git
+    - system-make
+    - system-gcc
+    - system-g++
+    - python-numpy
+    - python-scipy
+    - python-sympy
+    - python-matplotlib
+    - python-statsmodels
+  verify:
+    pythonImports: [numpy, scipy, sympy, matplotlib, statsmodels]

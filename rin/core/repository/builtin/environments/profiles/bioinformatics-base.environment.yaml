@@ -1,0 +1,21 @@
+apiVersion: rin.dev/v1
+kind: EnvironmentProfile
+metadata:
+  id: bioinformatics-base
+  name: Bioinformatics base
+  version: 1.0.0
+spec:
+  packages:
+    - system-git
+    - system-make
+    - system-gcc
+    - system-g++
+    - system-pkg-config
+    - python-numpy
+    - python-pandas
+    - python-scipy
+    - python-scikit-learn
+    - python-matplotlib
+    - python-biopython
+  verify:
+    pythonImports: [numpy, pandas, scipy, sklearn, matplotlib, Bio]

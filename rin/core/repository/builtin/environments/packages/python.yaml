@@ -1,0 +1,42 @@
+apiVersion: rin.dev/v1
+kind: EnvironmentPackageCatalog
+metadata:
+  id: python-packages
+  name: Python packages
+  version: 1.0.0
+spec:
+  ecosystem: python
+  packages:
+    - { id: python-numpy, name: numpy }
+    - { id: python-pandas, name: pandas }
+    - { id: python-scipy, name: scipy }
+    - { id: python-scikit-learn, name: scikit-learn }
+    - { id: python-matplotlib, name: matplotlib }
+    - { id: python-seaborn, name: seaborn }
+    - { id: python-statsmodels, name: statsmodels }
+    - { id: python-sympy, name: sympy }
+    - { id: python-jupyter, name: jupyter }
+    - { id: python-ipykernel, name: ipykernel }
+    - { id: python-notebook, name: notebook }
+    - { id: python-ipython, name: ipython }
+    - { id: python-nbformat, name: nbformat }
+    - { id: python-pytest, name: pytest }
+    - { id: python-tqdm, name: tqdm }
+    - { id: python-requests, name: requests }
+    - { id: python-httpx, name: httpx }
+    - { id: python-aiohttp, name: aiohttp }
+    - { id: python-aiohappyeyeballs, name: aiohappyeyeballs }
+    - { id: python-aioitertools, name: aioitertools }
+    - { id: python-aioboto3, name: aioboto3 }
+    - { id: python-attrs, name: attrs }
+    - { id: python-beautifulsoup4, name: beautifulsoup4 }
+    - { id: python-lxml, name: lxml }
+    - { id: python-pyyaml, name: pyyaml }
+    - { id: python-openpyxl, name: openpyxl }
+    - { id: python-h5py, name: h5py }
+    - { id: python-xarray, name: xarray }
+    - { id: python-netcdf4, name: netcdf4 }
+    - { id: python-pyarrow, name: pyarrow }
+    - { id: python-polars, name: polars }
+    # 数据修正：旧仓库 bioinformatics-base profile 引用该包但目录缺失（断引用），补入目录。
+    - { id: python-biopython, name: biopython }

@@ -15,6 +15,8 @@ export interface Config {
   port: number
   /** Listen host (loopback or all-interfaces literal); defaults to 127.0.0.1. */
   host: string
+  /** When false, keep the service mounted (health reports it) but do not listen. Defaults to true. */
+  enabled?: boolean
   /** Optional default repository root, used when a request omits ?root=. */
   repositoryRoot?: string
   /** Optional static frontend root; defaults to the package's static/ directory. */
@@ -44,6 +46,10 @@ export interface HealthServices {
   promptMemory: boolean
   evolution: boolean
   skillMemory: boolean
+  agents: boolean
+  notes: boolean
+  sandboxes: boolean
+  tokenOptimization: boolean
 }
 
 /** GET /api/health response body. */
@@ -54,10 +60,13 @@ export interface HealthBody {
   services: HealthServices
 }
 
+/** The smart-pruning policy levels (mirrors @rin/smart-pruning). */
+export type SmartPruningLevel = 'conservative' | 'balanced' | 'aggressive'
+
 /** Smart-pruning state fields the status endpoint reports. */
 export interface SmartPruningStatus {
   enabled: boolean
-  level: string
+  level: SmartPruningLevel
   mode: string
 }
 
@@ -98,4 +107,22 @@ export interface EnvironmentPlanQuery {
 /** Minimal smart-pruning service surface read through ctx.get(). */
 export interface SmartPruningRef {
   getStatus(): SmartPruningStatus
+  setEnabled(enabled: boolean): SmartPruningStatus
+  setLevel(level: SmartPruningLevel): SmartPruningStatus
+}
+
+/** The response-compression styles the token-optimization knob accepts. */
+export type ResponseStyle = 'off' | 'caveman' | 'ponytail'
+
+/** Current token-optimization knob values. */
+export interface TokenOptimizationStatus {
+  responseStyle: ResponseStyle
+  cleanPrompt: boolean
+}
+
+/** Minimal token-optimization service surface read through ctx.get(). */
+export interface TokenOptimizationRef {
+  getStatus(): TokenOptimizationStatus
+  setResponseStyle(style: ResponseStyle): TokenOptimizationStatus
+  setCleanPrompt(enabled: boolean): TokenOptimizationStatus
 }

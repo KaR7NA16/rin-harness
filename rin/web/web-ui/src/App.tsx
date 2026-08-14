@@ -7,6 +7,9 @@ import PromptMemoryPage from './pages/PromptMemoryPage'
 import SkillMemoryPage from './pages/SkillMemoryPage'
 import EvolutionPage from './pages/EvolutionPage'
 import TokenOptimizationPage from './pages/TokenOptimizationPage'
+import NotesPage from './pages/NotesPage'
+import SandboxesPage from './pages/SandboxesPage'
+import AgentWorkspacePage from './pages/AgentWorkspacePage'
 
 interface NavItem {
   path: string
@@ -22,6 +25,9 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/skill-memory', label: 'SkillMemory' },
   { path: '/evolution', label: 'Evolution' },
   { path: '/token-optimization', label: 'TokenOptimization' },
+  { path: '/notes', label: 'Notes' },
+  { path: '/sandboxes', label: 'Sandboxes' },
+  { path: '/agents', label: 'Agents' },
 ]
 
 export default function App() {
@@ -52,6 +58,9 @@ export default function App() {
           <Route path="/skill-memory" element={<SkillMemoryPage />} />
           <Route path="/evolution" element={<EvolutionPage />} />
           <Route path="/token-optimization" element={<TokenOptimizationPage />} />
+          <Route path="/notes" element={<NotesPage />} />
+          <Route path="/sandboxes" element={<SandboxesPage />} />
+          <Route path="/agents" element={<AgentWorkspacePage />} />
           <Route path="*" element={<Navigate to="/repository" replace />} />
         </Routes>
       </main>

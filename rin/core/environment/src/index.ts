@@ -2,8 +2,9 @@
  * rin environment — Cordis plugin entry.
  *
  * Exposes a ctx.environment service that reads the asset repository and builds
- * the install plan (preflight + stages + verification) for one profile.
- * Execution of the plan in a sandbox is the NEXT milestone.
+ * the install plan (preflight + stages + verification) for one profile, plus
+ * the install-run orchestration (exec.ts) that executes the plan against an
+ * injected sandbox executor.
  *
  * @module @rin/environment
  */
@@ -15,6 +16,19 @@ import { buildInstallPlan } from './plan.ts'
 
 export type * from './types.ts'
 export { buildInstallPlan, resolveEnvironment } from './plan.ts'
+export type * from './exec.ts'
+export {
+  approveInstallRun,
+  createInstallRun,
+  executeInstallRun,
+  type InstallExecutor,
+  type InstallRun,
+  type InstallRunInput,
+  type InstallRunStatus,
+  type InstallStageLog,
+  type InstallStageStatus,
+  type StageExecutionResult,
+} from './exec.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {

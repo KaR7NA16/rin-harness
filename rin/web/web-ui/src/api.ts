@@ -3,7 +3,8 @@
  *
  * Every endpoint returns application/json. A non-2xx response carries the
  * {"error": "<message>"} envelope; a network failure surfaces as ApiError with
- * status 0. Callers see exactly one failure shape.
+ * status 0. Callers see exactly one failure shape. GET and POST share one
+ * response parser.
  */
 
 export class ApiError extends Error {
@@ -28,21 +29,48 @@ export async function apiGet<T>(path: string): Promise<T> {
   try {
     response = await fetch(path, { headers: { Accept: 'application/json' } })
   } catch (cause) {
-    const detail = cause instanceof Error ? cause.message : String(cause)
-    throw new ApiError(0, 'network error: ' + detail)
+    throw new ApiError(0, 'network error: ' + networkMessage(cause))
   }
+  return parseJsonResponse<T>(response)
+}
 
+/**
+ * POST a JSON body to an endpoint and parse its response.
+ * @param path - the absolute-path URL, e.g. "/api/notes/write".
+ * @param body - the JSON-serializable request body.
+ * @returns the parsed JSON body.
+ * @throws ApiError on a non-2xx status or a network failure.
+ */
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  let response: Response
+  try {
+    response = await fetch(path, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  } catch (cause) {
+    throw new ApiError(0, 'network error: ' + networkMessage(cause))
+  }
+  return parseJsonResponse<T>(response)
+}
+
+/** Parse a JSON response, throwing ApiError on non-2xx with the error envelope. */
+async function parseJsonResponse<T>(response: Response): Promise<T> {
   let body: unknown = null
   try {
     body = await response.json()
   } catch {
     body = null
   }
-
   if (!response.ok) {
     throw new ApiError(response.status, errorMessage(body, response))
   }
   return body as T
+}
+
+function networkMessage(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause)
 }
 
 function errorMessage(body: unknown, response: Response): string {

@@ -11,6 +11,9 @@
     { "path": "./optimization/token-optimization" },
     { "path": "./optimization/smart-pruning" },
     { "path": "./learning/evolution" },
-    { "path": "./web/web-server" }
+    { "path": "./web/web-server" },
+    { "path": "./workspace/agents" },
+    { "path": "./workspace/sandboxes" },
+    { "path": "./notes/notes" }
   ]
 }

@@ -325,9 +325,11 @@ export interface SkillLearningOverview {
   memories: SkillMemoryOverview[]
 }
 
+export type SmartPruningLevel = 'conservative' | 'balanced' | 'aggressive'
+
 export interface SmartPruningStatus {
   enabled: boolean
-  level: string
+  level: SmartPruningLevel
   mode: string
 }
 
@@ -367,3 +369,249 @@ export interface EvolutionOverview {
   recentCandidates: SkillCandidate[]
   events: SkillLearningEvent[]
 }
+
+// ---------------------------------------------------------------------------
+// agents
+// ---------------------------------------------------------------------------
+
+export type AgentPermissionMode = 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions'
+
+export interface AgentResources {
+  environmentProfileId?: string
+  skillIds: string[]
+  workflowIds: string[]
+}
+
+/** A repository agent record with its on-disk content revision. */
+export interface AgentRecord {
+  version: number
+  kind: string
+  name: string
+  description: string
+  systemPrompt: string
+  model?: string
+  permissionMode?: AgentPermissionMode
+  tools: string[]
+  resources: AgentResources
+  revision: string
+}
+
+export interface RuntimeAgent {
+  name: string
+  description: string
+  systemPrompt: string
+  model?: string
+  tools: string[]
+  color?: string
+}
+
+/** A proposal produced from user instructions, pending human review. */
+export interface AgentProposal {
+  name: string
+  description: string
+  systemPrompt: string
+  model?: string
+  permissionMode?: AgentPermissionMode
+  tools: string[]
+}
+
+/** Caller-supplied fields for creating one repository agent. */
+export interface AgentInput {
+  name: string
+  description: string
+  systemPrompt: string
+  model?: string
+  permissionMode?: AgentPermissionMode
+  tools?: string[]
+  resources?: {
+    environmentProfileId?: string
+    skillIds?: string[]
+    workflowIds?: string[]
+  }
+}
+
+export interface AgentsPayload { agents: AgentRecord[] }
+export interface AgentPayload { agent: AgentRecord }
+export interface ProjectionPayload { ids: string[] }
+export interface ProposalPayload { proposal: AgentProposal }
+
+// ---------------------------------------------------------------------------
+// sandboxes
+// ---------------------------------------------------------------------------
+
+export type SandboxType = 'local-sandbox' | 'container' | 'remote'
+export type ContainerRuntime = 'docker' | 'podman' | 'auto'
+
+export interface ContainerMount { host: string; guest: string; ro?: boolean }
+export interface ContainerPort { host: number; guest: number }
+
+export interface ContainerConfig {
+  runtime?: ContainerRuntime
+  image: string
+  workdir?: string
+  mounts?: ContainerMount[]
+  env?: Record<string, string>
+  ports?: ContainerPort[]
+  shell?: string
+}
+
+export interface RemoteConfig {
+  host: string
+  port?: number
+  user: string
+  identityFile?: string
+  useDocker?: boolean
+}
+
+export interface SandboxProfile {
+  id: string
+  name: string
+  type: SandboxType
+  isDefault: boolean
+  repositoryId?: string
+  repositoryPath?: string
+  environmentProfileId?: string
+  container?: ContainerConfig
+  remote?: RemoteConfig
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SandboxProfileInput {
+  name: string
+  type: SandboxType
+  isDefault?: boolean
+  repositoryId?: string
+  repositoryPath?: string
+  environmentProfileId?: string
+  container?: ContainerConfig
+  remote?: RemoteConfig
+}
+
+export interface ResolverCapabilities {
+  platform: string
+  runtimes: {
+    apt: boolean
+    python: boolean
+    pip: boolean
+    r: boolean
+    npm: boolean
+    tlmgr: boolean
+  }
+}
+
+export type InstallRunStatus =
+  | 'blocked' | 'resolved' | 'approved' | 'provisioning' | 'verifying'
+  | 'ready' | 'failed' | 'rollback-needed'
+
+export type InstallStageStatus = 'running' | 'succeeded' | 'failed'
+
+export interface InstallStageLog {
+  stageId: string
+  command: string
+  status: InstallStageStatus
+  code?: number
+  stdout?: string
+  stderr?: string
+  retryable?: boolean
+  startedAt: string
+  finishedAt?: string
+}
+
+export interface InstallRun {
+  id: string
+  sandboxProfileId: string
+  repositoryId: string
+  environmentProfileId: string
+  status: InstallRunStatus
+  plan: ResolvedEnvironmentPlan
+  logs: InstallStageLog[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SandboxesPayload { sandboxes: SandboxProfile[] }
+export interface SandboxPayload { sandbox: SandboxProfile }
+export interface RemovedPayload { removed: boolean }
+export interface CapabilitiesPayload { capabilities: ResolverCapabilities }
+export interface InstallRunPayload { run: InstallRun }
+
+// ---------------------------------------------------------------------------
+// notes
+// ---------------------------------------------------------------------------
+
+export interface NoteLink {
+  raw: string
+  target: string
+  alias?: string
+}
+
+export interface NoteMeta {
+  path: string
+  name: string
+  folder: string
+  title: string
+  sizeBytes: number
+  modifiedAt: string
+  tags: string[]
+  links: NoteLink[]
+}
+
+export type NoteDocument = NoteMeta & { content: string }
+
+export interface NoteSearchResult {
+  path: string
+  name: string
+  title: string
+  snippet: string
+  score: number
+}
+
+export interface NoteGraphNode {
+  id: string
+  name: string
+  folder: string
+  tag: string | null
+}
+
+export interface NoteGraphEdge {
+  from: string
+  to: string
+}
+
+export interface NoteGraph {
+  nodes: NoteGraphNode[]
+  edges: NoteGraphEdge[]
+}
+
+export interface NoteTodo {
+  notePath: string
+  noteName: string
+  line: number
+  text: string
+  done: boolean
+}
+
+export interface NoteTemplate {
+  name: string
+  path: string
+}
+
+export interface NotesPayload { notes: NoteMeta[] }
+export interface NotePayload { note: NoteDocument }
+export interface NoteSearchPayload { results: NoteSearchResult[] }
+export interface NoteGraphPayload { graph: NoteGraph }
+export interface NoteTodosPayload { todos: NoteTodo[] }
+export interface NoteTemplatesPayload { templates: NoteTemplate[] }
+
+// ---------------------------------------------------------------------------
+// token optimization
+// ---------------------------------------------------------------------------
+
+export type ResponseStyle = 'off' | 'caveman' | 'ponytail'
+
+export interface TokenOptimizationStatus {
+  responseStyle: ResponseStyle
+  cleanPrompt: boolean
+}
+

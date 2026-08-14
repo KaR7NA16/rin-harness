@@ -339,6 +339,122 @@ select:disabled { opacity: 0.5; }
   word-break: break-word;
 }
 
+
+/* ---------- controls (token page + forms) ---------- */
+
+.radio-group {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+input[type="checkbox"] { accent-color: var(--accent); }
+input[type="radio"] { accent-color: var(--accent); }
+
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+  max-width: 360px;
+}
+
+.range-value { min-width: 110px; color: var(--accent); }
+
+.range-ticks {
+  display: flex;
+  justify-content: space-between;
+  max-width: 360px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---------- forms ---------- */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.form-grid .field-label { text-align: right; }
+
+.form-grid input, .form-grid select, .form-grid textarea { width: 100%; }
+
+.editor-textarea {
+  width: 100%;
+  min-height: 140px;
+  background: #0d131a;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.editor-textarea:focus { outline: none; border-color: var(--accent); }
+
+.button-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+/* ---------- note graph ---------- */
+
+.graph-svg {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.graph-edge { stroke: #26313d; stroke-width: 1.5; }
+.graph-node { fill: var(--accent); }
+.graph-label { fill: var(--muted); font-size: 10px; font-family: var(--mono); }
+
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 900px) {

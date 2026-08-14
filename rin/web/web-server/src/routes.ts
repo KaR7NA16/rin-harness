@@ -15,13 +15,20 @@ import type { SessionSearchStore } from '@rin/session-search'
 import type { PromptMemoryService } from '@rin/prompt-memory'
 import type { EvolutionService } from '@rin/evolution'
 import type { SkillMemoryService } from '@rin/skill-memory'
-import type { Config, JsonResponse, SmartPruningRef } from './types.ts'
+import type { AgentStore } from '@rin/agents'
+import type { NotesStore } from '@rin/notes'
+import type { SandboxStore } from '@rin/sandboxes'
+import type { Config, JsonResponse, SmartPruningRef, TokenOptimizationRef } from './types.ts'
 import { handle as handleCore } from './routes/core.ts'
 import { handle as handleKnowledge } from './routes/knowledge.ts'
 import { handle as handleSessions } from './routes/sessions.ts'
 import { handle as handlePromptMemory } from './routes/prompt-memory.ts'
 import { handle as handleEvolution } from './routes/evolution.ts'
 import { handle as handleSkillMemory } from './routes/skill-memory.ts'
+import { handle as handleAgents } from './routes/agents.ts'
+import { handle as handleNotes } from './routes/notes.ts'
+import { handle as handleSandboxes } from './routes/sandboxes.ts'
+import { handle as handleToken } from './routes/token.ts'
 
 /** Lazily-read optional @rin services, resolved at request time. */
 export interface RinServiceRefs {
@@ -33,12 +40,18 @@ export interface RinServiceRefs {
   promptMemory(): PromptMemoryService | undefined
   evolution(): EvolutionService | undefined
   skillMemory(): SkillMemoryService | undefined
+  agents(): AgentStore | undefined
+  notes(): NotesStore | undefined
+  sandboxes(): SandboxStore | undefined
+  tokenOptimization(): TokenOptimizationRef | undefined
 }
 
 /**
  * Dispatch one API pathname to its owning route module.
  * @param pathname - the URL pathname (no query string).
  * @param search - the URL query string (including the leading "?").
+ * @param method - the request method (GET/HEAD/POST).
+ * @param body - the parsed JSON body for POST requests, or undefined.
  * @param services - thunks that read the optional @rin services.
  * @param config - the resolved plugin configuration.
  * @returns the shaped response, or null when no route claims the pathname.
@@ -46,13 +59,19 @@ export interface RinServiceRefs {
 export async function routeApi(
   pathname: string,
   search: string,
+  method: string,
+  body: unknown,
   services: RinServiceRefs,
   config: Config,
 ): Promise<JsonResponse | null> {
-  return (await handleCore(pathname, search, services, config))
-    ?? (await handleKnowledge(pathname, search, services, config))
-    ?? (await handleSessions(pathname, search, services, config))
-    ?? (await handlePromptMemory(pathname, search, services, config))
-    ?? (await handleEvolution(pathname, search, services, config))
-    ?? (await handleSkillMemory(pathname, search, services, config))
+  return (await handleCore(pathname, search, method, body, services, config))
+    ?? (await handleKnowledge(pathname, search, method, body, services, config))
+    ?? (await handleSessions(pathname, search, method, body, services, config))
+    ?? (await handlePromptMemory(pathname, search, method, body, services, config))
+    ?? (await handleEvolution(pathname, search, method, body, services, config))
+    ?? (await handleSkillMemory(pathname, search, method, body, services, config))
+    ?? (await handleAgents(pathname, search, method, body, services, config))
+    ?? (await handleNotes(pathname, search, method, body, services, config))
+    ?? (await handleSandboxes(pathname, search, method, body, services, config))
+    ?? (await handleToken(pathname, search, method, body, services, config))
 }

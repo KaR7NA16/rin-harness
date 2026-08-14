@@ -4,9 +4,10 @@ rin environment — the projector that resolves an EnvironmentProfile against th
 asset repository's package catalogs and emits a dependency-ordered install plan.
 
 It owns the plan schema (types.ts), the resolver and topological planner
-(plan.ts), and the Cordis plugin entry (index.ts) exposing ctx.environment with
-a plan(rootPath, profileId) service. Execution and verification in a sandbox are
-the NEXT milestone; this package currently produces the declarative plan only.
+(plan.ts), the install-run orchestration (exec.ts: create/approve/execute with
+per-stage audit logs), and the Cordis plugin entry (index.ts) exposing
+ctx.environment with a plan(rootPath, profileId) service. The sandbox executor
+is injected by @rin/sandboxes; this package never spawns processes itself.
 
 ## Service API
 
@@ -32,9 +33,11 @@ Independent — no interaction with the model prefix.
 
 ## Known Limitations and Deferred Work
 
-- Plan only. The planner resolves packages and topologically orders them, but
-  does not execute installation or run verification; the sandbox executor is the
-  next milestone.
+- No bundled executor. exec.ts orchestrates runs but the InstallExecutor must be
+  injected (provided by @rin/sandboxes); real-machine end-to-end execution is
+  pending that seam.
+- One audit-log entry per stage: stage.commands are joined with ' && ' in the
+  log; per-command granularity is not recorded.
 - No cross-repository version solving. dependencies are package-id edges within
   one repository; version-range solving and lock resolution are deferred.
 - No ecosystem installers. Steps name packages and ecosystems but carry no

@@ -21,8 +21,12 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^"
   },
+  "dependencies": {
+    "@deepseek-ai/dsh-tools": "workspace:^"
+  },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/schemastery": "workspace:^",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   }
