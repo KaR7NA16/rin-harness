@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rin · web</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-brand">rin</div>
+    <div class="topbar-base">API base: <code id="api-base"></code></div>
+    <button id="refresh-btn" type="button" title="Reload all panels">Refresh</button>
+  </header>
+
+  <main class="layout">
+    <section class="panel" id="health-panel">
+      <div class="panel-head"><h2 class="panel-title">Health</h2></div>
+      <div class="panel-body" id="health-body"></div>
+    </section>
+
+    <section class="panel" id="repository-panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Repository</h2>
+        <form id="repo-form" class="toolbar" autocomplete="off">
+          <label class="field-label" for="root-input">root</label>
+          <input id="root-input" type="text" placeholder="optional absolute path" />
+          <button type="submit">Load</button>
+        </form>
+      </div>
+      <div class="repo-split">
+        <aside class="asset-pane" id="asset-pane"></aside>
+        <div class="detail-pane">
+          <div class="detail-header" id="detail-header">No asset selected</div>
+          <pre class="detail-pre" id="detail-pre">Select an asset to inspect its JSON.</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="environment-panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Environment</h2>
+        <div class="toolbar">
+          <label class="field-label" for="profile-select">profile</label>
+          <select id="profile-select"></select>
+          <button id="plan-btn" type="button">Plan</button>
+        </div>
+      </div>
+      <div class="panel-body" id="plan-body"></div>
+    </section>
+
+    <section class="panel" id="smart-pruning-panel">
+      <div class="panel-head"><h2 class="panel-title">Smart pruning</h2></div>
+      <div class="panel-body" id="pruning-body"></div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

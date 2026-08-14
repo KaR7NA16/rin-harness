@@ -1,5 +1,7 @@
 # PHASE4 — Web UI 功能适配设计稿
 
+> ⚠️ 已转向：改为**独立端口独立 Web UI**（见 PHASE4-STANDALONE.md）。本文的 SlotMap/typert/tsdown 集成技术路线作废，仅「功能适配映射表」仍作功能清单参考。
+
 > 本文是 Phase 4（client 插件）的**设计文档**，不是实现。完整代码实现留到真机（有 test:gui + tsdown bundle + 视觉验证）。
 > 零迁移痕迹约束同 MIGRATION.md：对参考项目用「设计参考」这类中性表述。
 

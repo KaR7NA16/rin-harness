@@ -10,6 +10,7 @@
     { "path": "./memory/session-search" },
     { "path": "./optimization/token-optimization" },
     { "path": "./optimization/smart-pruning" },
-    { "path": "./evolution/evolution" }
+    { "path": "./evolution/evolution" },
+    { "path": "./web/web-server" }
   ]
 }
