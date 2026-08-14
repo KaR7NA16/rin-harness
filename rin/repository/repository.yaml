@@ -1,0 +1,18 @@
+apiVersion: rin.dev/v1
+kind: AssetRepository
+metadata:
+  id: built-in
+  name: Built-in repository
+  version: 1.0.0
+spec:
+  mutable: true
+  roots:
+    environments: environments
+    agents: agents
+    skills: skills
+    workflows: workflows
+    tools: tools
+    knowledge: knowledge
+    policies: policies
+    outputs: outputs
+    bundles: bundles

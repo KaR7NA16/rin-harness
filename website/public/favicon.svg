@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bgE" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16233d"/>
+      <stop offset="1" stop-color="#0a101f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="url(#bgE)"/>
+  <g transform="translate(512,502) scale(1.08) translate(-400,-302.5)" fill="none" stroke-linecap="round" color="#f2f6fa">
+    <path d="M130 460 C85 452 45 425 55 385 C63 352 98 336 124 342 C150 235 255 120 400 120 C545 120 650 235 676 342 C702 336 737 352 745 385 C755 425 715 452 670 460 C625 496 175 496 130 460 Z" stroke="currentColor" stroke-width="26"/>
+    <circle cx="300" cy="300" r="26" fill="currentColor" stroke="none"/>
+    <circle cx="500" cy="300" r="26" fill="currentColor" stroke="none"/>
+    <ellipse cx="400" cy="368" rx="105" ry="62" fill="#d7dee6" stroke="none"/>
+    <path d="M400 340 C400 360 380 380 360 392 M400 340 C400 360 420 380 440 392" stroke="#10151f" stroke-width="20"/>
+    <path d="M400 336 L400 352" stroke="#10151f" stroke-width="16"/>
+    <path d="M212 368 L268 352 M218 402 L272 388" stroke="currentColor" stroke-width="18"/>
+    <path d="M588 368 L532 352 M582 402 L528 388" stroke="currentColor" stroke-width="18"/>
+  </g>
+</svg>
