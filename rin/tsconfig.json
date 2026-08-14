@@ -2,26 +2,14 @@
   "extends": "../tsconfig.base.json",
   "files": [],
   "references": [
-    {
-      "path": "./core/repository"
-    },
-    {
-      "path": "./core/environment"
-    },
-    {
-      "path": "./memory/knowledge"
-    },
-    {
-      "path": "./memory/prompt-memory"
-    },
-    {
-      "path": "./memory/skill-memory"
-    },
-    {
-      "path": "./memory/session-search"
-    },
-    {
-      "path": "./optimization/token-optimization"
-    }
+    { "path": "./core/repository" },
+    { "path": "./core/environment" },
+    { "path": "./memory/knowledge" },
+    { "path": "./memory/prompt-memory" },
+    { "path": "./memory/skill-memory" },
+    { "path": "./memory/session-search" },
+    { "path": "./optimization/token-optimization" },
+    { "path": "./optimization/smart-pruning" },
+    { "path": "./evolution/evolution" }
   ]
 }

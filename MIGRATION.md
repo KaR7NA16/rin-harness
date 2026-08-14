@@ -14,7 +14,7 @@ dsh 给「组合 + 运行时」，rin 给「资产 + 环境」。第一公民是
 rin 不是 dsh 的平行层，而是 dsh 的插件生态。它只做两件事：(1) 把能力注册进 dsh 已有的 seam（compaction / subagent / shell / lsp / skill / tool）；(2) 引入唯一一个新 seam：资产仓库 ctx.repository。
 
 - 划界从「命名空间」换成「seam」：@rin/* 只是标签，每个 rin 插件最终挂在 dsh 的某个 seam 上。
-- 投影机制：运行时 effect-based 投影（增删资产即时生效），非构建期 codegen。
+- 投影机制：按 seam 分层——运行时注册型 seam（system-prompt / compaction / subagent / skill）用 effect-based 注册；文件型 seam（agent-presets 的 preset 目录）用生成式投影（从仓库资产生成 agent.cordis.yml）。两种机制并存，不是单一「运行时投影」。
 - ctx.repository 是普通 service（像 ctx.llm），非特权核心；「第一公民」指生态中心插件。
 
 ### 1.1 目录结构（内外层 + group）
