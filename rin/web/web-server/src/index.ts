@@ -29,6 +29,12 @@ export {
   error,
   healthResponse,
   smartPruningStatusResponse,
+  notMounted,
+  mounted,
+  mountedValue,
+  queryParam,
+  parsePositiveInt,
+  parsePromptMemoryTarget,
   errorMessage,
 } from './http.ts'
 export { resolveStaticPath, readStaticFile, contentTypeFor } from './static.ts'
@@ -49,6 +55,11 @@ export const Config: z<RinWebConfig> = z.object({
   host: z.string().default('127.0.0.1'),
   repositoryRoot: z.string(),
   staticRoot: z.string(),
+  knowledgeDbPath: z.string(),
+  skillMemoryRoots: z.object({
+    globalConfigRoot: z.string().required(),
+    projectConfigRoot: z.string(),
+  }),
 })
 
 /** The node:http server service installed by apply(). */
@@ -59,6 +70,11 @@ export class WebServerService extends Service {
       repository: () => ctx.get('repository'),
       environment: () => ctx.get('environment'),
       smartPruning: () => ctx.get('smartPruning'),
+      knowledge: () => ctx.get('knowledge'),
+      sessionSearch: () => ctx.get('sessionSearch'),
+      promptMemory: () => ctx.get('promptMemory'),
+      evolution: () => ctx.get('evolution'),
+      skillMemory: () => ctx.get('skill-memory'),
     }
     const server = createWebServer(config, services)
     ctx.effect(() => () => server.close(), 'web-server.close')

@@ -19,6 +19,21 @@
     },
     {
       "path": "../../core/environment"
+    },
+    {
+      "path": "../../memory/knowledge"
+    },
+    {
+      "path": "../../memory/session-search"
+    },
+    {
+      "path": "../../memory/prompt-memory"
+    },
+    {
+      "path": "../../memory/skill-memory"
+    },
+    {
+      "path": "../../learning/evolution"
     }
   ]
 }

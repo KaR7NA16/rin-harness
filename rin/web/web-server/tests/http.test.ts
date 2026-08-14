@@ -3,9 +3,15 @@ import {
   parseBoolean,
   parseRepositoryQuery,
   parseEnvironmentPlanQuery,
+  queryParam,
+  parsePositiveInt,
+  parsePromptMemoryTarget,
   healthResponse,
   error,
   smartPruningStatusResponse,
+  notMounted,
+  mounted,
+  mountedValue,
   errorMessage,
 } from '../src/http.ts'
 
@@ -68,15 +74,61 @@ describe('parseEnvironmentPlanQuery', () => {
   })
 })
 
+describe('queryParam', () => {
+  test('reads a value and treats blank/absent as undefined', () => {
+    expect(queryParam('?db=/tmp/kb', 'db')).toBe('/tmp/kb')
+    expect(queryParam('', 'db')).toBeUndefined()
+    expect(queryParam('?db=', 'db')).toBeUndefined()
+  })
+})
+
+describe('parsePositiveInt', () => {
+  test('accepts positive integers only', () => {
+    expect(parsePositiveInt('?limit=10', 'limit')).toBe(10)
+    expect(parsePositiveInt('?limit=0', 'limit')).toBeUndefined()
+    expect(parsePositiveInt('?limit=-1', 'limit')).toBeUndefined()
+    expect(parsePositiveInt('?limit=abc', 'limit')).toBeUndefined()
+    expect(parsePositiveInt('', 'limit')).toBeUndefined()
+  })
+})
+
+describe('parsePromptMemoryTarget', () => {
+  test('accepts soul/brief/user and rejects others', () => {
+    expect(parsePromptMemoryTarget('?target=brief')).toBe('brief')
+    expect(parsePromptMemoryTarget('?target=user')).toBe('user')
+    expect(parsePromptMemoryTarget('?target=soul')).toBe('soul')
+    expect(parsePromptMemoryTarget('?target=bad')).toBeUndefined()
+    expect(parsePromptMemoryTarget('')).toBeUndefined()
+  })
+})
+
 describe('response shaping', () => {
   test('health body reports mounted services', () => {
-    expect(healthResponse({ repository: true, environment: true, smartPruning: false })).toEqual({
+    expect(healthResponse({
+      repository: true,
+      environment: false,
+      smartPruning: true,
+      knowledge: false,
+      sessionSearch: true,
+      promptMemory: false,
+      evolution: true,
+      skillMemory: false,
+    })).toEqual({
       status: 200,
       body: {
         ok: true,
         name: 'rin-web',
         version: '0.1.0',
-        services: { repository: true, environment: true, smartPruning: false },
+        services: {
+          repository: true,
+          environment: false,
+          smartPruning: true,
+          knowledge: false,
+          sessionSearch: true,
+          promptMemory: false,
+          evolution: true,
+          skillMemory: false,
+        },
       },
     })
   })
@@ -88,6 +140,14 @@ describe('response shaping', () => {
     expect(smartPruningStatusResponse({ mounted: true, enabled: true, level: 'balanced', mode: 'deterministic' })).toEqual({
       status: 200,
       body: { mounted: true, enabled: true, level: 'balanced', mode: 'deterministic' },
+    })
+  })
+  test('v2 mounted envelopes', () => {
+    expect(notMounted()).toEqual({ status: 200, body: { mounted: false } })
+    expect(mounted({ a: 1, b: 'x' })).toEqual({ status: 200, body: { mounted: true, a: 1, b: 'x' } })
+    expect(mountedValue('sources', [{ id: 's1' }])).toEqual({
+      status: 200,
+      body: { mounted: true, sources: [{ id: 's1' }] },
     })
   })
   test('errorMessage coerces thrown values', () => {

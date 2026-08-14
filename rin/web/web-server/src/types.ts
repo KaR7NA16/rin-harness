@@ -2,7 +2,7 @@
  * rin web-server — shared types.
  *
  * Owns the plugin configuration and the JSON response envelopes served by the
- * v1 API. Pure types only: no runtime code and no framework imports, so the
+ * v1/v2 API. Pure types only: no runtime code and no framework imports, so the
  * HTTP helpers (http.ts) and the smoke script can import this module without
  * pulling the cordis graph.
  *
@@ -17,15 +17,33 @@ export interface Config {
   host: string
   /** Optional default repository root, used when a request omits ?root=. */
   repositoryRoot?: string
-  /** Optional static frontend root; defaults to the package's web/ directory. */
+  /** Optional static frontend root; defaults to the package's static/ directory. */
   staticRoot?: string
+  /** Optional knowledge database path; knowledge endpoints accept ?db= to override. */
+  knowledgeDbPath?: string
+  /** Optional skill-memory config roots used by /api/skill-memory/overview. */
+  skillMemoryRoots?: SkillMemoryRootsConfig
 }
+
+/** Skill-memory configuration roots (mirrors @rin/skill-memory's SkillMemoryRoots). */
+export interface SkillMemoryRootsConfig {
+  globalConfigRoot: string
+  projectConfigRoot?: string
+}
+
+/** Prompt-memory file target read by /api/prompt-memory/file. */
+export type PromptMemoryTarget = 'soul' | 'brief' | 'user'
 
 /** Which @rin services are mounted in the composition. */
 export interface HealthServices {
   repository: boolean
   environment: boolean
   smartPruning: boolean
+  knowledge: boolean
+  sessionSearch: boolean
+  promptMemory: boolean
+  evolution: boolean
+  skillMemory: boolean
 }
 
 /** GET /api/health response body. */

@@ -45,17 +45,18 @@ Base: `http://<host>:<port>`（默认 `http://127.0.0.1:8320`）。
 
 静态：`GET /` 伺服 `web/index.html`；`GET /<path>` 伺服 `web/` 下文件（path 穿越防护）；否则 404。
 
-## 4. MVP 范围与后续里程碑
+## 4. 范围与进度
 
-**MVP（本迭代）**：`/api/health` + `/api/repository` + `/api/environment/plan` + `/api/smart-pruning/status` + 静态前端四面板（health / repository / environment / smart-pruning）。
+**v1（已完成）**：`/api/health` + `/api/repository` + `/api/environment/plan` + `/api/smart-pruning/status` + vanilla 静态壳。
 
-**后续里程碑**（把其余 host 服务读接口加进 `/api/*`，均为只读展示）：
+**v2（已完成）**：新增 5 个服务的只读端点 + 用 React SPA 取代 vanilla 壳（完整 Web UI 主体）：
 
-- `knowledge`：`ctx.knowledge.open(dbPath)` 的列表/搜索。
-- `session-search`：`ctx.sessionSearch.browse/discover/read/scroll`。
-- `prompt-memory`：`ctx.promptMemory.readFile/getStatus/getConfig/readReviewLogs`。
-- `evolution`：`ctx.evolution.readConfig/readState/getCandidate`。
-- `skill-memory`：`ctx['skill-memory'].createStore`。
+- `/api/knowledge/{sources,documents,search,stats}` → `ctx.knowledge.open(dbPath)`。
+- `/api/sessions/{browse,discover,read}` → `ctx.sessionSearch`。
+- `/api/prompt-memory/{status,file,review-logs}` → `ctx.promptMemory`。
+- `/api/evolution/overview` → `ctx.evolution.readConfig/readState`。
+- `/api/skill-memory/overview` → `ctx['skill-memory'].createStore` + 路径助手枚举。
+- 前端 `@rin/web-ui`（Vite + React + Router，8 页），源码在 `rin/web/web-ui/`，真机构建（沙箱 vite spawn 被拦）。
 
 ## 5. 与 PHASE4-CLIENT.md 的关系
 

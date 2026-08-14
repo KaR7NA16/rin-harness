@@ -16,9 +16,15 @@ import {
   parseBoolean,
   parseRepositoryQuery,
   parseEnvironmentPlanQuery,
+  queryParam,
+  parsePositiveInt,
+  parsePromptMemoryTarget,
   healthResponse,
   error,
   smartPruningStatusResponse,
+  notMounted,
+  mounted,
+  mountedValue,
   errorMessage,
 } from '../src/http.ts'
 import { resolveStaticPath } from '../src/static.ts'
@@ -84,14 +90,47 @@ expect('parseEnvironmentPlanQuery defaults', parseEnvironmentPlanQuery('', 'darw
   tlmgr: false,
 })
 
+// queryParam / parsePositiveInt / parsePromptMemoryTarget
+expect('queryParam value', queryParam('?db=/tmp/kb', 'db'), '/tmp/kb')
+expect('queryParam missing', queryParam('', 'db'), undefined)
+expect('queryParam blank', queryParam('?db=', 'db'), undefined)
+expect('parsePositiveInt 10', parsePositiveInt('?limit=10', 'limit'), 10)
+expect('parsePositiveInt zero', parsePositiveInt('?limit=0', 'limit'), undefined)
+expect('parsePositiveInt negative', parsePositiveInt('?limit=-1', 'limit'), undefined)
+expect('parsePositiveInt non-numeric', parsePositiveInt('?limit=abc', 'limit'), undefined)
+expect('parsePositiveInt missing', parsePositiveInt('', 'limit'), undefined)
+expect('parsePromptMemoryTarget brief', parsePromptMemoryTarget('?target=brief'), 'brief')
+expect('parsePromptMemoryTarget user', parsePromptMemoryTarget('?target=user'), 'user')
+expect('parsePromptMemoryTarget soul', parsePromptMemoryTarget('?target=soul'), 'soul')
+expect('parsePromptMemoryTarget invalid', parsePromptMemoryTarget('?target=bad'), undefined)
+expect('parsePromptMemoryTarget missing', parsePromptMemoryTarget(''), undefined)
+
 // response shaping
-expect('healthResponse', healthResponse({ repository: true, environment: true, smartPruning: false }), {
+expect('healthResponse', healthResponse({
+  repository: true,
+  environment: false,
+  smartPruning: true,
+  knowledge: false,
+  sessionSearch: true,
+  promptMemory: false,
+  evolution: true,
+  skillMemory: false,
+}), {
   status: 200,
   body: {
     ok: true,
     name: 'rin-web',
     version: '0.1.0',
-    services: { repository: true, environment: true, smartPruning: false },
+    services: {
+      repository: true,
+      environment: false,
+      smartPruning: true,
+      knowledge: false,
+      sessionSearch: true,
+      promptMemory: false,
+      evolution: true,
+      skillMemory: false,
+    },
   },
 })
 expect('error envelope', error(400, 'repository root not configured; pass ?root='), {
@@ -105,6 +144,12 @@ expect('smart-pruning not mounted', smartPruningStatusResponse({ mounted: false 
 expect('smart-pruning mounted', smartPruningStatusResponse({ mounted: true, enabled: true, level: 'balanced', mode: 'deterministic' }), {
   status: 200,
   body: { mounted: true, enabled: true, level: 'balanced', mode: 'deterministic' },
+})
+expect('notMounted', notMounted(), { status: 200, body: { mounted: false } })
+expect('mounted object', mounted({ a: 1, b: 'x' }), { status: 200, body: { mounted: true, a: 1, b: 'x' } })
+expect('mountedValue array', mountedValue('sources', [{ id: 's1' }]), {
+  status: 200,
+  body: { mounted: true, sources: [{ id: 's1' }] },
 })
 expect('errorMessage Error', errorMessage(new Error('boom')), 'boom')
 expect('errorMessage string', errorMessage('plain'), 'plain')
@@ -122,7 +167,16 @@ expect('static dot segment', resolveStaticPath(root, '/a/./b'), null)
 expect('static empty segment', resolveStaticPath(root, '/a//b'), null)
 
 console.log('')
-console.log('sample health body:', inspect(healthResponse({ repository: true, environment: false, smartPruning: true }).body))
+console.log('sample health body:', inspect(healthResponse({
+  repository: true,
+  environment: false,
+  smartPruning: true,
+  knowledge: false,
+  sessionSearch: false,
+  promptMemory: false,
+  evolution: false,
+  skillMemory: false,
+}).body))
 
 if (failures > 0) {
   console.error('smoke: ' + failures + ' failure(s)')

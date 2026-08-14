@@ -14,6 +14,7 @@ import type {
   HealthBody,
   HealthServices,
   JsonResponse,
+  PromptMemoryTarget,
   RepositoryQuery,
   SmartPruningStatusBody,
 } from './types.ts'
@@ -78,6 +79,25 @@ export function parseEnvironmentPlanQuery(
   }
 }
 
+/** Read one query parameter, or undefined when absent or empty. */
+export function queryParam(search: string, key: string): string | undefined {
+  return first(new URLSearchParams(search), key)
+}
+
+/** Parse a positive-integer query parameter, or undefined when absent or invalid. */
+export function parsePositiveInt(search: string, key: string): number | undefined {
+  const raw = queryParam(search, key)
+  if (raw === undefined || !/^\d+$/.test(raw)) return undefined
+  const value = Number(raw)
+  return Number.isSafeInteger(value) && value > 0 ? value : undefined
+}
+
+/** Parse the /api/prompt-memory/file target, or undefined when absent or invalid. */
+export function parsePromptMemoryTarget(search: string): PromptMemoryTarget | undefined {
+  const value = queryParam(search, 'target')
+  return value === 'soul' || value === 'brief' || value === 'user' ? value : undefined
+}
+
 /** Shape a JSON response with an explicit status. */
 export function json(status: number, body: unknown): JsonResponse {
   return { status, body }
@@ -103,6 +123,21 @@ export function healthResponse(services: HealthServices): JsonResponse {
 /** Shape the /api/smart-pruning/status response. */
 export function smartPruningStatusResponse(body: SmartPruningStatusBody): JsonResponse {
   return json(200, body)
+}
+
+/** 200 {"mounted":false} envelope for an unmounted optional service. */
+export function notMounted(): JsonResponse {
+  return json(200, { mounted: false })
+}
+
+/** 200 {"mounted":true, ...body} envelope for an object service result. */
+export function mounted<T extends object>(body: T): JsonResponse {
+  return json(200, { mounted: true, ...body })
+}
+
+/** 200 {"mounted":true, [key]: value} envelope for an array or scalar result. */
+export function mountedValue(key: string, value: unknown): JsonResponse {
+  return json(200, { mounted: true, [key]: value })
 }
 
 /** Coerce an unknown thrown value to a readable message. */

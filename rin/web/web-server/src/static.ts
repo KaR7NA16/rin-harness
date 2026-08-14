@@ -34,7 +34,7 @@ const MIME_TYPES: Readonly<Record<string, string>> = {
 /**
  * Resolve a URL pathname to a file path under staticRoot.
  *
- * The root pathname "/" maps to web/index.html. Rejects traversal (".."),
+ * The root pathname "/" maps to static/index.html. Rejects traversal (".."),
  * backslash separators, and null bytes; returns null when the resolved path
  * would escape the static root.
  *
