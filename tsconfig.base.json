@@ -41,6 +41,8 @@
     "@rin/agents": ["./rin/workspace/agents/src"],
     "@rin/sandboxes": ["./rin/workspace/sandboxes/src"],
     "@rin/notes": ["./rin/notes/notes/src"],
+    "@rin/bundle": ["./rin/bundle/rin/src"],
+    "@rin/cli": ["./rin/cli/rin/src"],
       "@deepseek-ai/cordis": ["./vendor/cordis/src"],
       "@deepseek-ai/cosmokit": ["./vendor/cosmokit/src"],
       "@deepseek-ai/schemastery": ["./vendor/schemastery/src"],

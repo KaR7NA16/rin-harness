@@ -17,7 +17,7 @@ MIGRATION.md §1.1，更新迭代契约见 §9。
 | `optimization/` | token 与输出优化（三控件：开关 + 滑块） | `token-optimization`、`smart-pruning` |
 | `learning/` | 自我进化 | `evolution` |
 | `web/` | 独立 Web UI（独立端口 8320，不并入 dsh Web UI） | `web-server`、`web-ui` |
-| `tui/` | 终端产品（Phase 7，未建） | `tui` |
+| `gui/` | 桌面壳（Tauri 2 内嵌 web-ui，Phase 8，未建） | `gui` |
 | `cli/` | `rin` 启动器（profile 自举，Phase 8，未建） | `rin` |
 | `bundle/` | rin profile 装配层（cordis.patch.yml，Phase 8，未建） | `rin` |
 
@@ -42,7 +42,7 @@ MIGRATION.md §1.1，更新迭代契约见 §9。
 - host 包零外部运行时依赖：只用 `node:` 内置；`@deepseek-ai/cordis` 是 peerDep，`@deepseek-ai/schemastery` 是 devDep。
 - 可选 host 服务用 `ctx.get('name')` 读取；`ctx.<name>` 只用于自身 `inject` 声明的服务。
 - 聚合：`rin/tsconfig.json` 是唯一聚合（references 全部 package）；`tsconfig.base.json` 的 `paths` 有每个 `@rin/<name>` → `./rin/<group>/<name>/src` 的映射（根级合并点之一，见 MIGRATION.md §9）。
-- 产品层（web-ui / tui / cli / bundle）可以有构建或运行依赖；host 插件层保持零依赖。
+- 产品层（web-ui / gui / cli / bundle）可以有构建或运行依赖；host 插件层保持零依赖。
 
 ## 权威文档
 

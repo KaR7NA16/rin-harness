@@ -14,6 +14,8 @@
     { "path": "./web/web-server" },
     { "path": "./workspace/agents" },
     { "path": "./workspace/sandboxes" },
-    { "path": "./notes/notes" }
+    { "path": "./notes/notes" },
+    { "path": "./bundle/rin" },
+    { "path": "./cli/rin" }
   ]
 }

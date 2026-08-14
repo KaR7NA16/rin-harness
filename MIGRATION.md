@@ -15,7 +15,7 @@ dsh 给「组合 + 运行时」，rin 给「资产 + 环境」。第一公民是
 1. **审计补漏**：cyberpsychosis 的 `src/server/services/` 编排层（约 45 文件：agentService、agentProposalService、repositoryService、repositoryCatalog、sandboxService、environmentInstallService、notesService、sessionBackupService、sessionRewindService、cronService、codeGraphService、monitorService 等）此前未单独成册，本轮全部归类（§2.13）；桌面新增页面 AgentWorkspace、Sandboxes、SessionBackup、EmptySession、ExecutionBehaviorSettings、aiConfigurationPrompts 已入册。
 2. **三个「半成品」升为一等公民并排期**：笔记（Notes 模块 + NotesTool + Notes 页 + 9 组件）、知识空间（knowledge 包 + KnowledgeSpace 页 + 检索工具）、仓库接入 agent 与 sandbox 配置（agents/environments 资产 → agent-presets 投影 + sandbox profile 装配 + 环境计划执行）。完整链设计见 §6。
 3. **token 优化缩略**：UI 收敛为「响应风格开关 + prompt 清理开关 + 智能裁剪级别滑块」三个控件；旧五栈（caveman/lite/ponytail/rtk/smart-pruning）与 codeGraph 预算折叠进去，不再各自成包成页（§5）。
-4. **UI 三面共存**：dsh 原生 Web UI（3080）保留、默认不随 rin 启动、可配置关闭、永不改动（便于随上游更新）；rin Web UI（8320）独立；rin TUI 新建（dsh 已删除自身 TUI 包，见 note 2026-08-04，rin TUI 从实际交互需求自建）。
+4. **UI 三面共存**：dsh 原生 Web UI（3080）保留、默认不随 rin 启动、可配置关闭、永不改动（便于随上游更新）；rin Web UI（8320）独立；rin GUI 桌面壳（Tauri 2 内嵌 rin web-ui）新建——TUI 取消（dsh 自身 TUI 已删，见 note 2026-08-04；dsh 生态已有多款社区 TUI，重复价值不显）。
 5. **目录结构重设计**（§1.1）与 **dsh/rin 更新迭代契约**（§9）：dsh 所有目录零改动，rin 全部落在 `rin/`，根级合并点收敛为 3 个文件。
 
 ## 1. 目标架构
@@ -56,15 +56,15 @@ rin/                          # rin 唯一扩展根（dsh 之外的一切）
 ├─ web/
 │  ├─ web-server/             # @rin/web-server（8320 独立端口，node:http + JSON API）
 │  └─ web-ui/                 # @rin/web-ui（Vite + React SPA，静态产物）
-├─ tui/
-│  └─ tui/                    # @rin/tui：终端产品（本轮新增）
+├─ gui/
+│  └─ gui/                    # @rin/gui：Tauri 2 桌面壳（内嵌 rin web-ui + 托盘 + spawn host，Phase 8）
 ├─ cli/
-│  └─ rin/                    # @rin/cli：`rin` 启动器（profile 自举 + 分发，本轮新增）
+│  └─ rin/                    # @rin/cli：`rin` 启动器（起 host 打印 URL；GUI 壳复用它拉 host，Phase 8）
 └─ bundle/
-   └─ rin/                    # @rin/bundle：rin profile 装配层（cordis.patch.yml，本轮新增）
+   └─ rin/                    # @rin/bundle：rin 装配层（cordis.yml：dsh-base + @rin 全家，Phase 8）
 ```
 
-相对上一版：新增 `workspace/`、`notes/`、`tui/`、`cli/`、`bundle/` 五个 group；`core/repository/builtin/` 承载内置仓库种子资产；`web/` 下 web-ui 与 web-server 并列。
+相对上一版：新增 `workspace/`、`notes/`、`gui/`、`cli/`、`bundle/` 五个 group；`core/repository/builtin/` 承载内置仓库种子资产；`web/` 下 web-ui 与 web-server 并列。
 
 - 内层（host）跑 node 进程、生产能力；外层（client）只渲染，消费 host 事件，永不碰 core。
 - `rin/tsconfig.json` 是 rin 的聚合，让 rin 包独立进 typecheck（不并入 dsh 的 host/client 聚合）。
@@ -149,7 +149,7 @@ bridge（40+ 文件）、skills（60+ 文件）、memdir、promptMemory、sessio
 - 配置边界：betas.ts、apiLimits.ts、toolLimits.ts、xml.ts、common.ts
 - 默认规则：defaults/agent-work-rules、defaults/ponytail-rules
 
-迁移去向：能力资产→@rin host 插件；设计资产→@rin web-ui / tui 设计参考；内容资产→system-prompt sections + i18n 文案 + UI copy（CC 派生的只能重写设计，不搬原文）。
+迁移去向：能力资产→@rin host 插件；设计资产→@rin web-ui / gui 设计参考；内容资产→system-prompt sections + i18n 文案 + UI copy（CC 派生的只能重写设计，不搬原文）。
 
 ### 2.13 服务端编排层 — src/server/services（本轮补录，~45 文件）
 
@@ -171,7 +171,7 @@ token 优化五栈折叠（§5）：cavemanOptimization/ponytailOptimization→@
 
 已建：@rin/repository、@rin/environment、@rin/prompt-memory、@rin/skill-memory、@rin/session-search、@rin/knowledge、@rin/evolution、@rin/token-optimization、@rin/smart-pruning、@rin/web-server、@rin/web-ui。
 
-本轮新增（HIGH，§6）：@rin/agents、@rin/sandboxes、@rin/notes、@rin/tui、@rin/bundle、@rin/cli。
+本轮新增（HIGH，§6）：@rin/agents、@rin/sandboxes、@rin/notes、@rin/gui、@rin/bundle、@rin/cli。
 
 后置（MEDIUM/LOW）：@rin/team、@rin/remote（bridge + ssh + teleport + daemon）、@rin/im-feishu、@rin/im-telegram、@rin/github（空桩，从零建）、@rin/worktree（bash 可替代）、@rin/editor-notebook、@rin/schedule、@rin/doctor、@rin/computer-use（vendored computer-use-mcp）、@rin/agent-migration、@rin/codegraph、@rin/voice（可选）。
 
@@ -187,9 +187,9 @@ claudeAiLimits, mockRateLimits, rateLimitMessages, rateLimitMocking；grove, Cla
 |---|---|
 | dsh 原生 Web UI（3080，`dsh --profile web`） | **保留、默认不随 rin 启动、可开关、永不改动**。它是 dsh 上游的官方交互面，随上游更新同步获得新功能；rin 不 fork、不嵌、不改其 bundle。rin 启动器默认不装配 dsh-web-app；用户想用时 `dsh --profile web` 原样可用。 |
 | rin Web UI（8320，@rin/web-server + @rin/web-ui） | rin 主 Web 面。独立端口、独立前端，只读 @rin host 服务，零 dsh 侵入。可配置关闭（`@rin/web-server` 的 `enabled: false`），关闭只影响 8320，不影响任何 dsh 面。 |
-| rin TUI（@rin/tui，本轮新增） | rin 主终端面。dsh 已删自身 TUI 包（note 2026-08-04：无装配即无维护依据），rin TUI 从实际交互需求自建：会话视图 + 输入 + 工具行 + 审批 + rin 功能速览（仓库/环境/知识/笔记）。复用 dsh 的 provider-neutral command / user-questions / approval / session-projection 服务，不重造会话层。 |
-| Ink TUI（旧项目 src/ink） | vendored 框架 + 3 产品屏，仅设计参考，不 vendor；TUI 依赖选型见 §8 决策 9。 |
-| Tauri 桌面壳 | 弃（React WebView 壳重写为纯浏览器）。 |
+| rin GUI（@rin/gui，本轮定稿） | rin 桌面壳（决策 9）：Tauri 2 薄壳——起 host（spawn `rin` 或发布态 sidecar）→ WebView 内嵌 8320 的 rin web-ui → 系统托盘常驻 → 退出回收子进程。零前端重写（复用 web-ui 11 页），不碰 dsh 原生 web（3080）。dsh 原生 tui 已被上游删除（note 2026-08-04），无停用对象；dsh 原生 CLI/headless/JSON-RPC 命令面保留不动。 |
+| Ink TUI（旧项目 src/ink） | 仅设计参考，不 vendor；TUI 已取消（dsh 生态已有多款社区 TUI，价值不显）。 |
+| Tauri 桌面壳（旧项目 desktop） | 设计参考（Tauri 配置/窗口/sidecar/品牌资产迁移）；rin 用 Tauri 2 重做薄壳，不搬 CC 代码。 |
 
 ### 4.2 Web UI 功能适配映射表（并入自 PHASE4-CLIENT.md，第四轮扩展）
 
@@ -265,12 +265,12 @@ rin 侧完整链（补齐缺口）：
 
 ## 7. 分阶段路线（进度 + 剩余）
 
-已完成：Phase 0（新仓库 main + repository reader + environment plan + 裁 codex/claude + 目录重组）、Phase 1（repository writer/validation/migration/seed + environment preflight/stages）、Phase 2（记忆域 4 包）、Phase 3（evolution + smart-pruning + token-optimization 开关）、Phase 4（web-server v1/v2 + web-ui 8 页，独立端口）、**Phase 5（@rin/agents + @rin/sandboxes + @rin/environment 执行状态机 exec.ts + builtin 种子仓库，冒烟/tsc 通过）**、**Phase 6（@rin/notes + knowledge 检索工具 knowledge_search/knowledge_stats，冒烟/tsc 通过）**、**Phase 7 主体（web-ui 新增 NotesPage/SandboxesPage/AgentWorkspacePage + TokenOptimizationPage 三控件 + web-server 路由/POST/enabled 开关：web-server 冒烟/tsc 通过、web-ui tsc 通过；@rin/tui 暂缓——构建方式待真机验证后按决策 9 二选一）**。
+已完成：Phase 0（新仓库 main + repository reader + environment plan + 裁 codex/claude + 目录重组）、Phase 1（repository writer/validation/migration/seed + environment preflight/stages）、Phase 2（记忆域 4 包）、Phase 3（evolution + smart-pruning + token-optimization 开关）、Phase 4（web-server v1/v2 + web-ui 8 页，独立端口）、**Phase 5（@rin/agents + @rin/sandboxes + @rin/environment 执行状态机 exec.ts + builtin 种子仓库，冒烟/tsc 通过）**、**Phase 6（@rin/notes + knowledge 检索工具 knowledge_search/knowledge_stats，冒烟/tsc 通过）**、**Phase 7 主体（web-ui 新增 NotesPage/SandboxesPage/AgentWorkspacePage + TokenOptimizationPage 三控件 + web-server 路由/POST/enabled 开关：web-server 冒烟/tsc 通过、web-ui tsc 通过）**。
 
 - **Phase 5 资产链路（HIGH，本轮新增）**：@rin/agents + @rin/sandboxes + @rin/environment 执行 + builtin 种子资产。依赖 repository/environment 已建；两包可并行（agents 依赖 agent-presets authoring，sandboxes 依赖 environment plan）。
 - **Phase 6 笔记与知识闭环（HIGH，本轮新增）**：@rin/notes（存储 + 工具 + API + 会话备份）+ knowledge 检索工具 + KnowledgeSpace 页补全。两域互不依赖，可并行。
-- **Phase 7 UI 补齐与 TUI（HIGH/MEDIUM）**：web-ui 新增 NotesPage / SandboxesPage / AgentWorkspacePage + TokenOptimizationPage 改三控件；@rin/tui 新建。
-- **Phase 8 装配与发布（HIGH）**：@rin/bundle（profile 装配）+ @rin/cli（`rin` 启动器）+ dsh web 共存开关 + 文档收口（本文档为唯一权威，PHASE4-STANDALONE.md 为 Web API 契约）。
+- **Phase 7 UI 补齐（HIGH）**：web-ui 新增 NotesPage / SandboxesPage / AgentWorkspacePage + TokenOptimizationPage 改三控件。
+- **Phase 8 装配与发布（HIGH，进行中）**：@rin/gui（Tauri 2 桌面壳，内嵌 web-ui）+ @rin/bundle（cordis.yml 装配 dsh-base + @rin 全家）+ @rin/cli（`rin` 启动器：起 host 8320 打印 URL，GUI 壳复用）+ 文档收口（本文档为唯一权威，PHASE4-STANDALONE.md 为 Web API 契约）。选型定稿见 §8 决策 9/10。
 - 后置（MEDIUM，MVP 验证价值后按需）：team、remote/bridge、im-feishu/telegram、computer-use、agent-migration、codegraph、schedule、doctor。
 - 砍/极后置（LOW/负值）：worktree、editor-notebook、voice、github（空桩）。
 
@@ -278,14 +278,14 @@ rin 侧完整链（补齐缺口）：
 
 1. MVP 主轴：Phase 5→6→7→8（资产链路 + 笔记/知识闭环 + UI 补齐 + 装配）为主轴；team/remote/github/im 后置。✅
 2. CC 包袱 UI（grove/REPL/DesktopUpsell/ClaudeCodeHint）：直接砍、不留兼容。✅
-3. 桌面端弃、TUI 后置为可选 client → **本轮修订**：桌面端仍弃；TUI 升为 Phase 7 一等产品（@rin/tui 自建，理由 §4.1）。
+3. 桌面端弃、TUI 后置 → **本轮修订**：改为一等产品 **GUI 桌面壳 @rin/gui（Tauri 2 内嵌 rin web-ui）**；TUI 取消（dsh 生态已有多款社区 TUI、价值不显）。
 4. 更名策略作废（迁移 = 重写，旧 repo 留档，不搬名、不物理重命名）。✅
 5. asset-repository 对齐 B（按 asset-repository 包逐模块移植）——已完成，schema 版本 rin.dev/v1。✅
 6. Computer Use + Agent Migration 进 MVP Phase 6 → **本轮修订**：维持「MVP 后半段」意图，但排在 Phase 8 之后按需启用（本轮主轴被资产链路与笔记/知识闭环占用）。✅（修订）
 7. **笔记升等（本轮新增）**：notes 从「并入 knowledge」改为独立一等公民 @rin/notes；SessionBackup 并入 notes（会话 → markdown 笔记），独立页取消。✅
 8. **token 优化缩略（本轮新增）**：五栈 + codeGraph 预算折叠为三控件（响应风格开关 / prompt 清理开关 / 裁剪级别滑块），见 §5。✅
-9. **TUI 依赖选型（本轮新增，待真机验证）**：优先零依赖方案（node:readline + ANSI，与 @rin host 零外部运行时依赖约定一致）；若交互复杂度超线，改产品层依赖（ink，与 web-ui 用 React 同级的产品层依赖）。真机按「部件渲染 + 输入 + 会话流」三个验收点二选一。⏳
-10. **装配零侵入（本轮新增）**：rin profile 由 @rin/bundle + `rin` 启动器自举（写入 $DSH_HOME/profiles/rin），不向 packages/boot 加模板；dsh 原生 web profile 永不改动。若 profile bundle 解析在真机受阻，回退为 `--patch` overlay 挂载 rin.cordis.yml（记为真机验证点）。✅
+9. **GUI 选型（本轮定稿）**：**Tauri 2 薄壳**（Rust + 系统 WebView，产物轻量；旧项目即 Tauri，配置/窗口/sidecar/品牌资产可迁移）+ **内嵌 rin web-ui**（零前端重写，复用 11 页）+ **host 形态 = 发布态 sidecar 打包 dsh runtime（复用 python/sdk-runtime 的 dsh-jsonrpc-agent-pkg 先例 + 旧项目 cyberpsychosis-sidecar 模式）/ 开发态 spawn `rin`** + **品牌资产迁移**（海豹 app-icon.svg、字体、provider-icons）。TUI 取消。真机验收点：Tauri 构建 + WebView 连 8320 + 托盘/回收。✅
+10. **装配零侵入（本轮定稿）**：`rin` 启动器直接装配 host（dsh-base + @rin 全家 + @rin/web-server），**不写入 $DSH_HOME profiles、不向 packages/boot 加模板、不列 dsh-web-app**；dsh 原生 web（`dsh --profile web`，3080）永不改动、随时可用。默认单 host 进程、单端口 8320：无性能浪费、无双端口冲突。✅
 
 ## 9. dsh 与 rin 更新迭代契约（本轮新增）
 
@@ -302,12 +302,12 @@ rin 侧完整链（补齐缺口）：
 
 价值 = 差异化 × 用户价值 × 战略契合 ÷ 迁移成本 ÷ 法律风险。
 
-- **🟢 HIGH（护城河，本轮必做）**：@rin/repository + @rin/environment（唯一差异化「harness 内环境」，本轮补执行）、@rin/agents + @rin/sandboxes（仓库接入 agent/sandbox 配置，本轮新晋）、@rin/notes（本轮新晋）、@rin/knowledge（补检索工具）、@rin/prompt-memory、@rin/skill-memory + @rin/evolution（自我进化）、@rin/session-search、token 优化三控件、@rin/web-server + web-ui + tui + bundle + cli（产品面）。
+- **🟢 HIGH（护城河，本轮必做）**：@rin/repository + @rin/environment（唯一差异化「harness 内环境」，本轮补执行）、@rin/agents + @rin/sandboxes（仓库接入 agent/sandbox 配置，本轮新晋）、@rin/notes（本轮新晋）、@rin/knowledge（补检索工具）、@rin/prompt-memory、@rin/skill-memory + @rin/evolution（自我进化）、@rin/session-search、token 优化三控件、@rin/web-server + web-ui + gui + bundle + cli（产品面）。
 - **🟡 MEDIUM（有价值，后置）**：team、remote/bridge、im-feishu/telegram、computer-use、agent-migration、codegraph、schedule、doctor。
 - **🔴 LOW（审慎，可能不值）**：worktree（bash 可替代）、editor-notebook（小众）、voice（边缘）、github（空桩，成本>价值）。
 - **⚫ 零值/负值（砍）**：dsh 已覆盖的 16 工具组 + messages/PromptInput/diff/permissions UI；CC 包袱 grove/REPL/ClaudeCodeHint/DesktopUpsell/subscriptions/marketplace/chrome/rate-limits；五栈独立服务与 codeGraph 独立页（折叠进三控件）；SessionBackup 独立页（并入 notes）。
 
-关键结论：内容资产（prompts/systemPromptSections）是 CC 派生，只能重写设计不能搬原文；github-app 是空桩；voice/worktree/editor-notebook 是边缘。**MVP = HIGH 域（约 14 host 插件 + web-ui 11 页 + tui + 装配层），其余后置。**
+关键结论：内容资产（prompts/systemPromptSections）是 CC 派生，只能重写设计不能搬原文；github-app 是空桩；voice/worktree/editor-notebook 是边缘。**MVP = HIGH 域（约 14 host 插件 + web-ui 11 页 + gui + 装配层），其余后置。**
 
 ## 11. 子 agent 并行执行计划（第四轮）
 
@@ -325,7 +325,7 @@ rin 侧完整链（补齐缺口）：
 
 - 批次 A（Phase 5，2 并行）：@rin/agents、@rin/sandboxes——各自读 cyber 的 src/server/services/{agentService,agentProposalService,sandboxService,environmentInstallService} 作参考，互不依赖；主线程先行补 @rin/environment 执行状态机（两包都依赖它）。
 - 批次 B（Phase 6，2 并行）：@rin/notes、@rin/knowledge 检索工具 + 页补全——互不依赖。
-- 批次 C（Phase 7，2 并行）：web-ui 新页（依赖 A/B 的路由契约）、@rin/tui（依赖 dsh 的 command/approval/session-projection 服务，不依赖 A/B）。
+- 批次 C（Phase 7）：web-ui 新页（依赖 A/B 的路由契约）。
 - 批次 D（Phase 8，主线程收口）：@rin/bundle + @rin/cli + 共存开关 + 文档收口。
 
 ### 依赖图
@@ -333,7 +333,7 @@ rin 侧完整链（补齐缺口）：
 - 地基：@rin/repository（无依赖）→ @rin/environment（依赖 repository schema）→ 执行状态机（Phase 5 前置）。
 - @rin/agents 依赖 repository writer + agent-presets authoring；@rin/sandboxes 依赖 environment plan + dsh shell/subprocess seam。
 - @rin/notes 无跨包依赖（node: 内置 + dsh tool seam）；knowledge 工具依赖 @rin/knowledge 既有 service。
-- @rin/tui 依赖 dsh 会话/命令/审批 seam；web-ui 新页依赖 web-server 新增路由。
+- @rin/gui 依赖 @rin/cli（spawn host）+ web-ui dist；web-ui 新页依赖 web-server 新增路由。
 - @rin/bundle 依赖全部 host 包 + web-server；@rin/cli 依赖 bundle。
 
 ### 收口

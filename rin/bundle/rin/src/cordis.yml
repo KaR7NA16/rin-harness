@@ -1,0 +1,96 @@
+# @rin/bundle — the declarative @rin plugin entry list.
+#
+# The @deepseek-ai/dsh-base core is applied by the launcher (@rin/cli) as the
+# patch layer below this list (see @rin/bundle's baseBundlePatchPath), so this
+# file declares only the @rin rows and never re-states dsh internals. The dsh
+# Web bundle @deepseek-ai/dsh-web-app is deliberately absent (MIGRATION.md §8
+# decision 10): dsh's native Web UI (3080) stays reachable through
+# 'dsh --profile web' and is never assembled by 'rin'.
+#
+# Paths use !!js helpers the launcher provides on the boot context:
+#   rinHome(subpath?)        -> $RIN_HOME or ~/.rin, then the optional subpath
+#   builtinRepositoryRoot()  -> the built-in asset repository beside this package
+# Override any path by setting RIN_HOME, or replace a row's config through the
+# launcher's --port/--host/--url flags or a config override layer.
+
+- id: repository
+  name: '@rin/repository'
+
+- id: environment
+  name: '@rin/environment'
+
+- id: knowledge
+  name: '@rin/knowledge'
+  config:
+    dbPath: !!js rinHome('knowledge/knowledge.db')
+    configHome: !!js rinHome()
+
+- id: prompt-memory
+  name: '@rin/prompt-memory'
+  config:
+    configRoot: !!js rinHome('prompt-memory')
+    initialSoul: |-
+      # Rin
+
+      A harness assistant built on the DeepSeek Harness base with the @rin asset layer.
+
+- id: skill-memory
+  name: '@rin/skill-memory'
+
+- id: session-search
+  name: '@rin/session-search'
+  config:
+    configRoot: !!js rinHome('session-search')
+
+- id: evolution
+  name: '@rin/evolution'
+  config:
+    globalConfigRoot: !!js rinHome('evolution')
+    reviewModel: !!js |-
+      (async (prompt, model) => {
+        const llm = ctx.get('llm')
+        if (!llm || typeof llm.stream !== 'function') {
+          throw new Error('rin evolution: reviewModel requires a composed dsh llm seam')
+        }
+        const provider = llm.listProviders?.()[0]?.id
+        if (!provider) throw new Error('rin evolution: no llm provider registered')
+        const text = []
+        for await (const chunk of llm.stream({ provider, model, messages: [{ role: 'user', content: prompt }] })) {
+          if ((chunk.type === 'text-delta' || chunk.type === 'text') && typeof chunk.text === 'string') text.push(chunk.text)
+        }
+        return text.join('')
+      })
+
+- id: token-optimization
+  name: '@rin/token-optimization'
+
+- id: smart-pruning
+  name: '@rin/smart-pruning'
+
+- id: notes
+  name: '@rin/notes'
+  config:
+    vaultRoot: !!js rinHome('notes')
+
+- id: agents
+  name: '@rin/agents'
+  config:
+    agentsHome: !!js rinHome('agents')
+    defaultRepositoryRoot: !!js builtinRepositoryRoot()
+
+- id: sandboxes
+  name: '@rin/sandboxes'
+  config:
+    profilesPath: !!js rinHome('sandbox.yaml')
+
+- id: web-server
+  name: '@rin/web-server'
+  config:
+    port: 8320
+    host: 127.0.0.1
+    enabled: true
+    repositoryRoot: !!js builtinRepositoryRoot()
+    knowledgeDbPath: !!js rinHome('knowledge/knowledge.db')
+    skillMemoryRoots:
+      globalConfigRoot: !!js rinHome('skill-memory')
+      projectConfigRoot: !!js rinHome()

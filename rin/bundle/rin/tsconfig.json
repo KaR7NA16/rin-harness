@@ -1,0 +1,54 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../core/repository"
+    },
+    {
+      "path": "../../core/environment"
+    },
+    {
+      "path": "../../memory/knowledge"
+    },
+    {
+      "path": "../../memory/prompt-memory"
+    },
+    {
+      "path": "../../memory/skill-memory"
+    },
+    {
+      "path": "../../memory/session-search"
+    },
+    {
+      "path": "../../learning/evolution"
+    },
+    {
+      "path": "../../optimization/token-optimization"
+    },
+    {
+      "path": "../../optimization/smart-pruning"
+    },
+    {
+      "path": "../../notes/notes"
+    },
+    {
+      "path": "../../workspace/agents"
+    },
+    {
+      "path": "../../workspace/sandboxes"
+    },
+    {
+      "path": "../../web/web-server"
+    }
+  ]
+}

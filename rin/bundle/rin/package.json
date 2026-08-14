@@ -1,0 +1,47 @@
+{
+  "name": "@rin/bundle",
+  "description": "rin assembly layer: dsh-base + the full @rin host plugin family as one zero-intrusion bundle (no dsh-web-app)",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cordis.yml": "./src/cordis.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/types/**/*.d.ts",
+    "src/cordis.yml"
+  ],
+  "dependencies": {
+    "@deepseek-ai/dsh-base": "workspace:^",
+    "@rin/repository": "workspace:^",
+    "@rin/environment": "workspace:^",
+    "@rin/knowledge": "workspace:^",
+    "@rin/prompt-memory": "workspace:^",
+    "@rin/skill-memory": "workspace:^",
+    "@rin/session-search": "workspace:^",
+    "@rin/evolution": "workspace:^",
+    "@rin/token-optimization": "workspace:^",
+    "@rin/smart-pruning": "workspace:^",
+    "@rin/notes": "workspace:^",
+    "@rin/agents": "workspace:^",
+    "@rin/sandboxes": "workspace:^",
+    "@rin/web-server": "workspace:^"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

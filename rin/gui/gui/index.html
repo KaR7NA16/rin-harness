@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>rin</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: grid;
+        place-items: center;
+        background: #0b0e14;
+        color: #c9d1d9;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      .shell {
+        text-align: center;
+        max-width: 36rem;
+        padding: 2rem;
+      }
+      h1 {
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        margin: 0 0 0.75rem;
+      }
+      .muted {
+        color: #8b949e;
+        font-size: 0.9rem;
+        line-height: 1.6;
+      }
+      code {
+        background: #161b22;
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+      }
+      #host-status {
+        margin-top: 1.25rem;
+      }
+      #host-status.bad {
+        color: #f85149;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <h1>rin</h1>
+      <p class="muted">
+        The real UI is provided by <code>@rin/web-ui</code>. In development the
+        WebView loads the rin web-server directly; in a packaged build it loads
+        the bundled web-ui dist. This page appears only while the frontend dist
+        is not wired up.
+      </p>
+      <p id="host-status" class="muted">checking host…</p>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

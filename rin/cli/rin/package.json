@@ -1,0 +1,35 @@
+{
+  "name": "@rin/cli",
+  "description": "rin launcher: boots the @rin/bundle host assembly on 8320 and prints its URL",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "bin": {
+    "rin": "lib/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/bin.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "dependencies": {
+    "@rin/bundle": "workspace:^",
+    "@deepseek-ai/dsh-app-boot": "workspace:^",
+    "@deepseek-ai/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

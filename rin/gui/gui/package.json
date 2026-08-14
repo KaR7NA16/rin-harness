@@ -1,0 +1,17 @@
+{
+  "name": "@rin/gui",
+  "description": "rin desktop GUI shell: a Tauri 2 thin shell that spawns the rin host and embeds the rin web-ui",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/cli": "^2",
+    "typescript": "^6.0.3"
+  }
+}
