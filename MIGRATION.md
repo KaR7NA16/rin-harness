@@ -20,13 +20,13 @@ rin 不是 dsh 的平行层，而是 dsh 的插件生态。它只做两件事：
 ### 1.1 目录结构（内外层 + group）
 
 ```
-rin/core/          资产主轴（新 service）：repository + environment
-rin/memory/        记忆域（各持 SQLite）：prompt-memory / skill-memory / session-search / knowledge
-rin/optimization/  token 优化（seam provider 注册进 compaction）
-rin/collaboration/ 协作/远程（seam provider 注册进 subagent/shell）：team / remote / im-feishu / im-telegram / github
-rin/automation/    自动化：computer-use / agent-migration / schedule / worktree
-rin/evolution/     进化/诊断：evolution / codegraph / notes / doctor
-rin/client/        外层呈现（TUI 在这）：ui-tui
+rin/core/          资产主轴（已建）：repository + environment
+rin/memory/        记忆域（已建）：knowledge / prompt-memory / skill-memory / session-search
+rin/optimization/  token 优化（已建）：token-optimization + smart-pruning
+rin/learning/      自我进化（已建）：evolution
+rin/web/           独立 Web UI（已建，独立端口，不并入 dsh Web UI）：web-server
+rin/collaboration/ 协作/远程（规划未建）：team / remote / im-feishu / im-telegram / github
+rin/automation/    自动化（规划未建）：computer-use / agent-migration / schedule / worktree
 ```
 
 - 内层（host）跑 node 进程、生产能力；外层（client）只渲染，消费 host 事件，永不碰 core。

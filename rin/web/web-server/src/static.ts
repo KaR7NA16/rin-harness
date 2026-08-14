@@ -1,7 +1,7 @@
 /**
  * rin web-server — static frontend serving.
  *
- * Serves files from the static root with path-traversal protection. The web/
+ * Serves files from the static root with path-traversal protection. The static/
  * directory is owned by the frontend package; this module only reads it and
  * returns null (→ 404) for anything missing.
  *

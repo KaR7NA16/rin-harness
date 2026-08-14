@@ -18,7 +18,7 @@ import { readStaticFile } from './static.ts'
 import type { StaticFile } from './static.ts'
 
 /** Default static frontend root: the package's web/ directory. */
-const DEFAULT_STATIC_ROOT = fileURLToPath(new URL('../web/', import.meta.url))
+const DEFAULT_STATIC_ROOT = fileURLToPath(new URL('../static/', import.meta.url))
 
 /** A startable HTTP server handle owned by the plugin. */
 export interface RinWebServer {
