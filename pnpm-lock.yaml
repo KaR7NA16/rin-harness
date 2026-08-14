@@ -23,7 +23,7 @@ importers:
         version: link:packages/session-query/tool-session-query
       '@rin/repository':
         specifier: workspace:^
-        version: link:rin/repository
+        version: link:rin/core/repository
       '@stylistic/eslint-plugin':
         specifier: ^5.10.0
         version: 5.10.0(eslint@10.5.0(jiti@2.7.0))
@@ -8540,7 +8540,7 @@ importers:
         specifier: link:../../vendor/schemastery
         version: link:../../vendor/schemastery
 
-  rin/environment:
+  rin/core/environment:
     dependencies:
       '@rin/repository':
         specifier: workspace:^
@@ -8548,7 +8548,7 @@ importers:
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
-        version: link:../../vendor/cordis
+        version: link:../../../vendor/cordis
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -8556,7 +8556,7 @@ importers:
         specifier: ^4.1.8
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
-  rin/repository:
+  rin/core/repository:
     dependencies:
       yaml:
         specifier: ^2.8.3
@@ -8564,13 +8564,13 @@ importers:
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
-        version: link:../../vendor/cordis
+        version: link:../../../vendor/cordis
       '@deepseek-ai/cosmokit':
-        specifier: link:../../vendor/cosmokit
-        version: link:../../vendor/cosmokit
+        specifier: link:../../../vendor/cosmokit
+        version: link:../../../vendor/cosmokit
       '@deepseek-ai/schemastery':
-        specifier: link:../../vendor/schemastery
-        version: link:../../vendor/schemastery
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

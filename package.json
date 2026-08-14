@@ -11,7 +11,7 @@
   "workspaces": [
     "vendor/*",
     "packages/*/*",
-    "rin/*",
+    "rin/*/*",
     "native/landlock-run",
     "native/landlock-run/packages/*",
     "apps/*",

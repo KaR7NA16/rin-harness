@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "DeepSeek Harness",
-  "short_name": "DSH",
+  "name": "rin",
+  "short_name": "rin",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",

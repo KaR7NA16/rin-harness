@@ -2,8 +2,9 @@ packages:
   - vendor/*
   - packages/*/*
   # rin's own asset layer: @rin/* plugins built on the dsh base. Kept out of
-  # tsdown/tsconfig aggregates so upstream rebases stay clean.
-  - rin/*
+  # tsdown/tsconfig aggregates so upstream rebases stay clean; rin carries its
+  # own aggregate (rin/tsconfig.json) so its packages still typecheck.
+  - rin/*/*
   # The Landlock launcher is developed with its harness consumers but keeps
   # its native build and publication scripts under native/landlock-run.
   - native/landlock-run
