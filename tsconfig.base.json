@@ -28,6 +28,15 @@
     // not declaration path aliases, keep each package/vendor source compiled
     // under its own tsconfig boundary.
     "paths": {
+      "@rin/repository": ["./rin/core/repository/src"],
+      "@rin/environment": ["./rin/core/environment/src"],
+      "@rin/knowledge": ["./rin/memory/knowledge/src"],
+      "@rin/prompt-memory": ["./rin/memory/prompt-memory/src"],
+      "@rin/skill-memory": ["./rin/memory/skill-memory/src"],
+      "@rin/session-search": ["./rin/memory/session-search/src"],
+      "@rin/evolution": ["./rin/evolution/evolution/src"],
+      "@rin/token-optimization": ["./rin/optimization/token-optimization/src"],
+      "@rin/smart-pruning": ["./rin/optimization/smart-pruning/src"],
       "@deepseek-ai/cordis": ["./vendor/cordis/src"],
       "@deepseek-ai/cosmokit": ["./vendor/cosmokit/src"],
       "@deepseek-ai/schemastery": ["./vendor/schemastery/src"],

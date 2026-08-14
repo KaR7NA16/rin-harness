@@ -38,11 +38,11 @@ import type {
   SkillMemoryOverview,
 } from './types.ts'
 import {
+  getSkillMemoryRoot,
   SKILL_MEMORY_STATS_FILENAME,
   SKILL_MEMORY_SUMMARY_FILENAME,
-  getSkillMemoryRoot,
-} from '../../../memory/skill-memory/src/paths.ts'
-import type { SkillMemoryScope } from '../../../memory/skill-memory/src/types.ts'
+} from '@rin/skill-memory'
+import type { SkillMemoryScope } from '@rin/skill-memory'
 
 const LOCK_STALE_MS = 30_000
 const LOCK_RETRIES = 50
@@ -284,9 +284,9 @@ export function createEvolutionStore(roots: EvolutionRoots) {
         useCount: typeof stats.useCount === 'number' ? stats.useCount : 0,
         pendingCount: typeof stats.pendingCount === 'number' ? stats.pendingCount : 0,
         evidenceCount: typeof stats.evidenceCount === 'number' ? stats.evidenceCount : 0,
-        lastUsedAt: typeof stats.lastUsedAt === 'string' ? stats.lastUsedAt : undefined,
-        summaryUpdatedAt: typeof stats.summaryUpdatedAt === 'string' ? stats.summaryUpdatedAt : undefined,
-        summary,
+        ...(typeof stats.lastUsedAt === 'string' ? { lastUsedAt: stats.lastUsedAt } : {}),
+        ...(typeof stats.summaryUpdatedAt === 'string' ? { summaryUpdatedAt: stats.summaryUpdatedAt } : {}),
+        ...(summary === undefined ? {} : { summary }),
       })
     }
     return records

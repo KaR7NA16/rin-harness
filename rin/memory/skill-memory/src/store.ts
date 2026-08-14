@@ -101,7 +101,7 @@ export interface SkillMemoryStoreOptions {
 export function createSkillMemoryStore(
   roots: SkillMemoryRoots,
   options: SkillMemoryStoreOptions = {},
-): SkillMemoryStore {
+) {
   const reportError = (message: string, error: unknown): void => {
     options.onError?.(message, error)
   }

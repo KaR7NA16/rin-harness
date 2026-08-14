@@ -10,6 +10,12 @@
   "references": [
     {
       "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../memory/prompt-memory"
+    },
+    {
+      "path": "../../memory/skill-memory"
     }
   ]
 }

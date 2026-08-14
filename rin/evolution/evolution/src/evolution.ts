@@ -10,13 +10,12 @@
  * @module @rin/evolution
  */
 
-import { buildPromptMemoryInsights } from '../../../memory/prompt-memory/src/insights.ts'
-import { readPromptMemoryReviewLogs } from '../../../memory/prompt-memory/src/reviewLog.ts'
-import { readPromptMemoryFile } from '../../../memory/prompt-memory/src/store.ts'
-import type {
-  PromptMemoryInsights,
-  PromptMemoryRoots,
-} from '../../../memory/prompt-memory/src/types.ts'
+import {
+  buildPromptMemoryInsights,
+  readPromptMemoryFile,
+  readPromptMemoryReviewLogs,
+} from '@rin/prompt-memory'
+import type { PromptMemoryInsights, PromptMemoryRoots } from '@rin/prompt-memory'
 import { createEvolutionApproval } from './approval.ts'
 import { createEvolutionReviewer } from './reviewer.ts'
 import { createEvolutionStore } from './store.ts'
@@ -70,15 +69,15 @@ export function createEvolution(deps: {
   const approval = createEvolutionApproval({
     roots,
     store,
-    clearCatalog: adapters.clearCatalog,
-    logDebug: adapters.logDebug,
+    ...(adapters.clearCatalog === undefined ? {} : { clearCatalog: adapters.clearCatalog }),
+    ...(adapters.logDebug === undefined ? {} : { logDebug: adapters.logDebug }),
   })
   const reviewer = createEvolutionReviewer({
     store,
     approval,
     reviewModel: adapters.reviewModel,
-    appendNotice: adapters.appendNotice,
-    logDebug: adapters.logDebug,
+    ...(adapters.appendNotice === undefined ? {} : { appendNotice: adapters.appendNotice }),
+    ...(adapters.logDebug === undefined ? {} : { logDebug: adapters.logDebug }),
   })
 
   return {

@@ -13,7 +13,7 @@
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { evaluateSkillCreationCandidate } from '../../../memory/skill-memory/src/gate.ts'
+import { evaluateSkillCreationCandidate } from '@rin/skill-memory'
 import { redactSecrets } from './secrets.ts'
 import type { EvolutionApproval } from './approval.ts'
 import type { EvolutionStore } from './store.ts'
@@ -33,7 +33,6 @@ import type {
 const REVIEW_EXCERPT_LIMIT = 14_000
 const REVIEW_MESSAGE_LIMIT = 18
 const REVIEWED_TURN_LIMIT = 500
-const SKILL_LEARNING_NOTICE_ID = 'skill_learning_review'
 
 type RawSkillCandidate = {
   name: string
@@ -81,8 +80,7 @@ function getMessageText(message: EvolutionMessage): string {
 
 function extractTextContent(blocks: EvolutionMessageBlock[]): string {
   return blocks
-    .filter(block => block.type === 'text' && typeof block.text === 'string')
-    .map(block => (block as { text: string }).text)
+    .flatMap(block => (block.type === 'text' && typeof block.text === 'string' ? [block.text] : []))
     .join('\n')
 }
 
@@ -382,7 +380,7 @@ export function parseSkillCandidateResponse(
       body: buildSkillMarkdown({
         candidate: candidateBase,
         body,
-        sessionId: params.sessionId,
+        ...(params.sessionId === undefined ? {} : { sessionId: params.sessionId }),
       }),
     },
   }
