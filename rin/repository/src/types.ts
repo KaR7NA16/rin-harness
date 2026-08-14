@@ -57,6 +57,8 @@ export interface EnvironmentPackage {
   ecosystem: RepositoryPackageEcosystem
   version?: string
   description?: string
+  /** Package ids this package must be installed after (dependency edges). */
+  dependencies?: string[]
 }
 
 export interface EnvironmentPackageCatalog {
