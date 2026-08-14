@@ -78,6 +78,26 @@ computer-use、notes、repositories、token-optimization、teams、agents、conv
 ### 2.10 领域目录
 bridge（40+ 文件）、skills（60+ 文件）、memdir、promptMemory、sessionSearch、skillMemory、skillLearning、ssh、remote、daemon、tasks、coordinator、vim、buddy、voice、outputStyles、proactive、environment-runner、self-hosted-runner、upstreamproxy、cli（SSE/WS/Hybrid 传输）、query（QueryEngine）、state、assistant。
 
+### 2.11 设计资产（client/UI/呈现）
+
+- src/components（34 目录 ~360 文件）：messages(45)、permissions(53)、PromptInput(21)、agents(28)、tasks(14)、mcp(14)、Spinner(13)、scheduled-tasks(10)、design-system(16)、LogoV2(15)、wizard(6)、sandbox(5)、diff(3)、memory(2)、teams(2)、settings/shell/skills/providers/CustomSelect/HighlightedCode/StructuredDiff/TrustDialog/HelpV2/FeedbackSurvey/Passes/ui/hooks
+- desktop/src/components（15 目录 147 文件）：chat、codegraph、controls、layout、markdown、memory、notes、plugins、providers、screenshot、settings、shared、skills、teams、terminal
+- desktop/src/pages（28 页）：ActiveSession、KnowledgeSpace、RepositoryWorkspace、ComputerUseSettings、AgentMigration、Sandboxes、SessionBackup、TokenOptimization、Notes、Monitor、Settings 等
+- Ink TUI（src/ink）：components(18) + events/hooks/layout/termio
+- 屏幕（3）：Doctor、REPL、ResumeConversation
+- editor/companion：vim（motions/operators/textObjects/transitions）、buddy（companion sprite）、voice、outputStyles
+- i18n（desktop/src/i18n/locales：en/ja/ko/zh）+ theme（globals）
+- docs（agent/channel/desktop/features/guide/im/memory/reference/skills + ui-clone/stitch_cybercode_frontend_design 设计参考）
+
+### 2.12 内容资产（prompt/文案/规则）
+
+- model-visible：prompts.ts、systemPromptSections.ts、cyberRiskInstruction.ts
+- UI 文案：outputStyles.ts、messages.ts、figures.ts、spinnerVerbs.ts、turnCompletionVerbs.ts、errorIds.ts
+- 配置边界：betas.ts、apiLimits.ts、toolLimits.ts、xml.ts、common.ts
+- 默认规则：defaults/agent-work-rules、defaults/ponytail-rules
+
+迁移去向：能力资产→@rin host 插件；设计资产→@rin client 插件（dsh slot）；内容资产→system-prompt sections + i18n 文案 + UI copy。
+
 ## 3. 四分类迁移映射
 
 ### 🟢 dsh 已有 → 直接砍
@@ -94,13 +114,28 @@ claudeAiLimits, mockRateLimits, rateLimitMessages, rateLimitMocking；grove, Cla
 
 ## 4. UI 迁移
 
+cyber 有一套完整的 React Web UI（28 页 + 147 桌面组件 + 34 共享组件目录），是 rin-harness Web UI 的**设计参考**（不是「砍」）。代码因 CC 风险重写，但设计/功能集保留，映射到 @rin client 插件。
+
 | UI 面 | 处置 |
 |---|---|
-| Ink TUI | 后置：dsh 是 React Web client，保留需写 client 插件 |
-| Tauri 桌面端 | 后置/暂缓：重写代价大 |
-| React 组件（34 目录） | 多数砍；差异化概念（memory/teams/scheduled-tasks/sandbox）后置为 client 插件 |
+| Ink TUI | 后置（保留需写 client 插件） |
+| Tauri 桌面壳 | 弃（React WebView 壳重写为纯浏览器，dsh 已自带 Web 壳） |
+| React 组件（34 目录）+ 28 页 | **设计参考**：映射到 @rin client 插件，代码重写、数据层换成 dsh slot/Props |
+| ActiveSession / messages / PromptInput / diff / skills / mcp / providers | dsh 已自带，直接用，不重写 |
 | 屏幕 Doctor / ResumeConversation | Doctor→@rin/doctor client；ResumeConversation→dsh session resume 原生 |
-| 屏幕 REPL | 砍 |
+| 屏幕 REPL + grove / ClaudeCodeHint / DesktopUpsell | 砍（CC 专属） |
+
+### 4.1 Web UI 功能适配（第一公民，非「后置品牌」）
+
+dsh 的 Web UI 是 rin-harness 的主用户面（TUI/桌面端后置）。@rin 是 host 能力，要让人看得见、用得上，必须做功能适配——每个有 UI 的 @rin 功能走 dsh client 插件三件套：
+
+1. host 插件（注册能力到 seam）
+2. client 插件（slots.register 注册 UI，src/client/ 浏览器半）
+3. web-app 三处注册（tsconfig.client 聚合 + web-app/cordis.patch.yml 的 dsh.client 行 + web-app package.json 依赖）
+
+映射：@rin/repository→RepositoryWorkspace 页；@rin/environment→安装计划+执行进度+verification；@rin/knowledge→KnowledgeSpace；@rin/prompt-memory / skill-memory→设置页+注入展示；@rin/session-search→搜索面板；@rin/team→团队/多 agent 视图；@rin/remote→远程会话；@rin/computer-use / agent-migration→设置页+操作界面；@rin/doctor / codegraph→诊断/索引面板；各 @rin 工具结果→ui-tool 的 toolview slot。
+
+含义：每个 Phase 的「完成」= host 插件 + client 插件 + web-app 注册；client 工作量与 host 相当（受 slot 纪律 + 100% 覆盖率门禁约束）。
 
 ## 5. 品牌与标识（variant A + 海豹 seal）
 
@@ -109,16 +144,23 @@ claudeAiLimits, mockRateLimits, rateLimitMessages, rateLimitMocking；grove, Cla
 - 替换清单：apps/web title→rin；favicon→海豹 SVG；README/docs 标题→rin-harness（注明派生自 dsh）；CLI bin→rin；CLI 帮助文案→rin-harness profile。
 - 合规保留：LICENSE（MIT）+ 原 DeepSeek Harness 版权行；THIRD_PARTY_NOTICES.md 原样；README 加「基于 DeepSeek Harness（MIT）迁移开发」声明。
 
-## 6. 分阶段路线
+## 6. 分阶段路线（MVP 收敛后）
 
-- Phase 0（已完成）：新仓库 main 主支；@rin/repository 只读 reader；@rin/environment 出安装计划；裁 codex/claude。
-- Phase 1：@rin/environment 执行 + 验证（installer provider 契约 + Python(uv)，sandbox 执行 pythonImports/commands）；按 asset-repository 参考补 preflight/stages/status。
-- Phase 2：仓库投影（agents/skills/workflows/tools/policies/bundles→dsh 原生 seam；@rin/repository 补投影器 + writer/validation/migration/seed）。
-- Phase 3：记忆域（@rin/prompt-memory、@rin/skill-memory、@rin/session-search、@rin/knowledge）。
-- Phase 4：token 优化栈（@rin/compaction-* 系列）。
-- Phase 5：协作/远程（@rin/team、@rin/remote、@rin/github、@rin/im-*）。
-- Phase 6：进化/诊断/自动化（@rin/evolution、@rin/codegraph、@rin/doctor、@rin/computer-use、@rin/agent-migration）。
-- Phase 7（可选）：@rin/editor-notebook、@rin/voice、TUI/桌面端 client 插件。
+### MVP（HIGH 护城河：约 10 host + 10 client 插件）
+
+- Phase 0（已完成）：新仓库 main 主支；@rin/repository 只读 reader；@rin/environment 出安装计划；裁 codex/claude；目录重组 rin/*/*。
+- Phase 1 地基：@rin/repository 补 writer/validation/migration/seed + @rin/environment 补 preflight/stages/status（对齐 cyber 的 asset-repository 参考）。
+- Phase 2 记忆域：@rin/knowledge、@rin/prompt-memory、@rin/skill-memory、@rin/session-search。
+- Phase 3 进化 + 优化：@rin/evolution（依赖 skill-memory + prompt-memory）+ @rin/compaction-*。
+- Phase 4 Web UI 功能适配：client 插件 + web-app 三处注册，与 host 成对。
+
+### 后置（MEDIUM，MVP 验证价值后按需）
+
+team、remote/bridge、im-feishu/telegram、computer-use、agent-migration、codegraph、schedule。
+
+### 砍/极后置（LOW/负值）
+
+worktree、editor-notebook、voice、github（空桩）、notes（并入 knowledge）、doctor。
 
 ## 7. 关键决策（已定）
 
@@ -129,8 +171,48 @@ claudeAiLimits, mockRateLimits, rateLimitMessages, rateLimitMocking；grove, Cla
 5. asset-repository 对齐：B（按 cyberpsychosis 的 asset-repository 包逐模块移植）。✅
 6. Computer Use + Agent Migration：进 MVP（放 Phase 6，MVP 后半段）。✅
 
-## 8. 审计结论（第三轮）
+## 8. 迁移价值分层
+
+价值 = 差异化 × 用户价值 × 战略契合 ÷ 迁移成本 ÷ 法律风险。
+
+- **🟢 HIGH（护城河，MVP 必做）**：@rin/repository + @rin/environment（唯一差异化「harness 内环境」）、@rin/knowledge、@rin/prompt-memory、@rin/skill-memory + @rin/evolution（自我进化）、@rin/session-search、@rin/compaction-*（token 优化）。
+- **🟡 MEDIUM（有价值，后置）**：team、remote/bridge、im-feishu/telegram、computer-use、agent-migration、codegraph、schedule。
+- **🔴 LOW（审慎，可能不值）**：worktree（bash 可替代）、editor-notebook（小众）、voice（边缘）、github（空桩，成本>价值）、notes（并入 knowledge）、doctor（dsh 已部分覆盖）。
+- **⚫ 零值/负值（砍）**：dsh 已覆盖的 16 工具组 + messages/PromptInput/diff/permissions UI；CC 包袱 grove/REPL/ClaudeCodeHint/DesktopUpsell/subscriptions/marketplace/chrome/rate-limits。
+
+关键结论：内容资产（prompts/systemPromptSections）是 CC 派生，只能重写设计不能搬原文；github-app 是空桩；voice/worktree/editor-notebook 是边缘。**MVP = HIGH 6 域（约 10 host 插件 + 10 client 插件），其余后置。**
+
+## 9. 审计结论（第三轮）
 
 - 61 工具 / 27 服务 / 6 包 / 28 API / 11 能力模块全部有归属，无未分类项。
 - 本轮新增：notes 系统（NotesTool + notes API + Notes 页）→ @rin/notes；environments/ 有 5 生态目录 + 3 profile 真实资产；computer-use 是 vendored computer-use-mcp；github-app 是空桩（从零建）；feishu 适配器含 cardkit 卡片渲染 + streaming-card + markdown→卡片 + media。
 - 方案已完整。
+
+## 10. 子 agent 并行执行计划
+
+### 分工
+
+- 主线程（我）：地基（@rin/repository + @rin/environment 规格源）+ 编排 + 评审 + 提交。
+- 子 agent：独立域（host 插件，可含 client 插件），用 subagent_fork 继承本对话上下文（架构/约定/参考路径都在内）。
+
+### 约束
+
+- 子 agent 只在各自目录写（rin/<group>/<name>/），不 commit、不跑 pnpm install（主线程统一 regenerate lockfile + commit）。
+- 验证用 strip-types 冒烟（vitest 被 spawn EPERM 阻断）。
+
+### 并行批次
+
+- 批次 1（Phase 2，4 并行）：@rin/knowledge、@rin/prompt-memory、@rin/skill-memory、@rin/session-search——各自读 cyber 的 packages/<name> 作为参考，互不依赖。
+- 批次 2（Phase 3，2 并行）：@rin/evolution（等 skill-memory + prompt-memory）、@rin/compaction-*（独立，读 cyber 的 services/optimization）。
+- 批次 3（Phase 4，client 插件）：host 稳定后，按域做 client 插件（Web UI 功能适配，读 cyber 的 src/components 设计参考）。
+
+### 依赖图
+
+- 地基：@rin/repository（无依赖）→ @rin/environment（依赖 repository schema）。
+- 记忆域：4 个互不依赖（各自 SQLite）。
+- @rin/evolution 依赖 skill-memory + prompt-memory。
+- @rin/compaction-* 依赖 dsh compaction seam（不依赖 @rin）。
+
+### 收口
+
+主线程收集各子 agent 结果 → 评审（seam 三角齐全、strip-types 冒烟通过、README 门禁）→ pnpm install --lockfile-only → 统一 commit。
