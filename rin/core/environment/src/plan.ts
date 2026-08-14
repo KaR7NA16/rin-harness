@@ -188,12 +188,29 @@ function check(id: string, ready: boolean, missingMessage: string): InstallPrefl
 
 function packageCommand(pkg: EnvironmentPackage): string | null {
   const version = pkg.version?.trim()
-  if (pkg.ecosystem === 'system') return 'apt-get install -y ' + pkg.name + (version ? '=' + version : '')
-  if (pkg.ecosystem === 'python') return 'python -m pip install ' + pkg.name + (version ? '==' + version : '')
+  if (pkg.ecosystem === 'system') {
+    return 'apt-get install -y ' + pkg.name + (version && isExactVersion(version) ? '=' + version : '')
+  }
+  if (pkg.ecosystem === 'python') {
+    if (!version) return 'python -m pip install ' + pkg.name
+    return isExactVersion(version)
+      ? 'python -m pip install ' + pkg.name + '==' + version
+      : 'python -m pip install "' + pkg.name + version + '"'
+  }
   if (pkg.ecosystem === 'r') return 'Rscript -e "' + rInstallExpression(pkg.name) + '"'
-  if (pkg.ecosystem === 'node') return 'npm install --global ' + pkg.name + (version ? '@' + version : '')
+  if (pkg.ecosystem === 'node') {
+    if (!version) return 'npm install --global ' + pkg.name
+    return isExactVersion(version)
+      ? 'npm install --global ' + pkg.name + '@' + version
+      : 'npm install --global "' + pkg.name + '@' + version + '"'
+  }
   if (pkg.ecosystem === 'latex') return 'tlmgr install ' + pkg.name
   return null
+}
+
+/** True when a version specifier is a bare exact version (no range operators). */
+function isExactVersion(version: string): boolean {
+  return /^[0-9A-Za-z][0-9A-Za-z._+-]*$/.test(version)
 }
 
 function verificationCommands(profile: ResolvedEnvironment['profile']): string[] {
