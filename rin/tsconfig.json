@@ -7,6 +7,21 @@
     },
     {
       "path": "./core/environment"
+    },
+    {
+      "path": "./memory/knowledge"
+    },
+    {
+      "path": "./memory/prompt-memory"
+    },
+    {
+      "path": "./memory/skill-memory"
+    },
+    {
+      "path": "./memory/session-search"
+    },
+    {
+      "path": "./optimization/token-optimization"
     }
   ]
 }
