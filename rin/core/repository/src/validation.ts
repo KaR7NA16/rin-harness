@@ -12,7 +12,7 @@ export function assertSafePackageName(name: string, ecosystem: RepositoryPackage
 
 /** Reject a version string that cannot be a safe install argument. */
 export function assertSafePackageVersion(version: string): void {
-  if (!/^[A-Za-z0-9][A-Za-z0-9_.+~:<>=!*,-]*$/.test(version)) {
+  if (!/^[A-Za-z0-9_.+~:<>=!*,-]+$/.test(version)) {
     throw new Error('rin repository: unsafe package version: ' + version)
   }
 }

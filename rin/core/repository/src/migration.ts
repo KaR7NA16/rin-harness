@@ -68,7 +68,7 @@ export function planLegacyRepositoryMigration(input: unknown): RepositoryMigrati
       },
     })
   }
-  return { sourceVersion: 1, targetVersion: 2, packageCount: packages.length, files }
+  return { sourceVersion: 1, targetVersion: 1, packageCount: packages.length, files }
 }
 
 function requireLegacyManifest(input: unknown): LegacyManifest & { categories: LegacyCategory[] } {
