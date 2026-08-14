@@ -1,28 +1,20 @@
 /**
- * rin environment — install-plan model.
+ * rin environment — resolved-environment model.
  *
- * The environment projector resolves an EnvironmentProfile against the asset
- * repository's package catalogs and emits a dependency-ordered install plan.
- * The plan is the declarative output of the projection; the sandbox executor
- * (a later milestone) consumes it. This module owns the plan schema only.
+ * The plan types (ResolvedEnvironmentPlan, InstallPlanStage, preflight) live in
+ * @rin/repository; this module owns only the resolution result.
  *
  * @module @rin/environment
  */
 
-import type { EnvironmentPackage, EnvironmentProfile, RepositoryPackageEcosystem } from '@rin/repository'
+import type { EnvironmentPackage, EnvironmentProfile } from '@rin/repository'
 
-/** One install step: packages sharing an ecosystem, in dependency order. */
-export interface EnvironmentInstallStep {
-  ecosystem: RepositoryPackageEcosystem
-  packageIds: string[]
-}
-
-/** The complete install plan for one environment profile. */
-export interface EnvironmentInstallPlan {
-  profileId: string
-  steps: EnvironmentInstallStep[]
-  verify?: EnvironmentProfile['spec']['verify']
-}
+export type {
+  InstallPlanStage,
+  InstallPreflightCheck,
+  ResolvedEnvironmentPlan,
+  ResolverCapabilities,
+} from '@rin/repository'
 
 /** A profile resolved against the repository's package catalogs. */
 export interface ResolvedEnvironment {

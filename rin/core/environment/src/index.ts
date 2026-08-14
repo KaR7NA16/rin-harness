@@ -2,16 +2,15 @@
  * rin environment — Cordis plugin entry.
  *
  * Exposes a ctx.environment service that reads the asset repository and builds
- * the install plan for one environment profile. Execution and verification in a
- * sandbox are the NEXT milestone; this plugin currently owns the plan schema
- * and the resolver/planner only.
+ * the install plan (preflight + stages + verification) for one profile.
+ * Execution of the plan in a sandbox is the NEXT milestone.
  *
  * @module @rin/environment
  */
 
 import { Context, Service } from '@deepseek-ai/cordis'
 import { readAssetRepository } from '@rin/repository'
-import type { EnvironmentInstallPlan } from './types.ts'
+import type { ResolvedEnvironmentPlan, ResolverCapabilities } from '@rin/repository'
 import { buildInstallPlan } from './plan.ts'
 
 export type * from './types.ts'
@@ -30,7 +29,11 @@ export abstract class EnvironmentStore extends Service {
   }
 
   /** Read the repository and build the install plan for one profile. */
-  abstract plan(rootPath: string, profileId: string): Promise<EnvironmentInstallPlan>
+  abstract plan(
+    rootPath: string,
+    profileId: string,
+    capabilities: ResolverCapabilities,
+  ): Promise<ResolvedEnvironmentPlan>
 }
 
 /** File-backed implementation reading the repository from disk on demand. */
@@ -39,9 +42,13 @@ export class FileEnvironmentStore extends EnvironmentStore {
     super(ctx)
   }
 
-  override async plan(rootPath: string, profileId: string): Promise<EnvironmentInstallPlan> {
+  override async plan(
+    rootPath: string,
+    profileId: string,
+    capabilities: ResolverCapabilities,
+  ): Promise<ResolvedEnvironmentPlan> {
     const repo = await readAssetRepository(rootPath)
-    return buildInstallPlan(repo, profileId)
+    return buildInstallPlan(repo, profileId, capabilities)
   }
 }
 

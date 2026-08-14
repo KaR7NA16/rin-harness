@@ -114,3 +114,53 @@ export interface AssetRepository {
   environmentProfiles: EnvironmentProfile[]
   agents: RepositoryAgentConfiguration[]
 }
+
+/** Sandbox capabilities the resolver checks against a profile's ecosystems. */
+export interface ResolverCapabilities {
+  platform: 'linux' | 'darwin' | 'win32' | string
+  runtimes: {
+    apt: boolean
+    python: boolean
+    pip: boolean
+    r: boolean
+    npm: boolean
+    tlmgr: boolean
+  }
+}
+
+/** One preflight check: whether a required runtime is present. */
+export interface InstallPreflightCheck {
+  id: string
+  status: 'ready' | 'missing' | 'unsupported'
+  message: string
+}
+
+/** One install stage: a set of same-ecosystem commands. */
+export interface InstallPlanStage {
+  id: 'system' | 'python' | 'r' | 'node' | 'latex' | 'verification'
+  commands: string[]
+}
+
+/** The resolved install plan for one environment profile. */
+export interface ResolvedEnvironmentPlan {
+  profileId: string
+  profileVersion: string
+  status: 'ready' | 'blocked'
+  packageCount: number
+  preflight: InstallPreflightCheck[]
+  stages: InstallPlanStage[]
+}
+
+/** One file produced by a repository migration. */
+export interface RepositoryMigrationFile {
+  path: string
+  document: AssetRepositoryManifest | EnvironmentPackageCatalog
+}
+
+/** A migration plan from a legacy repository format. */
+export interface RepositoryMigrationPlan {
+  sourceVersion: 1
+  targetVersion: 2
+  packageCount: number
+  files: RepositoryMigrationFile[]
+}

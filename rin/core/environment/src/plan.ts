@@ -4,16 +4,21 @@
  * @module @rin/environment
  */
 
-import type { AssetRepository, EnvironmentPackage } from '@rin/repository'
-import type { EnvironmentInstallPlan, EnvironmentInstallStep, ResolvedEnvironment } from './types.ts'
+import type {
+  AssetRepository,
+  EnvironmentPackage,
+  InstallPlanStage,
+  InstallPreflightCheck,
+  ResolvedEnvironmentPlan,
+  ResolverCapabilities,
+} from '@rin/repository'
+import type { ResolvedEnvironment } from './types.ts'
 
+const STAGE_ORDER: Array<Exclude<InstallPlanStage['id'], 'verification'>> = [
+  'system', 'python', 'r', 'node', 'latex',
+]
 const ECOSYSTEM_PRIORITY: Record<string, number> = {
-  system: 0,
-  python: 1,
-  node: 2,
-  r: 3,
-  latex: 4,
-  other: 5,
+  system: 0, python: 1, node: 2, r: 3, latex: 4, other: 5,
 }
 
 /**
@@ -53,20 +58,44 @@ export function resolveEnvironment(repo: AssetRepository, profileId: string): Re
 }
 
 /**
- * Build the install plan: resolve the profile, topologically order its packages
- * by their declared dependencies, and group consecutive same-ecosystem runs into
- * steps. Throws on an unknown package, a missing dependency, or a cycle.
+ * Build the install plan: resolve the profile, topologically order its packages,
+ * run capability preflight, and emit per-ecosystem command stages plus a
+ * verification stage. A failed preflight yields a blocked plan with empty stages.
  *
  * @param repo - the asset repository read from disk.
  * @param profileId - the profile metadata id to plan.
- * @returns ordered install steps plus the profile's verify block.
+ * @param capabilities - the sandbox runtimes the plan will execute against.
+ * @returns the ready or blocked plan.
  */
-export function buildInstallPlan(repo: AssetRepository, profileId: string): EnvironmentInstallPlan {
+export function buildInstallPlan(
+  repo: AssetRepository,
+  profileId: string,
+  capabilities: ResolverCapabilities,
+): ResolvedEnvironmentPlan {
   const { profile, packages } = resolveEnvironment(repo, profileId)
+  const preflight = buildPreflight(packages, capabilities)
+  if (preflight.some(check => check.status !== 'ready')) {
+    return {
+      profileId,
+      profileVersion: profile.metadata.version,
+      status: 'blocked',
+      packageCount: packages.length,
+      preflight,
+      stages: [],
+    }
+  }
+
+  const stages = groupIntoStages(topologicalOrder(packages))
+  const verification = verificationCommands(profile)
+  if (verification.length) stages.push({ id: 'verification', commands: verification })
+
   return {
     profileId,
-    steps: groupByEcosystem(topologicalOrder(packages)),
-    verify: profile.spec.verify,
+    profileVersion: profile.metadata.version,
+    status: 'ready',
+    packageCount: packages.length,
+    preflight,
+    stages,
   }
 }
 
@@ -120,16 +149,73 @@ function compare(a: string, b: string, byId: Map<string, EnvironmentPackage>): n
   return a < b ? -1 : a > b ? 1 : 0
 }
 
-/** Group a topologically ordered package list into consecutive same-ecosystem runs. */
-function groupByEcosystem(packages: EnvironmentPackage[]): EnvironmentInstallStep[] {
-  const steps: EnvironmentInstallStep[] = []
+/** Group the topo-ordered packages into per-ecosystem command stages. */
+function groupIntoStages(packages: EnvironmentPackage[]): InstallPlanStage[] {
+  const byEcosystem = new Map<string, string[]>()
   for (const pkg of packages) {
-    const last = steps[steps.length - 1]
-    if (last !== undefined && last.ecosystem === pkg.ecosystem) {
-      last.packageIds.push(pkg.id)
-    } else {
-      steps.push({ ecosystem: pkg.ecosystem, packageIds: [pkg.id] })
-    }
+    const command = packageCommand(pkg)
+    if (command === null) continue
+    const list = byEcosystem.get(pkg.ecosystem) ?? []
+    list.push(command)
+    byEcosystem.set(pkg.ecosystem, list)
   }
-  return steps
+  return STAGE_ORDER.flatMap(id => {
+    const commands = byEcosystem.get(id)
+    return commands?.length ? [{ id, commands }] : []
+  })
+}
+
+function buildPreflight(packages: EnvironmentPackage[], capabilities: ResolverCapabilities): InstallPreflightCheck[] {
+  const ecosystems = new Set(packages.map(pkg => pkg.ecosystem))
+  const checks: InstallPreflightCheck[] = []
+  if (ecosystems.has('system')) {
+    checks.push(capabilities.platform === 'linux'
+      ? check('platform-system', capabilities.runtimes.apt, 'apt is required')
+      : { id: 'platform-system', status: 'unsupported', message: 'system packages require a Linux sandbox' })
+  }
+  if (ecosystems.has('python')) {
+    checks.push(check('runtime-python', capabilities.runtimes.python && capabilities.runtimes.pip, 'Python and pip are required'))
+  }
+  if (ecosystems.has('r')) checks.push(check('runtime-r', capabilities.runtimes.r, 'Rscript is required'))
+  if (ecosystems.has('node')) checks.push(check('runtime-node', capabilities.runtimes.npm, 'npm is required'))
+  if (ecosystems.has('latex')) checks.push(check('runtime-latex', capabilities.runtimes.tlmgr, 'tlmgr is required'))
+  return checks
+}
+
+function check(id: string, ready: boolean, missingMessage: string): InstallPreflightCheck {
+  return { id, status: ready ? 'ready' : 'missing', message: ready ? 'ready' : missingMessage }
+}
+
+function packageCommand(pkg: EnvironmentPackage): string | null {
+  const version = pkg.version?.trim()
+  if (pkg.ecosystem === 'system') return 'apt-get install -y ' + pkg.name + (version ? '=' + version : '')
+  if (pkg.ecosystem === 'python') return 'python -m pip install ' + pkg.name + (version ? '==' + version : '')
+  if (pkg.ecosystem === 'r') return 'Rscript -e "' + rInstallExpression(pkg.name) + '"'
+  if (pkg.ecosystem === 'node') return 'npm install --global ' + pkg.name + (version ? '@' + version : '')
+  if (pkg.ecosystem === 'latex') return 'tlmgr install ' + pkg.name
+  return null
+}
+
+function verificationCommands(profile: ResolvedEnvironment['profile']): string[] {
+  return [
+    ...(profile.spec.verify?.pythonImports?.length
+      ? ['python -c "' + profile.spec.verify.pythonImports.map(name => 'import ' + name).join('; ') + '"']
+      : []),
+    ...(profile.spec.verify?.rPackages?.length
+      ? ['Rscript -e "' + profile.spec.verify.rPackages.map(rLibraryExpression).join('; ') + '"']
+      : []),
+    ...(profile.spec.verify?.commands ?? []),
+  ]
+}
+
+function rInstallExpression(pkgName: string): string {
+  return "install.packages('" + escapeR(pkgName) + "', repos='https://cloud.r-project.org')"
+}
+
+function rLibraryExpression(pkgName: string): string {
+  return "library('" + escapeR(pkgName) + "')"
+}
+
+function escapeR(value: string): string {
+  return value.replaceAll("'", "\\'")
 }
