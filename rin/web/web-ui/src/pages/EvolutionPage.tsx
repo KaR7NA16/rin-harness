@@ -1,10 +1,5 @@
 import type { Mounted } from '../api'
-import type {
-  SkillCandidate,
-  SkillLearningEvent,
-  SkillLearningOverview,
-  SkillMemoryOverview,
-} from '../types'
+import type { EvolutionOverview, SkillCandidate, SkillLearningEvent } from '../types'
 import { useApi } from '../useApi'
 import { ServiceGate } from '../components/Gate'
 import { KeyValue } from '../components/KeyValue'
@@ -25,15 +20,8 @@ function eventLabel(event: SkillLearningEvent): ListItemLabel {
   }
 }
 
-function memoryLabel(memory: SkillMemoryOverview): ListItemLabel {
-  return {
-    title: memory.skillName,
-    subtitle: [memory.scope, memory.status, 'used ' + memory.useCount].join(' · '),
-  }
-}
-
 export default function EvolutionPage() {
-  const state = useApi<Mounted<SkillLearningOverview>>('/api/evolution/overview')
+  const state = useApi<Mounted<EvolutionOverview>>('/api/evolution/overview')
 
   return (
     <div className="page">
@@ -59,10 +47,6 @@ export default function EvolutionPage() {
             <div className="card">
               <h3 className="section-title">events ({data.events.length})</h3>
               <ListDetail items={data.events} label={eventLabel} empty="no events" />
-            </div>
-            <div className="card">
-              <h3 className="section-title">memories ({data.memories.length})</h3>
-              <ListDetail items={data.memories} label={memoryLabel} empty="no memories" />
             </div>
           </>
         )}

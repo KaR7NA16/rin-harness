@@ -330,3 +330,40 @@ export interface SmartPruningStatus {
   level: string
   mode: string
 }
+
+/** One skill-memory overview record (mirrors the web-server's projected shape). */
+export interface SkillMemoryOverviewRecord {
+  id: string
+  skillName: string
+  scope: 'global' | 'project'
+  status: string
+  useCount: number
+  pendingCount: number
+  evidenceCount: number
+  lastUsedAt?: string
+  summaryUpdatedAt?: string
+  summary?: string
+}
+
+/** /api/knowledge/sources payload. */
+export interface KnowledgeSourcesPayload { sources: KnowledgeSource[] }
+
+/** /api/knowledge/documents payload. */
+export interface KnowledgeDocumentsPayload { documents: KnowledgeDocument[] }
+
+/** /api/knowledge/search payload. */
+export interface KnowledgeSearchPayload { results: KnowledgeSearchResult[] }
+
+/** /api/prompt-memory/review-logs payload. */
+export interface PromptMemoryLogsPayload { logs: PromptMemoryReviewLogEntry[] }
+
+/** /api/skill-memory/overview payload. */
+export interface SkillMemoryOverviewPayload { skills: SkillMemoryOverviewRecord[] }
+
+/** /api/evolution/overview payload (the endpoint returns this subset, no memories). */
+export interface EvolutionOverview {
+  config: SkillLearningConfig
+  pendingCandidates: SkillCandidate[]
+  recentCandidates: SkillCandidate[]
+  events: SkillLearningEvent[]
+}

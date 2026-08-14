@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import type {
   KnowledgeDocument,
+  KnowledgeDocumentsPayload,
+  KnowledgeSearchPayload,
   KnowledgeSearchResult,
   KnowledgeSource,
+  KnowledgeSourcesPayload,
 } from '../types'
 import type { Mounted } from '../api'
 import { useApi } from '../useApi'
@@ -10,7 +13,6 @@ import { ServiceGate } from '../components/Gate'
 import { KeyValue } from '../components/KeyValue'
 import { ListDetail } from '../components/ListDetail'
 import type { ListItemLabel } from '../components/ListDetail'
-import { extractList } from '../overview'
 
 type KnowledgeMode = 'sources' | 'documents' | 'search' | 'stats'
 
@@ -115,17 +117,17 @@ function KnowledgeResult({ mode, data }: { mode: KnowledgeMode; data: Record<str
 
   if (mode === 'sources') {
     return (
-      <ListDetail items={extractList(data) as KnowledgeSource[]} label={sourceLabel} empty="no sources" />
+      <ListDetail items={(data as unknown as KnowledgeSourcesPayload).sources} label={sourceLabel} empty="no sources" />
     )
   }
 
   if (mode === 'documents') {
     return (
-      <ListDetail items={extractList(data) as KnowledgeDocument[]} label={documentLabel} empty="no documents" />
+      <ListDetail items={(data as unknown as KnowledgeDocumentsPayload).documents} label={documentLabel} empty="no documents" />
     )
   }
 
   return (
-    <ListDetail items={extractList(data) as KnowledgeSearchResult[]} label={searchLabel} empty="no matches" />
+    <ListDetail items={(data as unknown as KnowledgeSearchPayload).results} label={searchLabel} empty="no matches" />
   )
 }

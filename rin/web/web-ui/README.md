@@ -31,4 +31,5 @@ pnpm --filter @rin/web-ui run build # 产出 dist/，交给 @rin/web-server 伺�
 
 - 沙箱无法构建本包：vite build 被 spawn 拦截，且 react 等外部依赖需要联网 `pnpm install`。
 - 源码用 `tsc -p tsconfig.json` 单独检查（装依赖后 exit 0）；不并入 rin 的 host 聚合门禁。
+- `src/types.ts` 手抄了 server 的领域类型（AssetMetadata / EnvironmentPackage 等）：**server 领域类型变了必须同步这里**，否则页面字段名漂移。
 - 后端契约见 @rin/web-server 的 README 与 PHASE4-STANDALONE.md。

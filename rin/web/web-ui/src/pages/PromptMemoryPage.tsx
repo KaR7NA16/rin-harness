@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Mounted } from '../api'
 import type {
   PromptMemoryFile,
+  PromptMemoryLogsPayload,
   PromptMemoryReviewLogEntry,
   PromptMemoryStatus,
   PromptMemoryTarget,
@@ -11,7 +12,6 @@ import { ServiceGate } from '../components/Gate'
 import { KeyValue } from '../components/KeyValue'
 import { ListDetail } from '../components/ListDetail'
 import type { ListItemLabel } from '../components/ListDetail'
-import { extractList } from '../overview'
 
 type PromptMode = 'status' | 'file' | 'review-logs'
 
@@ -82,7 +82,7 @@ function PromptResult({ mode, data }: { mode: PromptMode; data: Record<string, u
   }
   return (
     <ListDetail
-      items={extractList(data) as PromptMemoryReviewLogEntry[]}
+      items={(data as unknown as PromptMemoryLogsPayload).logs}
       label={logLabel}
       empty="no review logs"
     />

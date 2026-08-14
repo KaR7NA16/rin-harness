@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import type { Mounted } from '../api'
-import type { SessionSearchHit, SessionSearchMessage } from '../types'
+import type { SessionBrowseResult, SessionDiscoverResult, SessionReadResult, SessionSearchHit, SessionSearchMessage } from '../types'
 import { useApi } from '../useApi'
 import { ServiceGate } from '../components/Gate'
 import { KeyValue } from '../components/KeyValue'
-import { extractList } from '../overview'
 
 type SessionListRequest = { mode: 'browse' } | { mode: 'discover'; query: string }
 
@@ -30,8 +29,8 @@ export default function SessionSearchPage() {
     : '/api/sessions/read?sessionId=' + encodeURIComponent(readTarget.sessionId)
       + (readTarget.projectPath ? '&projectPath=' + encodeURIComponent(readTarget.projectPath) : '')
 
-  const listState = useApi<Mounted<Record<string, unknown>>>(listPath)
-  const readState = useApi<Mounted<Record<string, unknown>>>(readPath)
+  const listState = useApi<Mounted<SessionBrowseResult | SessionDiscoverResult>>(listPath)
+  const readState = useApi<Mounted<SessionReadResult>>(readPath)
 
   return (
     <div className="page">
@@ -57,7 +56,7 @@ export default function SessionSearchPage() {
             <ServiceGate state={listState}>
               {data => (
                 <HitList
-                  hits={extractList(data) as SessionSearchHit[]}
+                  hits={data.results}
                   onSelect={hit => setReadTarget({ sessionId: hit.sessionId, projectPath: hit.projectPath })}
                 />
               )}
@@ -99,7 +98,7 @@ function HitList({ hits, onSelect }: { hits: SessionSearchHit[]; onSelect: (hit:
   )
 }
 
-function ReadView({ data }: { data: Record<string, unknown> }) {
+function ReadView({ data }: { data: SessionReadResult }) {
   if (typeof data.sessionId !== 'string') {
     return <div className="muted">no result for this session key</div>
   }
