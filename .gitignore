@@ -38,3 +38,14 @@ apps/web/dist/
 worktrees/
 .agents/worktrees/
 .typert-*/
+
+# Open-source hygiene (audit wave 4): generated build maps, local env, and key material.
+*.d.ts.map
+.env.local
+*.pem
+*.crt
+*.key
+*.p12
+id_rsa
+id_ed25519
+*.coverage

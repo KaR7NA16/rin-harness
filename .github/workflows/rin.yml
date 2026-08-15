@@ -8,7 +8,7 @@ name: rin
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -62,3 +62,33 @@ jobs:
 
       - name: Smoke
         run: pnpm rin:smoke
+
+  # The desktop shell (rin/gui, a Tauri app) embeds @rin/web-ui and ships on
+  # macOS as well as Windows/Linux. This macOS leg proves web-ui builds and
+  # typechecks on the darwin host the Tauri bundle targets; the native tauri
+  # macOS bundle build stays deferred (rin-release.yml builds only .deb/.exe)
+  # until the gui build sidecar lands.
+  rin-macos:
+    name: rin web-ui gates (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.RIN_NODE_VERSION }}
+
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck web-ui
+        run: pnpm --filter @rin/web-ui run typecheck
+
+      - name: Build web-ui
+        run: pnpm run rin:build
