@@ -9,7 +9,8 @@
  * @module @rin/web-server
  */
 
-import { readdir } from 'node:fs/promises'
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { Config, JsonResponse, ResponseStyle } from '../types.ts'
 import {
@@ -110,10 +111,14 @@ export async function handle(
   if (pathname === '/api/models') return modelsRoute(services)
   if (pathname === '/api/models/current') return modelsCurrentRoute(services)
   if (pathname === '/api/effort') return json(200, { level: 'medium', available: ['low', 'medium', 'high'] })
-  if (pathname === '/api/providers') return json(200, { providers: [], activeId: null })
-  if (pathname === '/api/providers/presets') return json(200, { presets: [] })
+  if (pathname === '/api/providers') return providersRoute(method, body)
+  if (pathname === '/api/providers/presets') return json(200, { presets: PROVIDER_PRESETS })
   if (pathname === '/api/providers/auth-status') return json(200, { hasAuth: false, source: 'none' })
   if (pathname === '/api/providers/settings') return json(200, {})
+  const providerItem = /^\/api\/providers\/([^/]+)(\/([^/]+))?$/.exec(pathname)
+  if (providerItem !== null && providerItem[1] !== undefined) {
+    return providerItemRoute(providerItem[1], providerItem[3], method, body)
+  }
   if (pathname === '/api/mcp') return json(200, { servers: [] })
 
   return null
@@ -327,6 +332,151 @@ async function agentsRepositoryRoute(
     }
     if (method === 'DELETE') {
       await agents.deleteRepositoryAgent(root, name)
+      return json(200, { ok: true })
+    }
+    return error(405, 'method not allowed')
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+
+/* ------------------------- providers legacy --------------------------- */
+
+const DEFAULT_PROVIDER_PRESETS = [
+  {
+    id: 'deepseek', name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', apiFormat: 'openai_chat',
+    defaultModels: { main: 'deepseek-v4-flash', haiku: 'deepseek-v4-flash', sonnet: 'deepseek-v4-pro', opus: 'deepseek-v4-pro' },
+    defaultModelContextWindows: {}, modelOptions: [
+      { id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' },
+      { id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro' },
+    ],
+    supportsImages: false, needsApiKey: true, websiteUrl: 'https://platform.deepseek.com', apiKeyUrl: 'https://platform.deepseek.com/api_keys',
+  },
+  {
+    id: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', apiFormat: 'openai_chat',
+    defaultModels: { main: 'gpt-4.1', haiku: 'gpt-4.1-mini', sonnet: 'gpt-4.1', opus: 'gpt-4.1' },
+    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: true, websiteUrl: 'https://platform.openai.com',
+  },
+  {
+    id: 'anthropic', name: 'Anthropic', baseUrl: 'https://api.anthropic.com', apiFormat: 'anthropic',
+    defaultModels: { main: 'claude-sonnet-4', haiku: 'claude-haiku-4', sonnet: 'claude-sonnet-4', opus: 'claude-opus-4' },
+    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: true, websiteUrl: 'https://console.anthropic.com',
+  },
+  {
+    id: 'ollama', name: 'Ollama', baseUrl: 'http://127.0.0.1:11434', apiFormat: 'openai_chat',
+    defaultModels: { main: 'llama3', haiku: 'llama3', sonnet: 'llama3', opus: 'llama3' },
+    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: false, websiteUrl: 'https://ollama.com',
+  },
+] as const
+
+const PROVIDER_PRESETS = DEFAULT_PROVIDER_PRESETS
+
+function providerStorePath(): string {
+  const home = process.env.RIN_HOME ?? join(homedir(), '.rin')
+  return join(home, 'providers.json')
+}
+
+async function readProviderStore(): Promise<{ activeId: string | null; providers: Array<Record<string, unknown>> }> {
+  try {
+    const parsed = JSON.parse(await readFile(providerStorePath(), 'utf-8')) as { activeId?: string | null; providers?: Array<Record<string, unknown>> }
+    return { activeId: parsed.activeId ?? null, providers: Array.isArray(parsed.providers) ? parsed.providers : [] }
+  } catch {
+    return { activeId: null, providers: [] }
+  }
+}
+
+async function writeProviderStore(store: { activeId: string | null; providers: Array<Record<string, unknown>> }): Promise<void> {
+  const path = providerStorePath()
+  await mkdir(join(path, '..').replace(/\\/g, '/'), { recursive: true }).catch(() => {})
+  await writeFile(path, JSON.stringify(store, null, 2))
+}
+
+function maskedApiKey(record: Record<string, unknown>): Record<string, unknown> {
+  const apiKey = typeof record['apiKey'] === 'string' ? record['apiKey'] : ''
+  return { ...record, apiKey: apiKey === '' ? '' : apiKey.slice(0, 6) + '••••••' }
+}
+
+async function providersRoute(method: string, body: unknown): Promise<JsonResponse> {
+  try {
+    const store = await readProviderStore()
+    if (method === 'GET') {
+      return json(200, { providers: store.providers.map(maskedApiKey), activeId: store.activeId })
+    }
+    if (method === 'POST') {
+      const fields = asRecord(body)
+      if (fields === undefined) return error(400, 'request body must be a JSON object')
+      const name = stringField(fields, 'name') ?? 'Provider'
+      const presetId = stringField(fields, 'presetId') ?? 'openai'
+      const now = new Date().toISOString()
+      const provider: Record<string, unknown> = {
+        id: crypto.randomUUID(),
+        presetId,
+        name,
+        apiKey: stringField(fields, 'apiKey') ?? '',
+        baseUrl: stringField(fields, 'baseUrl') ?? '',
+        apiFormat: stringField(fields, 'apiFormat') ?? 'openai_chat',
+        models: fields['models'] ?? { main: '', haiku: '', sonnet: '', opus: '' },
+        ...(fields['modelCatalog'] !== undefined ? { modelCatalog: fields['modelCatalog'] } : {}),
+        ...(fields['modelContextWindows'] !== undefined ? { modelContextWindows: fields['modelContextWindows'] } : {}),
+        ...(fields['imageSupportMode'] !== undefined ? { imageSupportMode: fields['imageSupportMode'] } : {}),
+        ...(fields['notes'] !== undefined ? { notes: fields['notes'] } : {}),
+        createdAt: now,
+        updatedAt: now,
+      }
+      store.providers.push(provider)
+      await writeProviderStore(store)
+      return json(200, { provider: maskedApiKey(provider) })
+    }
+    return error(405, 'method not allowed')
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function providerItemRoute(
+  rawId: string,
+  action: string | undefined,
+  method: string,
+  body: unknown,
+): Promise<JsonResponse> {
+  let id: string
+  try {
+    id = decodeURIComponent(rawId)
+  } catch {
+    return error(400, 'invalid provider id')
+  }
+  try {
+    const store = await readProviderStore()
+    const index = store.providers.findIndex(provider => provider['id'] === id)
+    if (index < 0) return error(404, 'provider not found')
+
+    if (action === 'activate') {
+      if (method !== 'POST') return error(405, 'method not allowed')
+      store.activeId = id
+      await writeProviderStore(store)
+      return json(200, { ok: true })
+    }
+    if (action === 'test') {
+      return json(200, { result: { connectivity: { success: false, latencyMs: 0, error: 'provider test is not wired yet' } } })
+    }
+
+    if (method === 'PUT') {
+      const fields = asRecord(body)
+      if (fields === undefined) return error(400, 'request body must be a JSON object')
+      const current = store.providers[index]!
+      for (const key of ['name', 'apiKey', 'baseUrl', 'apiFormat', 'models', 'modelCatalog', 'modelContextWindows', 'imageSupportMode', 'supportsImages', 'notes']) {
+        if (fields[key] !== undefined) current[key] = fields[key]
+      }
+      current['updatedAt'] = new Date().toISOString()
+      store.providers[index] = current
+      await writeProviderStore(store)
+      return json(200, { provider: maskedApiKey(current) })
+    }
+    if (method === 'DELETE') {
+      store.providers.splice(index, 1)
+      if (store.activeId === id) store.activeId = null
+      await writeProviderStore(store)
       return json(200, { ok: true })
     }
     return error(405, 'method not allowed')
