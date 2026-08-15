@@ -58,6 +58,30 @@ export interface DshSessionPersistenceLike {
   prepare(id: string): Promise<void>
 }
 
+/** Minimal structural view of the dsh agent registry used by the legacy chat bridge. */
+export interface DshAgentLike {
+  readonly id: string
+  readonly session: { readonly id: string }
+  readonly ctx: { on(event: string, listener: (...args: unknown[]) => void): unknown }
+  followup(message: unknown): void
+  cancel(cause: unknown): void
+  whenIdle(): Promise<void>
+}
+
+export interface DshAgentHandleLike {
+  readonly agent: DshAgentLike
+  dispose(): Promise<void>
+}
+
+export interface DshAgentRegistryLike {
+  create(options: unknown): Promise<DshAgentHandleLike>
+  get(id: string): DshAgentHandleLike | undefined
+}
+
+export interface DshAgentDefaultModelLike {
+  currentSelection(): { provider: string; model: string }
+}
+
 /** Lazily-read optional @rin services, resolved at request time. */
 export interface RinServiceRefs {
   repository(): RepositoryStore | undefined
@@ -74,6 +98,8 @@ export interface RinServiceRefs {
   tokenOptimization(): TokenOptimizationRef | undefined
   sessions(): DshSessionStoreLike | undefined
   sessionPersistence(): DshSessionPersistenceLike | undefined
+  dshAgents(): DshAgentRegistryLike | undefined
+  agentDefaultModel(): DshAgentDefaultModelLike | undefined
 }
 
 /**

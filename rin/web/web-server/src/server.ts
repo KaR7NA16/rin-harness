@@ -18,6 +18,7 @@ import { errorMessage } from './http.ts'
 import { routeApi } from './routes.ts'
 import type { RinServiceRefs } from './routes.ts'
 import { readStaticFile } from './static.ts'
+import { attachLegacyWebSocket } from './legacy-ws.ts'
 import type { StaticFile } from './static.ts'
 
 /** Default static frontend root: the package's static/ directory. */
@@ -51,6 +52,7 @@ export function createWebServer(config: Config, services: RinServiceRefs): RinWe
       respondError(res, 500, errorMessage(err))
     })
   })
+  attachLegacyWebSocket(server, services)
 
   return {
     listen(port: number, host: string): Promise<AddressInfo> {

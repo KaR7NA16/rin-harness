@@ -21,7 +21,9 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^"
   },
-  "dependencies": {},
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",
@@ -34,6 +36,7 @@
     "@rin/session-search": "workspace:^",
     "@rin/skill-memory": "workspace:^",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "@types/ws": "^8.18.0"
   }
 }
