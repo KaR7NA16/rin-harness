@@ -122,7 +122,7 @@ describe('MemorySettings evolution profile', () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        'http://127.0.0.1:3456/api/prompt-memory/user/entries',
+        'http://127.0.0.1:8320/api/prompt-memory/user/entries',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ action: 'remove', oldText: userEntry }),
@@ -146,7 +146,7 @@ describe('MemorySettings evolution profile', () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        'http://127.0.0.1:3456/api/prompt-memory/config',
+        'http://127.0.0.1:8320/api/prompt-memory/config',
         expect.objectContaining({
           method: 'PATCH',
           body: JSON.stringify({ injectEvolutionMemory: false }),

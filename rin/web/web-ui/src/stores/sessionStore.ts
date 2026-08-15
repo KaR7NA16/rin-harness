@@ -259,7 +259,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       if (normalizedTitle) {
         projectDisplayNames[projectPath] = normalizedTitle
       } else {
-        delete projectDisplayNames[projectPath]
+        Reflect.deleteProperty(projectDisplayNames, projectPath)
       }
       writeProjectDisplayNames(projectDisplayNames)
       return { projectDisplayNames }

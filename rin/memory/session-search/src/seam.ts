@@ -35,6 +35,7 @@ function toDshTool(tool: SessionSearchTool) {
   // The descriptor is built to satisfy defineTool's input structurally; the
   // any keeps defineTool's schema generics from recursing (TS2321 on the wide
   // DefineToolOptions instantiation). Shape is enforced by tools-core + smoke.
+  // oxlint-disable-next-line no-explicit-any -- structural seam: TS2321 on the wide DefineToolOptions union
   return tool as any
 }
 

@@ -34,7 +34,8 @@ describe('IconRail floating panel navigation', () => {
   it('opens terminal as a main-area tab', () => {
     renderIconRail()
 
-    fireEvent.click(screen.getByRole('button', { name: '终端' }))
+    fireEvent.click(screen.getByRole('button', { name: '更多' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '终端' }))
 
     expect(useTabStore.getState().tabs).toEqual([
       expect.objectContaining({ type: 'terminal' }),

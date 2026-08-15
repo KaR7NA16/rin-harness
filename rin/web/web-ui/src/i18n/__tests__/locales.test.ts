@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { en } from '../locales/en'
 import { zh } from '../locales/zh'
@@ -7,7 +8,7 @@ import { ja } from '../locales/ja'
 import { ko } from '../locales/ko'
 
 function sourceKeys(localeFile: string): string[] {
-  const path = resolve(process.cwd(), 'src/i18n/locales', localeFile)
+  const path = resolve(dirname(fileURLToPath(import.meta.url)), '../locales', localeFile)
   const source = readFileSync(path, 'utf8')
   return [...source.matchAll(/^\s*'((?:[^'\\]|\\.)+)':/gm)].map((m) => m[1]!)
 }

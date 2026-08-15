@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import {
-  PROMPT_MEMORY_TOTAL_CHAR_LIMIT,
   boundPromptMemoryPair,
   boundPromptMemoryText,
 } from '../src/budget.ts'
@@ -32,7 +31,7 @@ import {
   getPromptMemoryReviewLogPath,
   readPromptMemoryReviewLogs,
 } from '../src/reviewLog.ts'
-import type { PromptMemoryAutoReviewLogEntry } from '../src/types.ts'
+import { PROMPT_MEMORY_TOTAL_CHAR_LIMIT, type PromptMemoryAutoReviewLogEntry } from '../src/types.ts'
 
 describe('Prompt Memory persistence', () => {
   const initialSoul = 'A product-provided identity.\n'

@@ -43,7 +43,7 @@ vi.mock('../pages/AdapterSettings', () => ({
 }))
 
 vi.mock('../stores/agentStore', () => ({
-  useAgentStore: Object.assign((selector?: (state: any) => unknown) => {
+  useAgentStore: Object.assign((selector?: (state: unknown) => unknown) => {
     const state = {
       activeAgents: [],
       allAgents: [],
@@ -68,7 +68,7 @@ vi.mock('../stores/agentStore', () => ({
 }))
 
 vi.mock('../stores/skillStore', () => ({
-  useSkillStore: Object.assign((selector?: (state: any) => unknown) => {
+  useSkillStore: Object.assign((selector?: (state: unknown) => unknown) => {
     const state = {
       skills: [],
       selectedSkill: null,
@@ -95,7 +95,7 @@ vi.mock('../stores/skillStore', () => ({
 }))
 
 vi.mock('../stores/mcpStore', () => ({
-  useMcpStore: Object.assign((selector?: (state: any) => unknown) => {
+  useMcpStore: Object.assign((selector?: (state: unknown) => unknown) => {
     const state = {
       servers: [],
       selectedServer: null,

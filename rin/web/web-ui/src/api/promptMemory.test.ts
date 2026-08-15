@@ -24,12 +24,12 @@ describe('promptMemoryApi', () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      'http://127.0.0.1:3456/api/prompt-memory/insights',
+      'http://127.0.0.1:8320/api/prompt-memory/insights',
       expect.objectContaining({ method: 'GET' }),
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      'http://127.0.0.1:3456/api/prompt-memory/user/entries',
+      'http://127.0.0.1:8320/api/prompt-memory/user/entries',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
@@ -40,7 +40,7 @@ describe('promptMemoryApi', () => {
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
-      'http://127.0.0.1:3456/api/prompt-memory/config',
+      'http://127.0.0.1:8320/api/prompt-memory/config',
       expect.objectContaining({
         method: 'PATCH',
         body: JSON.stringify({ injectEvolutionMemory: false }),

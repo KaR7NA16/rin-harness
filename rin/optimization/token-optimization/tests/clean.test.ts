@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { cleanPromptText, cleanSystemPromptParts } from '../src/clean.ts'
+import { cleanSystemPromptParts } from '../src/clean.ts'
 import { CAVEMAN_PROMPT, PONYTAIL_PROMPT } from '../src/prompts.ts'
 
 describe('cleanSystemPromptParts', () => {

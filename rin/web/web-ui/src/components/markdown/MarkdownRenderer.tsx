@@ -103,7 +103,7 @@ function enhanceTextNode(textNode: Text): void {
   let match: RegExpExecArray | null
   while ((match = FILE_PATH_TOKEN_RE.exec(text)) !== null) {
     let rawPath = match[0]
-    let start = match.index
+    const start = match.index
     let end = match.index + rawPath.length
 
     // Trim trailing sentence punctuation (`.`, `,`, `;`, `!`, `?`) from the path.

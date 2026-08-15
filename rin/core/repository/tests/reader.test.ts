@@ -61,6 +61,6 @@ describe('readAssetRepository', () => {
   test('throws on a non-AssetRepository manifest', async () => {
     const root = await mkdtemp(join(tmpdir(), 'rin-repo-'))
     await writeFile(join(root, 'repository.yaml'), 'kind: NotARepository\n')
-    await expect(readAssetRepository(root)).rejects.toThrow(/expected kind AssetRepository/)
+    await expect(readAssetRepository(root)).rejects.toThrow(/unsupported apiVersion/)
   })
 })

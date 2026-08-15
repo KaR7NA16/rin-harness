@@ -43,10 +43,6 @@ export abstract class KnowledgeStore extends Service {
 
 /** SQLite-backed implementation opening a KnowledgeService on demand. */
 export class FileKnowledgeStore extends KnowledgeStore {
-  constructor(ctx: Context) {
-    super(ctx)
-  }
-
   override open(dbPath: string): KnowledgeService {
     return new KnowledgeService(dbPath)
   }

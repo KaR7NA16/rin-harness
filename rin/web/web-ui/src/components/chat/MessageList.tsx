@@ -218,7 +218,7 @@ function sanitizeScrollerStyle(style: CSSProperties | undefined): CSSProperties 
   for (const key of Object.keys(sanitized) as Array<keyof CSSProperties>) {
     const value = sanitized[key]
     if (typeof value === 'number' && !Number.isFinite(value)) {
-      delete sanitized[key]
+      Reflect.deleteProperty(sanitized, key)
       hasInvalidValue = true
     }
   }

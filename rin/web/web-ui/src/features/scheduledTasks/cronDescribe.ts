@@ -15,6 +15,16 @@ function formatTime(hour: number, minute: number): string {
   return `${pad(hour)}:${pad(minute)}`
 }
 
+const DOW_KEYS = [
+  'cron.dow.0',
+  'cron.dow.1',
+  'cron.dow.2',
+  'cron.dow.3',
+  'cron.dow.4',
+  'cron.dow.5',
+  'cron.dow.6',
+] as const satisfies readonly TranslationKey[]
+
 function describeDow(field: string, t: TFunc): string {
   const parts = field.split(',')
   const days: number[] = []
@@ -28,7 +38,7 @@ function describeDow(field: string, t: TFunc): string {
       days.push(parseInt(part))
     }
   }
-  return days.map((d) => t(`cron.dow.${d % 7}` as any)).join(', ') // dynamic key
+  return days.map((d) => t(DOW_KEYS[d % 7] ?? 'cron.dow.0')).join(', ')
 }
 
 export function describeCron(cron: string, t: TFunc): string {

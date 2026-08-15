@@ -6,9 +6,24 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { useTabStore } from '../../stores/tabStore'
 import type { PerSessionState } from '../../stores/chatStore'
 import type { UIMessage } from '../../types/chat'
+import type { ComponentType, Key, ReactNode } from 'react'
+
+type VirtuosoMockProps = {
+  data?: unknown[]
+  firstItemIndex?: number
+  followOutput?: (follow: boolean | 'smooth' | 'auto') => unknown
+  startReached?: (startIndex: number) => void
+  rangeChanged?: (range: { startIndex: number; endIndex: number }) => void
+  itemsRendered?: (items: Array<{ data: unknown; index: number; offset: number; size: number }>) => void
+  totalListHeightChanged?: (height: number) => void
+  atBottomStateChange?: (atBottom: boolean) => void
+  computeItemKey?: (index: number, item: unknown) => Key
+  itemContent?: (index: number, item: unknown) => ReactNode
+  components?: { Footer?: ComponentType }
+}
 
 const virtuosoMock = vi.hoisted(() => {
-  let latestProps: any = null
+  let latestProps: VirtuosoMockProps | null = null
   let autoSettle = true
 
   return {
@@ -23,7 +38,7 @@ const virtuosoMock = vi.hoisted(() => {
     setAutoSettle: (value: boolean) => {
       autoSettle = value
     },
-    setLatestProps: (props: any) => {
+    setLatestProps: (props: VirtuosoMockProps) => {
       latestProps = props
     },
   }
@@ -32,7 +47,7 @@ const virtuosoMock = vi.hoisted(() => {
 vi.mock('react-virtuoso', async () => {
   const React = await vi.importActual<typeof import('react')>('react')
 
-  const Virtuoso = React.forwardRef(function MockVirtuoso(props: any, ref) {
+  const Virtuoso = React.forwardRef(function MockVirtuoso(props: VirtuosoMockProps, ref) {
     virtuosoMock.setLatestProps(props)
 
     React.useImperativeHandle(ref, () => ({

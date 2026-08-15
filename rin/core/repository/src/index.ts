@@ -49,10 +49,6 @@ export abstract class RepositoryStore extends Service {
 
 /** File-backed implementation reading the repository from disk on demand. */
 export class FileRepositoryStore extends RepositoryStore {
-  constructor(ctx: Context) {
-    super(ctx)
-  }
-
   override read(rootPath: string) {
     return readAssetRepository(rootPath)
   }

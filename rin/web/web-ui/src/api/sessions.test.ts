@@ -16,7 +16,7 @@ describe('sessionsApi token usage', () => {
     await sessionsApi.getUsage('session-1', { projectPath: '/tmp/my project' })
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://127.0.0.1:3456/api/sessions/session-1/usage?projectPath=%2Ftmp%2Fmy%20project',
+      'http://127.0.0.1:8320/api/sessions/session-1/usage?projectPath=%2Ftmp%2Fmy%20project',
       expect.objectContaining({ method: 'GET' }),
     )
   })

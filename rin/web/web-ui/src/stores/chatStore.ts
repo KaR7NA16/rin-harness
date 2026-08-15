@@ -34,6 +34,26 @@ import type {
   TokenUsage,
 } from '../types/chat'
 
+declare global {
+  interface Window {
+    /** Debug buffer for streamed thinking blocks (web-ui debug aid). */
+    __thinking_log?: Array<{ ts: number; text?: string }>
+  }
+}
+
+type TodoWriteInput = {
+  todos: Array<{ content: string; status: string; activeForm?: string }>
+}
+
+function isTodoWriteInput(input: unknown): input is TodoWriteInput {
+  return (
+    typeof input === 'object' &&
+    input !== null &&
+    'todos' in input &&
+    Array.isArray((input as { todos?: unknown }).todos)
+  )
+}
+
 type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting'
 
 export type PendingSteer = {
@@ -1553,7 +1573,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       case 'thinking':
         // Debug: log thinking to window
-        try { (window as any).__thinking_log = (window as any).__thinking_log || []; (window as any).__thinking_log.push({ ts: Date.now(), text: msg.text?.slice(0, 60) }); } catch {}
+        try {
+          const log = (window.__thinking_log = window.__thinking_log || [])
+          log.push({ ts: Date.now(), text: msg.text?.slice(0, 60) })
+        } catch {}
         update((s) => {
           const pendingText = `${s.streamingText}${consumePendingDelta(sessionId)}`
           const base = pendingText.trim()
@@ -1596,8 +1619,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           }],
           activeToolUseId: null, activeToolName: null, activeThinkingId: null, streamingToolInput: '',
         }))
-        if (toolName === 'TodoWrite' && Array.isArray((msg.input as any)?.todos)) {
-          useCLITaskStore.getState().setTasksFromTodos((msg.input as any).todos)
+        const input = msg.input
+        if (toolName === 'TodoWrite' && isTodoWriteInput(input)) {
+          useCLITaskStore.getState().setTasksFromTodos(input.todos)
         } else if (TASK_TOOL_NAMES.has(toolName)) {
           const useId = msg.toolUseId || session?.activeToolUseId
           if (useId) pendingTaskToolUseIds.add(useId)

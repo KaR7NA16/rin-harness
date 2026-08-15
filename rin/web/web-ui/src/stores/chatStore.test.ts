@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MessageEntry } from '../types/session'
+import type { TeamMember } from '../types/team'
 import { useSessionRuntimeStore } from './sessionRuntimeStore'
 import { sessionsApi } from '../api/sessions'
 import { ApiError } from '../api/client'
@@ -25,7 +26,7 @@ const {
   sessionStoreSnapshot,
 } = vi.hoisted(() => ({
   sendMock: vi.fn(),
-  getMemberBySessionIdMock: vi.fn<(sessionId: string) => any>(() => null),
+  getMemberBySessionIdMock: vi.fn<(sessionId: string) => TeamMember | null>(() => null),
   sendMessageToMemberMock: vi.fn(async () => {}),
   handleTeamCreatedMock: vi.fn(),
   handleTeamUpdateMock: vi.fn(),

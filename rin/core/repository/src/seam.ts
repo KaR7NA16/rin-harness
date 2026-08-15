@@ -45,6 +45,7 @@ export function registerRepositorySeam(ctx: Context, config: RepositoryConfig = 
   // any keeps defineTool's schema generics from recursing (TS2321 on the wide
   // DefineToolOptions instantiation). Shape is enforced by tools.ts + smoke.
   const disposers = buildRepositoryTools(() => ctx.repository.read(root))
+    // oxlint-disable-next-line no-explicit-any -- structural seam: TS2321 on the wide DefineToolOptions union
     .map(options => ctx.tools.register(defineTool(options as any)))
   return () => disposers.forEach(dispose => dispose())
 }

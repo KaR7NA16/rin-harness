@@ -14,6 +14,13 @@
  * Detection: if at least one line parses as JSON with a recognized `type`
  * field, treat as NDJSON. Otherwise return as-is.
  */
+
+type ParsedRunLine = {
+  type?: string
+  message?: { content?: Array<{ type?: string; text?: string }> }
+  result?: string | { message?: string }
+}
+
 export function parseRunOutput(raw: string): string {
   if (!raw || !raw.trim()) return ''
 
@@ -33,9 +40,9 @@ export function parseRunOutput(raw: string): string {
   for (const line of lines) {
     if (!line.trim()) continue
 
-    let parsed: any
+    let parsed: ParsedRunLine | null
     try {
-      parsed = JSON.parse(line)
+      parsed = JSON.parse(line) as ParsedRunLine | null
     } catch {
       continue
     }
@@ -47,8 +54,9 @@ export function parseRunOutput(raw: string): string {
       const content = parsed?.message?.content
       if (!Array.isArray(content)) continue
       for (const block of content) {
-        if (block.type === 'text' && block.text?.trim()) {
-          textParts.push(block.text.trim())
+        const text = block.text?.trim()
+        if (block.type === 'text' && text) {
+          textParts.push(text)
         }
       }
     }
@@ -56,9 +64,9 @@ export function parseRunOutput(raw: string): string {
     if (type === 'result') {
       anyRecognized = true
       const result = parsed?.result
-      if (typeof result === 'string' && result.trim()) {
-        textParts.push(result.trim())
-      } else if (result?.message?.trim()) {
+      if (typeof result === 'string') {
+        if (result.trim()) textParts.push(result.trim())
+      } else if (result && typeof result.message === 'string' && result.message.trim()) {
         textParts.push(result.message.trim())
       }
     }

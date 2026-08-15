@@ -289,11 +289,20 @@ function getToolSummary(toolName: string, obj: Record<string, unknown>, t?: (key
   }
 }
 
+function chunkText(chunk: unknown): string {
+  if (typeof chunk === 'string') return chunk
+  if (chunk && typeof chunk === 'object' && 'text' in chunk) {
+    const text = (chunk as { text?: unknown }).text
+    return typeof text === 'string' ? text : ''
+  }
+  return ''
+}
+
 function extractTextContent(content: unknown): string | null {
   if (typeof content === 'string') return content
   if (Array.isArray(content)) {
     return content
-      .map((chunk: any) => (typeof chunk === 'string' ? chunk : chunk?.text || ''))
+      .map(chunkText)
       .filter(Boolean)
       .join('\n')
   }

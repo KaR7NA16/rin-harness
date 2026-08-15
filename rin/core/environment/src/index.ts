@@ -52,10 +52,6 @@ export abstract class EnvironmentStore extends Service {
 
 /** File-backed implementation reading the repository from disk on demand. */
 export class FileEnvironmentStore extends EnvironmentStore {
-  constructor(ctx: Context) {
-    super(ctx)
-  }
-
   override async plan(
     rootPath: string,
     profileId: string,

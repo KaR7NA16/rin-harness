@@ -109,10 +109,6 @@ export abstract class SkillMemoryService extends Service {
 
 /** File-backed implementation delegating to createSkillMemoryStore. */
 export class FileSkillMemoryService extends SkillMemoryService {
-  constructor(ctx: Context) {
-    super(ctx)
-  }
-
   override createStore(roots: SkillMemoryRoots, options?: SkillMemoryStoreOptions): SkillMemoryStore {
     return createSkillMemoryStore(roots, options)
   }

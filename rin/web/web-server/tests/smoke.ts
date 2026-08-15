@@ -40,14 +40,13 @@ import {
 } from '../src/http.ts'
 import { resolveStaticPath } from '../src/static.ts'
 import { createWebServer } from '../src/server.ts'
-import type { RinServiceRefs } from '../src/routes.ts'
 
 let failures = 0
 function expect(label, actual, expected) {
   try {
     assert.deepStrictEqual(actual, expected)
     console.log('PASS ' + label)
-  } catch (err) {
+  } catch (_err) {
     failures += 1
     console.error('FAIL ' + label)
     console.error('  expected:', inspect(expected))
@@ -305,7 +304,6 @@ class FakeNotes {
 
 /** A minimal agents fake over a tmp repository root. */
 class FakeAgents {
-  constructor() {}
   async listRepositoryAgents() { return [] }
   async listRuntimeAgents() { return [] }
   async createRepositoryAgent(_root, input) {

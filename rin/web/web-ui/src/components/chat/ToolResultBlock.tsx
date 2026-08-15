@@ -93,11 +93,20 @@ export function ToolResultBlock({ content, isError, toolName, standalone = true 
   )
 }
 
+function chunkText(chunk: unknown): string {
+  if (typeof chunk === 'string') return chunk
+  if (chunk && typeof chunk === 'object' && 'text' in chunk) {
+    const text = (chunk as { text?: unknown }).text
+    return typeof text === 'string' ? text : ''
+  }
+  return ''
+}
+
 function extractText(content: unknown): string {
   if (typeof content === 'string') return content
   if (Array.isArray(content)) {
     return content
-      .map((c: any) => (typeof c === 'string' ? c : c?.text || ''))
+      .map(chunkText)
       .filter(Boolean)
       .join('\n')
   }

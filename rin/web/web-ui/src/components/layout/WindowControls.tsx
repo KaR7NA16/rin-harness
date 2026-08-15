@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../i18n'
 import { Icon } from '../shared/Icon'
+import type { Window } from '@tauri-apps/api/window'
 
 const isTauri = typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)
 const isWindows = typeof navigator !== 'undefined' && /Win/.test(navigator.platform)
@@ -13,13 +14,7 @@ const windowControlClass = 'flex h-full w-[52px] items-center justify-center tex
 export function WindowControls() {
   const t = useTranslation()
   const [maximized, setMaximized] = useState(false)
-  const [win, setWin] = useState<{
-    minimize: () => Promise<void>
-    toggleMaximize: () => Promise<void>
-    close: () => Promise<void>
-    isMaximized: () => Promise<boolean>
-    onResized: (handler: () => void) => Promise<() => void>
-  } | null>(null)
+  const [win, setWin] = useState<Window | null>(null)
 
   useEffect(() => {
     if (!showWindowControls) return
@@ -28,7 +23,7 @@ export function WindowControls() {
     import('@tauri-apps/api/window')
       .then(async ({ getCurrentWindow }) => {
         const w = getCurrentWindow()
-        setWin(w as any)
+        setWin(w)
         setMaximized(await w.isMaximized())
         unlisten = await w.onResized(async () => {
           setMaximized(await w.isMaximized())

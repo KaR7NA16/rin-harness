@@ -97,7 +97,7 @@ export function TaskRunsPanel({ taskId, onClose, refreshKey }: Props) {
   useEffect(() => {
     if (!hasRunning && refreshKey === 0) return // no reason to poll initially
     // Start with fast polling (1s) to give snappy feedback after "Run Now"
-    let interval = 1000
+    const interval = 1000
     let timer = setInterval(refresh, interval)
     // After 10s, switch to slower 3s polling if still running
     const slowDown = setTimeout(() => {

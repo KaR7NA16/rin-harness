@@ -103,7 +103,7 @@ export function AskUserQuestion({ toolUseId, input, result, sessionId: sessionId
       // Toggle: deselect if already selected
       if (prev[qIndex]?.type === 'option' && prev[qIndex]?.value === label) {
         const next = { ...prev }
-        delete next[qIndex]
+        Reflect.deleteProperty(next, qIndex)
         return next
       }
       return { ...prev, [qIndex]: { type: 'option', value: label } }
@@ -117,7 +117,7 @@ export function AskUserQuestion({ toolUseId, input, result, sessionId: sessionId
       if (value.trim()) {
         next[qIndex] = { type: 'custom', value }
       } else if (next[qIndex]?.type === 'custom') {
-        delete next[qIndex]
+        Reflect.deleteProperty(next, qIndex)
       }
       return next
     })
