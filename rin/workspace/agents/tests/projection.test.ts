@@ -1,6 +1,10 @@
+import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
 import type { RepositoryAgentConfiguration } from '@rin/repository'
-import { PRESET_ID, assertValidPresetId, renderAgentCordisYaml } from '../src/projection.ts'
+import { COMPOSITION_FILE, PRESET_ID, assertValidPresetId, projectRepositoryAgents, renderAgentCordisYaml } from '../src/projection.ts'
+import { createRepositoryAgent } from '../src/repository-agents.ts'
 
 const agent: RepositoryAgentConfiguration = {
   version: 2,
@@ -47,5 +51,41 @@ describe('renderAgentCordisYaml', () => {
     const rendered = renderAgentCordisYaml(agent)
     expect(rendered).toContain('# model: deepseek-chat')
     expect(rendered).toContain('# permissionMode: plan')
+  })
+})
+
+describe('projectRepositoryAgents', () => {
+  test('materialises each agent as a preset directory and is idempotent', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'rin-proj-'))
+    const repo = join(root, 'repo')
+    const preset = join(root, 'presets')
+    await mkdir(repo, { recursive: true })
+    await writeFile(join(repo, 'repository.yaml'), "apiVersion: rin.dev/v1\nkind: AssetRepository\nmetadata: { id: \"t\", name: \"T\", version: \"1.0.0\" }\nspec:\n  mutable: true\n  roots:\n    agents: agents")
+    await createRepositoryAgent(repo, { name: 'coder', description: 'A coding agent', systemPrompt: 'You are a coding agent.', tools: ['bash'] })
+
+    const result = await projectRepositoryAgents(repo, preset)
+    expect(result.ids).toEqual(['coder'])
+
+    const file = await readFile(join(preset, 'coder', COMPOSITION_FILE), 'utf8')
+    expect(file).toContain('id: persona')
+    expect(file).toContain('id: tool-bash')
+    expect(file).toContain('You are a coding agent.')
+
+    // Re-projecting with unchanged content leaves the file untouched.
+    const again = await projectRepositoryAgents(repo, preset)
+    expect(again.ids).toEqual(['coder'])
+  })
+
+  test('fails loud when an existing preset differs', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'rin-proj-'))
+    const repo = join(root, 'repo')
+    const preset = join(root, 'presets')
+    await mkdir(repo, { recursive: true })
+    await writeFile(join(repo, 'repository.yaml'), "apiVersion: rin.dev/v1\nkind: AssetRepository\nmetadata: { id: \"t\", name: \"T\", version: \"1.0.0\" }\nspec:\n  mutable: true\n  roots:\n    agents: agents")
+    await createRepositoryAgent(repo, { name: 'coder', description: 'A', systemPrompt: 'You code.' })
+    await projectRepositoryAgents(repo, preset)
+
+    await writeFile(join(preset, 'coder', COMPOSITION_FILE), '# hand-edited')
+    await expect(projectRepositoryAgents(repo, preset)).rejects.toThrow(/already exists with different content/)
   })
 })

@@ -6,27 +6,27 @@
     "vitest": "4.1.8",
     "recordedAt": "2026-08-16",
     "testFiles": {
-      "total": 121,
-      "passed": 110,
-      "failed": 11
+      "total": 143,
+      "passed": 143,
+      "failed": 0
     },
     "tests": {
-      "total": 810,
-      "passed": 793,
-      "failed": 17
+      "total": 1242,
+      "passed": 1242,
+      "failed": 0
     },
     "globalCoverage": {
-      "statements": 51.13,
-      "branches": 46.93,
-      "functions": 50,
-      "lines": 53.02
+      "statements": 60.54,
+      "branches": 55.82,
+      "functions": 55.18,
+      "lines": 62.34
     }
   },
   "globalThresholds": {
-    "statements": 30,
-    "branches": 28,
-    "functions": 30,
-    "lines": 31
+    "statements": 55,
+    "branches": 50,
+    "functions": 50,
+    "lines": 57
   },
   "packages": {
     "@rin/bundle": {
@@ -48,10 +48,10 @@
       "lines": 49
     },
     "@rin/repository": {
-      "statements": 19,
-      "branches": 15,
-      "functions": 17,
-      "lines": 21
+      "statements": 55,
+      "branches": 50,
+      "functions": 55,
+      "lines": 55
     },
     "@rin/evolution": {
       "statements": 37,
@@ -96,16 +96,16 @@
       "lines": 32
     },
     "@rin/token-optimization": {
-      "statements": 20,
-      "branches": 16,
-      "functions": 7,
-      "lines": 19
+      "statements": 60,
+      "branches": 55,
+      "functions": 45,
+      "lines": 60
     },
     "@rin/web-server": {
-      "statements": 1,
-      "branches": 1,
-      "functions": 4,
-      "lines": 1
+      "statements": 55,
+      "branches": 50,
+      "functions": 55,
+      "lines": 55
     },
     "@rin/web-ui": {
       "statements": 35,
@@ -114,10 +114,10 @@
       "lines": 36
     },
     "@rin/agents": {
-      "statements": 24,
-      "branches": 22,
-      "functions": 24,
-      "lines": 25
+      "statements": 55,
+      "branches": 50,
+      "functions": 55,
+      "lines": 55
     },
     "@rin/sandboxes": {
       "statements": 38,
