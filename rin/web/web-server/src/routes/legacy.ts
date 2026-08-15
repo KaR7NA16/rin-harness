@@ -86,6 +86,23 @@ export async function handle(
     return tokenOptimizationRoute(pathname, method, body, services)
   }
 
+  // Sandboxes (legacy desktop paths over @rin/sandboxes)
+  if (pathname === '/api/sandboxes/profiles') return sandboxesProfilesRoute(method, body, services)
+  if (pathname === '/api/sandboxes/runtime') return json(200, { runtime: null, version: null })
+  if (pathname === '/api/sandboxes/stats') return json(200, { stats: [] })
+  if (pathname === '/api/sandboxes/default') return sandboxesDefaultRoute(method, body, services)
+  const sandboxItem = /^\/api\/sandboxes\/profile\/([^/]+)(\/([^/]+))?$/.exec(pathname)
+  if (sandboxItem !== null && sandboxItem[1] !== undefined) {
+    return sandboxesItemRoute(sandboxItem[1], sandboxItem[3], method, body, services, config)
+  }
+
+  // Agents (legacy desktop paths over @rin/agents)
+  if (pathname === '/api/agents') return agentsListRoute(search, services, config)
+  const agentRepo = /^\/api\/agents\/repositories\/([^/]+)(\/([^/]+))?$/.exec(pathname)
+  if (agentRepo !== null && agentRepo[1] !== undefined) {
+    return agentsRepositoryRoute(agentRepo[1], agentRepo[3], method, body, services, config)
+  }
+
   // Settings / models / providers minimal compatibility
   if (pathname === '/api/settings/user') return settingsUserRoute(method, body)
   if (pathname === '/api/permissions/mode') return permissionsModeRoute(method, body)
@@ -100,6 +117,222 @@ export async function handle(
   if (pathname === '/api/mcp') return json(200, { servers: [] })
 
   return null
+}
+
+
+/* --------------------------- sandboxes legacy --------------------------- */
+
+const legacyInstallRuns = new Map<string, Array<Record<string, unknown>>>()
+
+async function sandboxesProfilesRoute(
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  const sandboxes = services.sandboxes()
+  if (sandboxes === undefined) return notMounted()
+  try {
+    if (method === 'GET') return json(200, { profiles: await sandboxes.list() })
+    if (method === 'POST') {
+      const fields = asRecord(body)
+      const name = fields === undefined ? undefined : stringField(fields, 'name')
+      const type = fields === undefined ? undefined : stringField(fields, 'type')
+      if (name === undefined || type === undefined) return error(400, 'name and type are required')
+      const input: Record<string, unknown> = {
+        name,
+        type: type === 'container' || type === 'remote' || type === 'local-sandbox' ? type : 'local-sandbox',
+      }
+      if (fields?.['isDefault'] === true) input['isDefault'] = true
+      if (fields?.['repositoryId'] !== undefined) input['repositoryId'] = stringField(fields, 'repositoryId')
+      if (fields?.['repositoryPath'] !== undefined) input['repositoryPath'] = stringField(fields, 'repositoryPath')
+      if (fields?.['environmentProfileId'] !== undefined) input['environmentProfileId'] = stringField(fields, 'environmentProfileId')
+      if (fields?.['container'] !== undefined) input['container'] = fields['container']
+      if (fields?.['remote'] !== undefined) input['remote'] = fields['remote']
+      return json(200, await sandboxes.create(input as never))
+    }
+    return error(405, 'method not allowed')
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function sandboxesDefaultRoute(
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  const sandboxes = services.sandboxes()
+  if (sandboxes === undefined) return notMounted()
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const fields = asRecord(body)
+  const id = fields === undefined ? undefined : stringField(fields, 'id')
+  if (id === undefined) return error(400, 'id is required')
+  try {
+    await sandboxes.setDefault(id)
+    return json(200, { ok: true })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function sandboxesItemRoute(
+  rawId: string,
+  action: string | undefined,
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+  config: Config,
+): Promise<JsonResponse> {
+  let id: string
+  try {
+    id = decodeURIComponent(rawId)
+  } catch {
+    return error(400, 'invalid sandbox id')
+  }
+  const sandboxes = services.sandboxes()
+  if (sandboxes === undefined) return notMounted()
+  try {
+    if (action === undefined) {
+      if (method === 'PUT') {
+        const fields = asRecord(body)
+        if (fields === undefined) return error(400, 'request body must be a JSON object')
+        const { id: _ignored, createdAt: _created, updatedAt: _updated, name, type, ...rest } = fields
+        void _ignored; void _created; void _updated
+        const patch: Record<string, unknown> = { ...rest }
+        if (name !== undefined) patch['name'] = name
+        if (type !== undefined) patch['type'] = type
+        return json(200, await sandboxes.update(id, patch as never))
+      }
+      if (method === 'DELETE') return json(200, { removed: await sandboxes.remove(id) })
+      return error(405, 'method not allowed')
+    }
+    if (action === 'state') return json(200, { exists: (await sandboxes.get(id)) !== null, running: false })
+    if (action === 'start' || action === 'stop' || action === 'exec' || action === 'test' || action === 'interactive-command') {
+      return error(501, 'sandbox ' + action + ' is not available for local-sandbox profiles yet')
+    }
+    if (action === 'prepare-environment') {
+      if (method !== 'POST') return error(405, 'method not allowed')
+      const profile = await sandboxes.get(id)
+      if (profile === null) return error(404, 'sandbox profile not found')
+      const environment = services.environment()
+      if (environment === undefined) return error(500, 'environment service is not mounted')
+      const repositoryRoot = config.repositoryRoot
+      if (repositoryRoot === undefined) return error(500, 'repository root is not configured')
+      const environmentProfileId = profile.environmentProfileId ?? 'scientific-base'
+      const capabilities = await sandboxes.probeCapabilities(profile)
+      const plan = await environment.plan(repositoryRoot, environmentProfileId, capabilities)
+      const run = await sandboxes.executeEnvironmentPlan(profile, profile.repositoryId ?? 'builtin', environmentProfileId, plan)
+      const runs = legacyInstallRuns.get(id) ?? []
+      runs.push(run as unknown as Record<string, unknown>)
+      legacyInstallRuns.set(id, runs)
+      return json(200, run)
+    }
+    if (action === 'environment-runs') {
+      return json(200, { runs: legacyInstallRuns.get(id) ?? [] })
+    }
+    if (action === 'approve-environment') {
+      return error(501, 'environment execution is direct; the run is already approved after prepare')
+    }
+    return error(404, 'unknown sandbox action')
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+/* ----------------------------- agents legacy ----------------------------- */
+
+async function agentsListRoute(
+  search: string,
+  services: RinServiceRefs,
+  config: Config,
+): Promise<JsonResponse> {
+  const agents = services.agents()
+  if (agents === undefined) return notMounted()
+  const root = queryParam(search, 'repositoryId') ?? config.repositoryRoot
+  if (root === undefined) return json(200, { activeAgents: [], allAgents: [] })
+  try {
+    const records = await agents.listRepositoryAgents(root)
+    const definitions = records.map(record => ({
+      agentType: record.name,
+      description: record.description,
+      model: record.model,
+      tools: record.tools,
+      systemPrompt: record.systemPrompt,
+      source: 'repository',
+      repositoryRoot: root,
+      isActive: true,
+    }))
+    return json(200, { activeAgents: definitions, allAgents: definitions })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function agentsRepositoryRoute(
+  rawRepositoryId: string,
+  rawName: string | undefined,
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+  config: Config,
+): Promise<JsonResponse> {
+  let repositoryId: string
+  let name: string | undefined
+  try {
+    repositoryId = decodeURIComponent(rawRepositoryId)
+    name = rawName === undefined ? undefined : decodeURIComponent(rawName)
+  } catch {
+    return error(400, 'invalid agent locator')
+  }
+  const agents = services.agents()
+  if (agents === undefined) return notMounted()
+  const root = repositoryId === 'builtin' || repositoryId === 'default' ? config.repositoryRoot : repositoryId
+  if (root === undefined) return error(500, 'repository root is not configured')
+
+  try {
+    if (name === undefined) {
+      if (method === 'GET') {
+        const records = await agents.listRepositoryAgents(root)
+        return json(200, { agents: records })
+      }
+      if (method === 'POST') {
+        const fields = asRecord(body)
+        if (fields === undefined) return error(400, 'request body must be a JSON object')
+        const input: Record<string, unknown> = {
+          name: stringField(fields, 'name') ?? '',
+          description: stringField(fields, 'description') ?? '',
+          systemPrompt: stringField(fields, 'systemPrompt') ?? '',
+          tools: Array.isArray(fields['tools']) ? fields['tools'].filter((value): value is string => typeof value === 'string') : [],
+        }
+        if (fields['model'] !== undefined) input['model'] = stringField(fields, 'model')
+        if (fields['permissionMode'] !== undefined) input['permissionMode'] = fields['permissionMode']
+        if (fields['resources'] !== undefined) input['resources'] = fields['resources']
+        return json(200, await agents.createRepositoryAgent(root, input as never))
+      }
+      return error(405, 'method not allowed')
+    }
+
+    if (method === 'PUT') {
+      const fields = asRecord(body)
+      if (fields === undefined) return error(400, 'request body must be a JSON object')
+      const input: Record<string, unknown> = {
+        description: stringField(fields, 'description') ?? '',
+        systemPrompt: stringField(fields, 'systemPrompt') ?? '',
+        tools: Array.isArray(fields['tools']) ? fields['tools'].filter((value): value is string => typeof value === 'string') : [],
+      }
+      if (fields['model'] !== undefined) input['model'] = stringField(fields, 'model')
+      if (fields['permissionMode'] !== undefined) input['permissionMode'] = fields['permissionMode']
+      if (fields['resources'] !== undefined) input['resources'] = fields['resources']
+      return json(200, await agents.updateRepositoryAgent(root, name, input as never))
+    }
+    if (method === 'DELETE') {
+      await agents.deleteRepositoryAgent(root, name)
+      return json(200, { ok: true })
+    }
+    return error(405, 'method not allowed')
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
 }
 
 /* ---------------------- settings/models/providers ---------------------- */
