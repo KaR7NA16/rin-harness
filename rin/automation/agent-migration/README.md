@@ -50,7 +50,7 @@ where each agent is <code>{ id, name, source, status }</code>:
 The scan core (<code>scanAgentMigration</code>) is exported from the package
 root and runs independently of cordis.
 
-## Known Limitations
+## Known Limitations and Deferred Work
 
 - **Scan-only.** This package detects external agent config; it does not
   implement import, conversion, or write-back of agents/skills. Those are

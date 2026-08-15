@@ -47,3 +47,17 @@
 
 - verify-rin-structure「无 src 编译产物」门禁可直接防住 .d.ts.map 类污染复发。
 - verify-rin-deps 门禁可防住 evolution 类「import 未声明」缺口复发。
+
+## 门禁收口清单（GD 审查 + 各子代理报告汇总）
+
+1. bundle 缺 5 个 @rin 依赖（真实缺口）：@rin/bundle package.json dependencies 只声明 13 个 @rin 包，缺 tasks/mcp/computer-use/agent-migration/teams（cordis.yml + RIN_HOST_PLUGINS 已挂载但未声明）。verify-rin-deps 是 import 级检查，bundle 用字符串字面量引用故漏掉。收口：补 5 个 dependencies。
+
+2. gui/web-ui tsconfig 豁免：rin/gui/gui 与 rin/web/web-ui 是产品层（Tauri/Vite 独立配置），不 extends base、不 references vendor/cordis、不在 rin/tsconfig.json 聚合。裁决：verify-rin-structure 脚本对产品层包加豁免。
+
+3. README 规则口径：任务说放宽，rin/AGENTS.md 写精确标题+bullet。精确规则挂 agent-migration/tasks/web-ui 三个包。裁决：选精确标题为 canonical，修 3 个包标题。
+
+4. oxlintrc 配置问题：reportUnusedDisableDirectives 非 root 被拒 + ignorePatterns 混用 ../ 与无前缀基准。收口修。
+
+5. M1 发现的 v2 读 handler 信封不一致：mountedValue 信封 vs 前端原始消费。建议后续统一（单独项）。
+
+6. GB lint 发现（33 条，清理输入）：19 no-explicit-any + 5 no-useless-constructor + 4 no-dynamic-delete + 3 no-unused-vars + 2 prefer-const。均真实（非误报），全在 rin/ 内。建议根脚本 rin:lint 改为 oxlint -c rin/.oxlintrc.json rin 收窄；web-ui baseUrl 迁移后可启用 type-aware 规则；web-server/tests/smoke.ts 命名非 *.smoke.ts 贡献 3 条（建议改名）。

@@ -1,0 +1,52 @@
+name: rin
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RIN_NODE_VERSION: '22'
+
+jobs:
+  rin:
+    name: rin gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.RIN_NODE_VERSION }}
+
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm rin:typecheck
+
+      - name: Lint
+        run: pnpm rin:lint
+
+      - name: Hygiene
+        run: pnpm rin:hygiene
+
+      - name: Test
+        run: pnpm rin:test
+
+      - name: Smoke
+        run: pnpm rin:smoke

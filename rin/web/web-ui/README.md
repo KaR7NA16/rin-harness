@@ -35,7 +35,7 @@ pnpm --filter @rin/web-ui run dev   # vite dev，port 5173，/api 代理到 http
 pnpm run rin                 # 启动 host：http://127.0.0.1:8320 伺服 dist/（@rin/bundle staticRoot）
 ```
 
-## Known Limitations
+## Known Limitations and Deferred Work
 
 - 沙箱无法构建本包：vite build 被 spawn 拦截，且 react 等外部依赖需要联网 `pnpm install`。真机 `pnpm --filter @rin/web-ui run build` 验证。
 - `src/types.ts` 手抄了 server 的领域类型（AgentRecord / SandboxProfile / NoteMeta / InstallRun 等）：**server 领域类型变了必须同步这里**，否则页面字段名漂移。

@@ -38,7 +38,7 @@ defaulting to `~/.rin/tasks`.
 node --experimental-strip-types tests/tasks.smoke.ts
 ```
 
-## Known limitations
+## Known Limitations and Deferred Work
 
 - No cross-process synchronization: concurrent writers in separate processes can
   race on id assignment and file writes.

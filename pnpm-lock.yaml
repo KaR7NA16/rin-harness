@@ -8596,9 +8596,15 @@ importers:
       '@deepseek-ai/dsh-base':
         specifier: workspace:^
         version: link:../../../packages/bundle/base
+      '@rin/agent-migration':
+        specifier: workspace:^
+        version: link:../../automation/agent-migration
       '@rin/agents':
         specifier: workspace:^
         version: link:../../workspace/agents
+      '@rin/computer-use':
+        specifier: workspace:^
+        version: link:../../automation/computer-use
       '@rin/environment':
         specifier: workspace:^
         version: link:../../core/environment
@@ -8608,6 +8614,9 @@ importers:
       '@rin/knowledge':
         specifier: workspace:^
         version: link:../../memory/knowledge
+      '@rin/mcp':
+        specifier: workspace:^
+        version: link:../../automation/mcp
       '@rin/notes':
         specifier: workspace:^
         version: link:../../notes/notes
@@ -8629,6 +8638,12 @@ importers:
       '@rin/smart-pruning':
         specifier: workspace:^
         version: link:../../optimization/smart-pruning
+      '@rin/tasks':
+        specifier: workspace:^
+        version: link:../../automation/tasks
+      '@rin/teams':
+        specifier: workspace:^
+        version: link:../../collaboration/teams
       '@rin/token-optimization':
         specifier: workspace:^
         version: link:../../optimization/token-optimization
@@ -8873,21 +8888,36 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      '@rin/agent-migration':
+        specifier: workspace:^
+        version: link:../../automation/agent-migration
       '@rin/agents':
         specifier: workspace:^
         version: link:../../workspace/agents
+      '@rin/computer-use':
+        specifier: workspace:^
+        version: link:../../automation/computer-use
+      '@rin/environment':
+        specifier: workspace:^
+        version: link:../../core/environment
       '@rin/evolution':
         specifier: workspace:^
         version: link:../../learning/evolution
       '@rin/knowledge':
         specifier: workspace:^
         version: link:../../memory/knowledge
+      '@rin/mcp':
+        specifier: workspace:^
+        version: link:../../automation/mcp
       '@rin/notes':
         specifier: workspace:^
         version: link:../../notes/notes
       '@rin/prompt-memory':
         specifier: workspace:^
         version: link:../../memory/prompt-memory
+      '@rin/repository':
+        specifier: workspace:^
+        version: link:../../core/repository
       '@rin/sandboxes':
         specifier: workspace:^
         version: link:../../workspace/sandboxes
@@ -8897,6 +8927,12 @@ importers:
       '@rin/skill-memory':
         specifier: workspace:^
         version: link:../../memory/skill-memory
+      '@rin/tasks':
+        specifier: workspace:^
+        version: link:../../automation/tasks
+      '@rin/teams':
+        specifier: workspace:^
+        version: link:../../collaboration/teams
       '@types/ws':
         specifier: ^8.18.0
         version: 8.18.1

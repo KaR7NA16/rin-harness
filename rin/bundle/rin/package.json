@@ -22,6 +22,11 @@
   ],
   "dependencies": {
     "@deepseek-ai/dsh-base": "workspace:^",
+    "@rin/agent-migration": "workspace:^",
+    "@rin/computer-use": "workspace:^",
+    "@rin/mcp": "workspace:^",
+    "@rin/tasks": "workspace:^",
+    "@rin/teams": "workspace:^",
     "@rin/repository": "workspace:^",
     "@rin/environment": "workspace:^",
     "@rin/knowledge": "workspace:^",
