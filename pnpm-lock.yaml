@@ -8668,6 +8668,13 @@ importers:
         version: 6.0.3
 
   rin/learning/evolution:
+    dependencies:
+      '@rin/prompt-memory':
+        specifier: workspace:^
+        version: link:../../memory/prompt-memory
+      '@rin/skill-memory':
+        specifier: workspace:^
+        version: link:../../memory/skill-memory
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
