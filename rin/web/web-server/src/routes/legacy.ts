@@ -86,8 +86,79 @@ export async function handle(
     return tokenOptimizationRoute(pathname, method, body, services)
   }
 
+  // Settings / models / providers minimal compatibility
+  if (pathname === '/api/settings/user') return settingsUserRoute(method, body)
+  if (pathname === '/api/permissions/mode') return permissionsModeRoute(method, body)
+  if (pathname === '/api/permissions/rules') return permissionsRulesRoute(method)
+  if (pathname === '/api/models') return modelsRoute(services)
+  if (pathname === '/api/models/current') return modelsCurrentRoute(services)
+  if (pathname === '/api/effort') return json(200, { level: 'medium', available: ['low', 'medium', 'high'] })
+  if (pathname === '/api/providers') return json(200, { providers: [], activeId: null })
+  if (pathname === '/api/providers/presets') return json(200, { presets: [] })
+  if (pathname === '/api/providers/auth-status') return json(200, { hasAuth: false, source: 'none' })
+  if (pathname === '/api/providers/settings') return json(200, {})
+  if (pathname === '/api/mcp') return json(200, { servers: [] })
+
   return null
 }
+
+/* ---------------------- settings/models/providers ---------------------- */
+
+function settingsUserRoute(method: string, _body: unknown): JsonResponse {
+  if (method === 'GET') return json(200, {})
+  if (method === 'PUT') return json(200, { ok: true })
+  return error(405, 'method not allowed')
+}
+
+function permissionsModeRoute(method: string, body: unknown): JsonResponse {
+  if (method === 'GET') return json(200, { mode: 'default' })
+  if (method === 'PUT') {
+    const fields = asRecord(body)
+    const mode = fields === undefined ? 'default' : stringField(fields, 'mode') ?? 'default'
+    return json(200, { ok: true, mode })
+  }
+  return error(405, 'method not allowed')
+}
+
+function permissionsRulesRoute(method: string): JsonResponse {
+  if (method === 'GET') return json(200, { rules: [] })
+  if (method === 'POST') return json(200, { ok: true, rule: { source: 'userSettings', behavior: 'ask', ruleString: '', toolName: '' } })
+  if (method === 'DELETE') return json(200, { ok: true })
+  return error(405, 'method not allowed')
+}
+
+async function modelsRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const llm = services.llm()
+  if (llm === undefined) return json(200, { models: [], provider: null })
+  try {
+    const provider = llm.listProviders()[0]
+    if (provider === undefined) return json(200, { models: [], provider: null })
+    const models = await llm.listModels(provider.id)
+    return json(200, {
+      models: models.map(model => ({
+        id: model.id,
+        name: model.name,
+        description: '',
+        context: '0',
+      })),
+      provider: { id: provider.id, name: provider.name },
+    })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function modelsCurrentRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const llm = services.llm()
+  if (llm === undefined) return error(404, 'no llm service mounted')
+  const provider = llm.listProviders()[0]
+  if (provider === undefined) return error(404, 'no model configured')
+  const models = await llm.listModels(provider.id)
+  const model = models[0]
+  if (model === undefined) return error(404, 'no model configured')
+  return json(200, { model: { id: model.id, name: model.name, description: '', context: '0' } })
+}
+
 
 /* ----------------------------- repositories ----------------------------- */
 

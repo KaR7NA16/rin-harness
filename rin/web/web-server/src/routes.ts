@@ -82,6 +82,12 @@ export interface DshAgentDefaultModelLike {
   currentSelection(): { provider: string; model: string }
 }
 
+/** Minimal structural view of the dsh llm service used by the legacy model picker. */
+export interface DshLlmLike {
+  listProviders(): Array<{ id: string; name: string }>
+  listModels(provider: string): Promise<Array<{ id: string; name: string }>>
+}
+
 /** Lazily-read optional @rin services, resolved at request time. */
 export interface RinServiceRefs {
   repository(): RepositoryStore | undefined
@@ -100,6 +106,7 @@ export interface RinServiceRefs {
   sessionPersistence(): DshSessionPersistenceLike | undefined
   dshAgents(): DshAgentRegistryLike | undefined
   agentDefaultModel(): DshAgentDefaultModelLike | undefined
+  llm(): DshLlmLike | undefined
 }
 
 /**

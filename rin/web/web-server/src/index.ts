@@ -14,7 +14,7 @@ import z from '@deepseek-ai/schemastery'
 import type { Config as RinWebConfig, SmartPruningRef, TokenOptimizationRef } from './types.ts'
 import { errorMessage } from './http.ts'
 import { createWebServer } from './server.ts'
-import type { DshAgentDefaultModelLike, DshAgentRegistryLike, DshSessionPersistenceLike, DshSessionStoreLike, RinServiceRefs } from './routes.ts'
+import type { DshAgentDefaultModelLike, DshAgentRegistryLike, DshLlmLike, DshSessionPersistenceLike, DshSessionStoreLike, RinServiceRefs } from './routes.ts'
 
 export type * from './types.ts'
 export { createWebServer } from './server.ts'
@@ -90,6 +90,7 @@ export class WebServerService extends Service {
       sessionPersistence: () => ctx.get('sessionPersistence') as unknown as DshSessionPersistenceLike | undefined,
       dshAgents: () => ctx.get('agents') as unknown as DshAgentRegistryLike | undefined,
       agentDefaultModel: () => ctx.get('agentDefaultModel') as unknown as DshAgentDefaultModelLike | undefined,
+      llm: () => ctx.get('llm') as unknown as DshLlmLike | undefined,
     }
     const server = createWebServer(config, services)
     ctx.effect(() => () => server.close(), 'web-server.close')
