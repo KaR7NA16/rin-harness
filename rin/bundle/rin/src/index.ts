@@ -78,6 +78,7 @@ export interface RinDefaultConfig {
     host: string
     enabled: boolean
     repositoryRoot: string
+    staticRoot: string
     knowledgeDbPath: string
     skillMemoryRoots: { globalConfigRoot: string; projectConfigRoot: string }
   }
@@ -108,6 +109,18 @@ export function rinHome(subpath?: string): string {
  */
 export function builtinRepositoryRoot(): string {
   return fileURLToPath(new URL('../../../core/repository/builtin/', import.meta.url))
+}
+
+/**
+ * Resolve the @rin/web-ui production bundle root relative to this package.
+ *
+ * The web-ui SPA builds to rin/web/web-ui/dist; @rin/web-server serves that
+ * directory as its staticRoot so the 8320 Web UI and the @rin/gui WebView are
+ * always the exact same frontend (one UI, two surfaces).
+ * @returns the absolute @rin/web-ui dist directory.
+ */
+export function webUiDistRoot(): string {
+  return fileURLToPath(new URL('../../../web/web-ui/dist/', import.meta.url))
 }
 
 /**
@@ -185,6 +198,7 @@ export const defaultConfig: RinDefaultConfig = {
     host: DEFAULT_HOST,
     enabled: true,
     repositoryRoot: builtinRepositoryRoot(),
+    staticRoot: webUiDistRoot(),
     knowledgeDbPath: rinHome('knowledge/knowledge.db'),
     skillMemoryRoots: {
       globalConfigRoot: rinHome('skill-memory'),

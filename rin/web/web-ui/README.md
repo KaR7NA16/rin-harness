@@ -22,12 +22,17 @@ Vite + React 18 + React Router 6 + TypeScript（jsx: react-jsx）。
 - Sandboxes → /api/sandboxes（profile CRUD + probe + execute，显示 InstallRun 状态与分阶段日志）
 - Agents → /api/agents（列表/新建/编辑/删除/投影/AI 提案草案填充）
 
+## 与 @rin/gui 的统一 UI
+
+本包是 rin 唯一的 UI 实现。@rin/gui 不重写前端，开发态 WebView 直连 8320，发布态把本包 `dist/` 打进桌面壳；`@rin/web-server` 的 `staticRoot` 也指向本包 `dist/`，因此浏览器 Web 与桌面 GUI 永远是同一套界面。
+
 ## 开发 / 构建（真机）
 
 ```sh
-pnpm install                        # 联网拉取 react/react-router-dom/vite 等（沙箱内不可行）
+pnpm install                 # 联网拉取 react/react-router-dom/vite 等（沙箱内不可行）
+pnpm run rin:build           # 等价于 pnpm --filter @rin/web-ui run build，产出 dist/
 pnpm --filter @rin/web-ui run dev   # vite dev，port 5173，/api 代理到 http://127.0.0.1:8320
-pnpm --filter @rin/web-ui run build # 产出 dist/，交给 @rin/web-server 伺服（staticRoot 指到 dist/）
+pnpm run rin                 # 启动 host：http://127.0.0.1:8320 伺服 dist/（@rin/bundle staticRoot）
 ```
 
 ## Known Limitations

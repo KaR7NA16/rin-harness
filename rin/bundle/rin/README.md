@@ -6,7 +6,7 @@ rin 装配层。把 dsh 底座（`@deepseek-ai/dsh-base`）与 @rin 全家 host 
 
 - 声明装配清单：`@deepseek-ai/dsh-base` + 13 个 @rin 插件，**不含 `@deepseek-ai/dsh-web-app`**（MIGRATION.md §8 决策 10）。
 - 提供声明式装配文件 `src/cordis.yml`（@rin 插件 entry 列表，含默认 Config）。
-- 提供程序化元数据（`src/index.ts`）：包名列表、默认配置对象、`rinHome`/`builtinRepositoryRoot`/`configPath`/`baseBundlePatchPath` 助手。
+- 提供程序化元数据（`src/index.ts`）：包名列表、默认配置对象、`rinHome`/`builtinRepositoryRoot`/`webUiDistRoot`/`configPath`/`baseBundlePatchPath` 助手。
 - 不写 `$DSH_HOME/profiles`、不向 dsh 加模板、不改 dsh 任何文件（零侵入）。
 
 ## 装配清单
@@ -26,9 +26,20 @@ rin 装配层。把 dsh 底座（`@deepseek-ai/dsh-base`）与 @rin 全家 host 
 | 10 | `@rin/notes` | `vaultRoot` → `~/.rin/notes` |
 | 11 | `@rin/agents` | `agentsHome` → `~/.rin/agents`，`defaultRepositoryRoot` → 内置仓库 |
 | 12 | `@rin/sandboxes` | `profilesPath` → `~/.rin/sandbox.yaml` |
-| 13 | `@rin/web-server` | `port: 8320`、`host: 127.0.0.1`、`enabled: true`，`repositoryRoot` → 内置仓库，`knowledgeDbPath`/`skillMemoryRoots` → `~/.rin/*` |
+| 13 | `@rin/web-server` | `port: 8320`、`host: 127.0.0.1`、`enabled: true`，`repositoryRoot` → 内置仓库，`staticRoot` → `@rin/web-ui` 的 `dist/`（Web 与 GUI 共用同一前端），`knowledgeDbPath`/`skillMemoryRoots` → `~/.rin/*` |
 
-内置仓库根 `builtinRepositoryRoot()` 解析到 `rin/core/repository/builtin/`（相对本包解析，非相对进程 cwd）。
+内置仓库根 `builtinRepositoryRoot()` 解析到 `rin/core/repository/builtin/`；Web UI 静态根 `webUiDistRoot()` 解析到 `rin/web/web-ui/dist/`。两者均相对本包解析，非相对进程 cwd。
+
+## 构建 Web UI
+
+`web-server` 的 `staticRoot` 指向 `@rin/web-ui` 的生产构建目录，启动 `rin` 前先构建一次：
+
+```sh
+pnpm run rin:build   # = pnpm --filter @rin/web-ui run build
+pnpm run rin         # 启动 host，WebView/浏览器打开 http://127.0.0.1:8320
+```
+
+开发迭代前端可另开 `pnpm --filter @rin/web-ui run dev`（Vite dev server 代理到 8320）。
 
 ## 路径与覆盖
 

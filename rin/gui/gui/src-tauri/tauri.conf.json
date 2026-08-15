@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.rin.harness",
   "build": {
-    "frontendDist": "../dist",
+    "frontendDist": "../../../web/web-ui/dist",
     "devUrl": "http://127.0.0.1:8320"
   },
   "app": {

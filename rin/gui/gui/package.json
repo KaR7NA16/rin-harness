@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "tauri": "tauri",
-    "build": "tauri build"
+    "build": "pnpm --filter @rin/web-ui run build && tauri build"
   },
   "devDependencies": {
     "@tauri-apps/api": "^2",

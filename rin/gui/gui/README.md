@@ -102,7 +102,7 @@ rin/gui/gui/
 > 由主线程按 `docs/asset-migration.md` 用 Copy-Item 迁移。本仓库只写清单与引用路径。
 
 外壳身份（子任务 1 的 `src-tauri/tauri.conf.json`）：`productName: "rin"`、
-`identifier: "com.rin.harness"`、`devUrl: http://127.0.0.1:8320`、`frontendDist: ../dist`、
+`identifier: "com.rin.harness"`、`devUrl: http://127.0.0.1:8320`、`frontendDist: ../../../web/web-ui/dist`、
 `resources` 打进 builtin 仓库。sidecar：main.rs 以 `rin-sidecar[.exe]` 名 spawn（argv `serve ...`）；
 `externalBin` 写 `["binaries/rin-sidecar"]`，与 main.rs 的 `rin-sidecar` 名一致（标准 Tauri sidecar 模式：构建时按 `binaries/rin-sidecar-<triple>[.exe]` 找源、打包后邻 exe 落为无 triple 的 `rin-sidecar[.exe]`，见 `scripts/build-sidecar.md`）。
 
@@ -127,7 +127,7 @@ rin/gui/gui/
   - 统一带 `RIN_PARENT_PID` 环境变量，供 sidecar 父进程看门狗自退。
 - host stdin 写端由壳持有（`rin web` 把 stdin EOF 当退出信号），退出时 drop + kill + wait 回收。
 - 托盘：左键单击显示窗口，菜单「Show rin / Quit rin」；关闭窗口隐藏到托盘而非退出；托盘退出置 quitting 标志后 app.exit(0)。
-- `build.frontendDist` = "../dist"（占位），真实 web-ui 产物在 ../../web/web-ui/dist（相对包根），打包脚本拷贝或直引。
+- `build.frontendDist` = "../../../web/web-ui/dist"：发布态直接打包 `@rin/web-ui` 的产物，与浏览器 8320 共用同一套 UI。
 - 前端 bootstrap（index.html + src/main.ts）仅探测宿主 + 探 /api/health，真实 UI 由 web-ui 提供。
 - 环境变量：`RIN_GUI_HOST_CMD`（覆盖 dev 命令）、`RIN_GUI_NO_SPAWN`（置 1/true/yes/on 直连已运行的 8320，不 spawn）。
 
@@ -154,13 +154,12 @@ cargo install tauri-cli --version "^2" --locked
 前端与 sidecar 前置（发布态需要）：
 
 ```sh
-# rin web-ui 静态产物（供 @rin/web-server staticRoot 伺服）
+# rin web-ui 静态产物（供 @rin/web-server staticRoot 伺服，也供 GUI 发布态打包）
 pnpm install
-pnpm --filter @rin/web-ui run build
+pnpm run rin:build
 
-# rin host 装配 + 启动器（开发态 spawn `rin` 用）
-pnpm --filter @rin/bundle run build
-pnpm --filter @rin/cli run build
+# 开发态 host：pnpm run rin（等价于 source-launch @rin/cli -> @rin/bundle -> 8320）
+pnpm run rin
 ```
 
 开发（热重载 WebView + 实时 host）：

@@ -33,7 +33,7 @@ MIGRATION.md §1.1，更新迭代契约见 §9。
 - `src/`：`types.ts`（纯类型）+ `index.ts`（Cordis 插件入口）+ 领域模块。
 - `tests/`：vitest 单测 + 可 strip-types 跑的冒烟脚本。
 - `README.md`：包职责 + API + 已知限制（`## Known Limitations and Deferred Work`）。
-- `web-server` 额外有 `static/`：独立前端的静态文件；`web-ui` 为 Vite + React SPA，源码进 `src/`。
+- `web-server` 的 `staticRoot` 默认指向 `web-ui/dist`（`@rin/bundle` 的 `webUiDistRoot()`）；浏览器 8320 与 `@rin/gui` 共用这同一套 React SPA。构建前端：`pnpm run rin:build`，启动 host：`pnpm run rin`。
 - `core/repository/builtin/` 为内置 AssetRepository（repository.yaml + 九根种子资产），是仓库资产数据而非包代码。
 
 ## 约定

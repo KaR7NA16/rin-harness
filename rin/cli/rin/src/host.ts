@@ -19,6 +19,7 @@ import {
   configPath,
   defaultConfig,
   rinHome,
+  webUiDistRoot,
 } from '@rin/bundle'
 import type { RinArgs } from './args.ts'
 
@@ -63,6 +64,7 @@ export async function startHost(args: RinArgs): Promise<RinHost> {
     (hostCtx: Context) => {
       hostCtx.provide('rinHome', rinHome)
       hostCtx.provide('builtinRepositoryRoot', builtinRepositoryRoot)
+      hostCtx.provide('webUiDistRoot', webUiDistRoot)
     },
   )
 

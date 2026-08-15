@@ -10,6 +10,7 @@
 # Paths use !!js helpers the launcher provides on the boot context:
 #   rinHome(subpath?)        -> $RIN_HOME or ~/.rin, then the optional subpath
 #   builtinRepositoryRoot()  -> the built-in asset repository beside this package
+#   webUiDistRoot()          -> @rin/web-ui dist (the one UI served at 8320 and embedded by @rin/gui)
 # Override any path by setting RIN_HOME, or replace a row's config through the
 # launcher's --port/--host/--url flags or a config override layer.
 
@@ -90,6 +91,7 @@
     host: 127.0.0.1
     enabled: true
     repositoryRoot: !!js builtinRepositoryRoot()
+    staticRoot: !!js webUiDistRoot()
     knowledgeDbPath: !!js rinHome('knowledge/knowledge.db')
     skillMemoryRoots:
       globalConfigRoot: !!js rinHome('skill-memory')
