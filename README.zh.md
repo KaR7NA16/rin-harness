@@ -12,52 +12,45 @@
 
 rin-harness 继承了 DeepSeek Harness 的 _开发者预览_ 状态，正在快速迭代。**未来将出现破坏兼容性的变更。**
 
+## 功能
+
+rin 在 `dsh` 底座之上叠加了一组 `@rin/*` 包：
+
+- **资产仓库**（`@rin/repository`）与**环境**（`@rin/environment`）——读取资产仓库并解析环境安装计划。
+- **记忆**——四个包：`@rin/knowledge`、`@rin/prompt-memory`、`@rin/skill-memory` 与 `@rin/session-search`。
+- **笔记**（`@rin/notes`）——Obsidian 风格笔记，含会话备份。
+- **优化**（`@rin/token-optimization`、`@rin/smart-pruning`）——token 与输出优化控件。
+- **进化**（`@rin/evolution`）——自我进化的状态与配置。
+- **Web**（`@rin/web-server`、`@rin/web-ui`）——在独立端口（默认 `8320`）上运行的 Web UI。
+- **桌面壳**（`@rin/gui`）——内嵌同一套 Web UI 的 Tauri 壳。
+
 ## 运行
-
-### 通过 `npm` 运行
-
-安装 `Node.js`，然后运行：
-
-```sh
-npx @deepseek-ai/dsh web
-```
-
-该命令会启动 Web UI，默认地址为 `http://127.0.0.1:3080`。详见 [Web UI 指南](docs/user/guide/index.md)。
 
 ### 从源码运行
 
 如需从仓库源码运行：
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
 pnpm install
-pnpm run build
-pnpm dsh web
+pnpm run rin
 ```
+
+`rin` host 默认在 `http://127.0.0.1:8320` 伺服 Web UI。
+
+### 发行形态
+
+rin 以三种形态发布，均于[发布页](https://github.com/your-name/rin-harness/releases)公布：
+
+- **npm 包**——`@rin/*` 各包，含 `@rin/cli` 可执行文件。
+- **Windows 可执行文件**——由 `@rin/gui` 构建的 Tauri 安装程序（`nsis`）。
+- **Linux deb**——由 `@rin/gui` 构建的 Tauri `deb` 包。
+
+<!-- TODO：发布前将 https://github.com/your-name/rin-harness 替换为真实仓库地址。 -->
 
 ## 社区与支持
 
-- 欢迎通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。
-- 为你的插件仓库添加 [`dsh-plugin`](https://github.com/topics/dsh-plugin) 话题，便于被发现。
-- 欢迎加入 DeepSeek Harness 企微群：扫码添加企微小助手并填写入群问卷，完成后小助手会邀请你入群。
-
-<table>
-  <thead>
-    <tr>
-      <th align="center">企微小助手</th>
-      <th align="center">入群问卷</th>
-      <th align="center">微信公众号</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="center"><img src="assets/community-wecom-assistant.png" alt="DeepSeek Harness 企微小助手二维码" width="180" height="180"></td>
-      <td align="center"><a href="https://trtgsjkv6r.feishu.cn/share/base/form/shrcnIt5twSVdLGD52KJBckGCgg"><img src="assets/community-wecom-survey.png" alt="DeepSeek Harness 入群问卷二维码" width="180" height="180"></a></td>
-      <td align="center"><img src="assets/community-wechat-official-account.png" alt="DeepSeek Harness 团队微信公众号二维码" width="180" height="180"></td>
-    </tr>
-  </tbody>
-</table>
+- 欢迎通过 [GitHub Discussions](https://github.com/your-name/rin-harness/discussions) 提交反馈或 bug 报告。
+- 通过 [GitHub Issues](https://github.com/your-name/rin-harness/issues) 跟踪并提交 issue。
 
 ## 参与贡献
 

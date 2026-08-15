@@ -1,18 +1,18 @@
-# rin-harness 迁移与构建方案（cyberpsychosis → rin-harness，第四轮审计修订版）
+# rin-harness 迁移与构建方案（旧项目 → rin-harness，第四轮审计修订版）
 
 > 单一权威规划文档。取代并清理历史文档：rin-harness-plan.md（v3）、rin-harness-rebranding-plan.md、rin-harness-brand.md、agent/rin-harness-rename-plan.md、PHASE4-CLIENT.md（其功能适配映射表并入本文 §4）。
 > 既往对话记录 = 本仓库 git 历史 + 本文档前轮 + PHASE4-STANDALONE.md（独立 Web UI 架构与 API 契约，继续有效）。
-> 现状：cyberpsychosis v1.4.9（`E:\_projects\agent\cyberpsychosis`，Bun + Ink TUI + Tauri 桌面端，CC 反编译重建）→ rin-harness（dsh 底座 + @rin 资产层）。
+> 现状：旧项目 v1.4.9（Bun + Ink TUI + Tauri 桌面端）→ rin-harness（dsh 底座 + @rin 资产层）。
 
 ## 0. 结论
 
-dsh 给「组合 + 运行时」，rin 给「资产 + 环境」。第一公民是 Asset Repository（九类资产单一事实源）。迁移 = 把 cyberpsychosis 的差异化能力重写为 @rin 插件挂在 dsh 底座上，砍掉 CC 包袱与 UI 重写，复用 dsh 的 loop/工具/会话/沙箱/多模型。
+dsh 给「组合 + 运行时」，rin 给「资产 + 环境」。第一公民是 Asset Repository（九类资产单一事实源）。迁移 = 把旧项目的差异化能力重写为 @rin 插件挂在 dsh 底座上，砍掉上游包袱与 UI 重写，复用 dsh 的 loop/工具/会话/沙箱/多模型。
 
 已落地：@rin/repository（reader/writer/validation/migration/seed 全量）、@rin/environment（预检 + 分阶段安装计划）、记忆域 4 包（knowledge / prompt-memory / skill-memory / session-search）、evolution、token-optimization（响应风格开关 + prompt 清理开关）+ smart-pruning（级别）、独立 Web UI（8320，v2 API + React 8 页）、全新 git 仓库 main 主支、裁 codex/claude 子代理。
 
 **第四轮审计与方案修订要点**（相对上一轮）：
 
-1. **审计补漏**：cyberpsychosis 的 `src/server/services/` 编排层（约 45 文件：agentService、agentProposalService、repositoryService、repositoryCatalog、sandboxService、environmentInstallService、notesService、sessionBackupService、sessionRewindService、cronService、codeGraphService、monitorService 等）此前未单独成册，本轮全部归类（§2.13）；桌面新增页面 AgentWorkspace、Sandboxes、SessionBackup、EmptySession、ExecutionBehaviorSettings、aiConfigurationPrompts 已入册。
+1. **审计补漏**：旧项目的 `src/server/services/` 编排层（约 45 文件：agentService、agentProposalService、repositoryService、repositoryCatalog、sandboxService、environmentInstallService、notesService、sessionBackupService、sessionRewindService、cronService、codeGraphService、monitorService 等）此前未单独成册，本轮全部归类（§2.13）；桌面新增页面 AgentWorkspace、Sandboxes、SessionBackup、EmptySession、ExecutionBehaviorSettings、aiConfigurationPrompts 已入册。
 2. **三个「半成品」升为一等公民并排期**：笔记（Notes 模块 + NotesTool + Notes 页 + 9 组件）、知识空间（knowledge 包 + KnowledgeSpace 页 + 检索工具）、仓库接入 agent 与 sandbox 配置（agents/environments 资产 → agent-presets 投影 + sandbox profile 装配 + 环境计划执行）。完整链设计见 §6。
 3. **token 优化缩略**：UI 收敛为「响应风格开关 + prompt 清理开关 + 智能裁剪级别滑块」三个控件；旧五栈（caveman/lite/ponytail/rtk/smart-pruning）与 codeGraph 预算折叠进去，不再各自成包成页（§5）。
 4. **UI 三面共存**：dsh 原生 Web UI（3080）保留、默认不随 rin 启动、可配置关闭、永不改动（便于随上游更新）；rin Web UI（8320）独立；rin GUI 桌面壳（Tauri 2 内嵌 rin web-ui）新建——TUI 取消（dsh 自身 TUI 已删，见 note 2026-08-04；dsh 生态已有多款社区 TUI，重复价值不显）。
@@ -75,7 +75,7 @@ environments → @rin/environment（计划）＋ @rin/sandboxes（执行）；ag
 
 ## 2. 待迁移资产全景（第四轮审计完整清单）
 
-参考根：`E:\_projects\agent\cyberpsychosis`。旁支目录非源码：`cyberpsychosis-local/`（桌面运行残留 + 日志）、`load/`（v1.4.9 rpm/zip/source 发布物）、`tools/`（bun/cargo/rustup 工具链）——不入迁移，仅 `load/` 的发布物作打包参考。
+参考根：`<旧项目根>`。旁支目录非源码：`<旧项目根>-local/`（桌面运行残留 + 日志）、`load/`（v1.4.9 rpm/zip/source 发布物）、`tools/`（bun/cargo/rustup 工具链）——不入迁移，仅 `load/` 的发布物作打包参考。
 
 ### 2.1 运行时产品（4）
 
@@ -89,7 +89,7 @@ Knowledge、Skill Memory、Prompt Memory、Session Search、Scheduled Tasks、Ex
 
 AgentTool, AskUserQuestionTool, BashTool, BriefTool, ConfigTool, CtxInspectTool, DiscoverSkillsTool, EnterPlanModeTool, EnterWorktreeTool, ExitPlanModeTool, ExitWorktreeTool, FileEditTool, FileReadTool, FileWriteTool, GlobTool, GrepTool, ListMcpResourcesTool, ListPeersTool, LSPTool, McpAuthTool, MCPTool, MonitorTool, NotebookEditTool, NotesTool, OverflowTestTool, PowerShellTool, PromptMemoryTool, PushNotificationTool, ReadMcpResourceTool, RemoteTriggerTool, REPLTool, ReviewArtifactTool, ScheduleCronTool, SendMessageTool, SendUserFileTool, SessionSearchTool, SkillGateTool, SkillMemoryTool, SkillTool, SleepTool, SnipTool, SubscribePRTool, SuggestBackgroundPRTool, SyntheticOutputTool, TaskCreateTool, TaskGetTool, TaskListTool, TaskOutputTool, TaskStopTool, TaskUpdateTool, TeamCreateTool, TeamDeleteTool, TerminalCaptureTool, TodoWriteTool, ToolSearchTool, TungstenTool, VerifyPlanExecutionTool, WebBrowserTool, WebFetchTool, WebSearchTool, WorkflowTool。
 
-其中 NotesTool 本轮确认为一等公民：list/search/read 三动作，读用户笔记库（~/.cyber/notes），搜索返回 title+snippet，读取返回 markdown 全文。
+其中 NotesTool 本轮确认为一等公民：list/search/read 三动作，读用户笔记库（旧项目配置目录 notes/），搜索返回 title+snippet，读取返回 markdown 全文。
 
 ### 2.4 命令（19）
 
@@ -99,7 +99,7 @@ advisor, bridge-kick, brief, commit, commit-push-pr, createMovedToPluginCommand,
 
 - token 优化栈：cavemanOptimization, liteOptimization, ponytailOptimization, rtkOptimization, smartPruningOptimization
 - 诊断/监控：claudeAiLimits, codeGraphPreflight, codeGraphTextBudget, diagnosticTracking, tokenEstimation, vcr
-- CC 限流（包袱）：mockRateLimits, rateLimitMessages, rateLimitMocking
+- 上游限流（包袱）：mockRateLimits, rateLimitMessages, rateLimitMocking
 - 其他：awaySummary, notifier, preventSleep, voice, voiceKeyterms, voiceStreamSTT
 
 ### 2.6 包（6，含内部结构）
@@ -117,7 +117,7 @@ agents / bundles / environment / environments / knowledge / outputs / policies /
 
 ### 2.8 服务端 API（28 模块，本轮逐一核实）
 
-computer-use、notes、repositories、token-optimization、teams、agents（含 agents.proposals——AI 提案接口）、conversations、sessions、skills、knowledge、prompt-memory、scheduled-tasks、sandboxes（含 sandboxes.aiConfigure——AI 配置沙箱）、providers、models、settings、mcp、monitor、search、status、adapters、agent-migration、filesystem、cybercode-oauth、plugins。
+computer-use、notes、repositories、token-optimization、teams、agents（含 agents.proposals——AI 提案接口）、conversations、sessions、skills、knowledge、prompt-memory、scheduled-tasks、sandboxes（含 sandboxes.aiConfigure——AI 配置沙箱）、providers、models、settings、mcp、monitor、search、status、adapters、agent-migration、filesystem、oauth、plugins。
 
 repositories API 提供多仓库连接管理：list / connect（按路径）/ create（新建仓库）/ disconnect / manifest（PUT 更新）——即「harness 原生仓库」可接入多个仓库，本轮确认为半成品链路的起点。
 
@@ -140,7 +140,7 @@ bridge（40+ 文件）、skills（60+ 文件）、memdir、promptMemory、sessio
 - editor/companion：vim（motions/operators/textObjects/transitions）、buddy（companion sprite）、voice、outputStyles
 - i18n（desktop/src/i18n/locales：en/ja/ko/zh）+ theme（globals）
 - 品牌：desktop/public/app-icon.svg（海豹 seal，深蓝渐变底 + 单笔海豹轮廓）
-- docs（agent/channel/desktop/features/guide/im/memory/reference/skills + ui-clone/stitch_cybercode_frontend_design 设计参考）
+- docs（agent/channel/desktop/features/guide/im/memory/reference/skills + ui-clone/frontend-design 设计参考）
 
 ### 2.12 内容资产（prompt/文案/规则）
 
@@ -149,11 +149,11 @@ bridge（40+ 文件）、skills（60+ 文件）、memdir、promptMemory、sessio
 - 配置边界：betas.ts、apiLimits.ts、toolLimits.ts、xml.ts、common.ts
 - 默认规则：defaults/agent-work-rules、defaults/ponytail-rules
 
-迁移去向：能力资产→@rin host 插件；设计资产→@rin web-ui / gui 设计参考；内容资产→system-prompt sections + i18n 文案 + UI copy（CC 派生的只能重写设计，不搬原文）。
+迁移去向：能力资产→@rin host 插件；设计资产→@rin web-ui / gui 设计参考；内容资产→system-prompt sections + i18n 文案 + UI copy（上游派生的只能重写设计，不搬原文）。
 
 ### 2.13 服务端编排层 — src/server/services（本轮补录，~45 文件）
 
-agentService（运行态 agent 定义 ~/.cyber/agents/ YAML/MD + 仓库 agent 记录 + revision hash）、agentProposalService/agentProposalGenerator（LLM 生成 agent 提案）、repositoryService（多仓库连接 CRUD + ensureDefault）、repositoryCatalog（仓库资源目录：环境 profiles/skills/workflows）、sandboxService（sandbox profile 管理，local-sandbox/container/remote，attachRepositoryToContainer 挂载 /workspace，YAML v2 存储 + 旧 JSON 迁移）、environmentInstallService（安装计划执行状态机 blocked→resolved→approved→provisioning→verifying→ready/failed/rollback-needed + 分阶段日志）、notesService（笔记存储，见 §6.1）、sessionBackupService / sessionRewindService（会话备份/回退）、cronService/cronScheduler、codeGraphService/codeGraphDatabase/codeGraphAnalysis、computerUseApprovalService、conversationService、monitorService、pluginService、providerService、searchService、settingsService、sshService、taskService、teamService/teamWatcher、titleService、applicationVersion、notificationService、permissionPolicy、processRunner、desktopCliLauncherService、mcpHostPreflight、modelImageCapabilityProbe。
+agentService（运行态 agent 定义（旧项目配置目录 agents/ YAML/MD） + 仓库 agent 记录 + revision hash）、agentProposalService/agentProposalGenerator（LLM 生成 agent 提案）、repositoryService（多仓库连接 CRUD + ensureDefault）、repositoryCatalog（仓库资源目录：环境 profiles/skills/workflows）、sandboxService（sandbox profile 管理，local-sandbox/container/remote，attachRepositoryToContainer 挂载 /workspace，YAML v2 存储 + 旧 JSON 迁移）、environmentInstallService（安装计划执行状态机 blocked→resolved→approved→provisioning→verifying→ready/failed/rollback-needed + 分阶段日志）、notesService（笔记存储，见 §6.1）、sessionBackupService / sessionRewindService（会话备份/回退）、cronService/cronScheduler、codeGraphService/codeGraphDatabase/codeGraphAnalysis、computerUseApprovalService、conversationService、monitorService、pluginService、providerService、searchService、settingsService、sshService、taskService、teamService/teamWatcher、titleService、applicationVersion、notificationService、permissionPolicy、processRunner、desktopCliLauncherService、mcpHostPreflight、modelImageCapabilityProbe。
 
 ## 3. 四分类迁移映射（第四轮）
 
@@ -175,7 +175,7 @@ token 优化五栈折叠（§5）：cavemanOptimization/ponytailOptimization→@
 
 后置（MEDIUM/LOW）：@rin/team、@rin/remote（bridge + ssh + teleport + daemon）、@rin/im-feishu、@rin/im-telegram、@rin/github（空桩，从零建）、@rin/worktree（bash 可替代）、@rin/editor-notebook、@rin/schedule、@rin/doctor、@rin/computer-use（vendored computer-use-mcp）、@rin/agent-migration、@rin/codegraph、@rin/voice（可选）。
 
-### ⚫ CC 包袱 / 测试工具 → 砍
+### ⚫ 上游包袱 / 测试工具 → 砍
 
 claudeAiLimits, mockRateLimits, rateLimitMessages, rateLimitMocking；grove, ClaudeCodeHint, DesktopUpsell, ManagedSettingsSecurityDialog；REPLTool；OverflowTestTool, SyntheticOutputTool, TungstenTool, SleepTool, TestingPermissionTool；chrome extension / marketplace / subscriptions hooks；SessionBackup 独立页（功能并入 @rin/notes 会话备份）。
 
@@ -189,7 +189,7 @@ claudeAiLimits, mockRateLimits, rateLimitMessages, rateLimitMocking；grove, Cla
 | rin Web UI（8320，@rin/web-server + @rin/web-ui） | rin 主 Web 面。独立端口、独立前端，只读 @rin host 服务，零 dsh 侵入。可配置关闭（`@rin/web-server` 的 `enabled: false`），关闭只影响 8320，不影响任何 dsh 面。 |
 | rin GUI（@rin/gui，本轮定稿） | rin 桌面壳（决策 9）：Tauri 2 薄壳——起 host（spawn `rin` 或发布态 sidecar）→ WebView 内嵌 8320 的 rin web-ui → 系统托盘常驻 → 退出回收子进程。零前端重写（复用 web-ui 11 页），不碰 dsh 原生 web（3080）。dsh 原生 tui 已被上游删除（note 2026-08-04），无停用对象；dsh 原生 CLI/headless/JSON-RPC 命令面保留不动。 |
 | Ink TUI（旧项目 src/ink） | 仅设计参考，不 vendor；TUI 已取消（dsh 生态已有多款社区 TUI，价值不显）。 |
-| Tauri 桌面壳（旧项目 desktop） | 设计参考（Tauri 配置/窗口/sidecar/品牌资产迁移）；rin 用 Tauri 2 重做薄壳，不搬 CC 代码。 |
+| Tauri 桌面壳（旧项目 desktop） | 设计参考（Tauri 配置/窗口/sidecar/品牌资产迁移）；rin 用 Tauri 2 重做薄壳，不搬上游代码。 |
 
 ### 4.2 Web UI 功能适配映射表（并入自 PHASE4-CLIENT.md，第四轮扩展）
 
@@ -219,7 +219,7 @@ claudeAiLimits, mockRateLimits, rateLimitMessages, rateLimitMocking；grove, Cla
 2. **Prompt 清理开关**（@rin/token-optimization `cleanPrompt`）：布尔——已实现，映射 liteOptimization 的 deterministic cleaner。
 3. **智能裁剪级别滑块**（@rin/smart-pruning `level`）：`conservative | balanced | aggressive` 三档——已实现工具结果去重 / 替代读折叠 / 超预算截断。注：rtkOptimization（终端 I/O 压缩）与 codeGraphTextBudget（上下文预算）本轮**舍弃**（未折叠进本滑块，dsh 已自带 tool-result pruner 覆盖主体）；codeGraph 本体（索引器 + 可视化）后置。
 
-旧五栈与 codeGraph 不再各自成包成页；其功能经三控件全部保留或显式舍弃（舍弃 = 测试工具与 CC 限流栈）。API 侧 `token-optimization` 路由保留为三控件读写。
+旧五栈与 codeGraph 不再各自成包成页；其功能经三控件全部保留或显式舍弃（舍弃 = 测试工具与上游限流栈）。API 侧 `token-optimization` 路由保留为三控件读写。
 
 ## 6. 三个半成品功能的完整链（本轮新增）
 
@@ -247,7 +247,7 @@ rin 侧拆三层：
 
 ```
 repository（agents/environments 资产）
-   ├─→ agentService：仓库 agent 记录 + revision hash；运行态 agent 定义（~/.cyber/agents/）
+   ├─→ agentService：仓库 agent 记录 + revision hash；运行态 agent 定义（旧项目配置目录 agents/）
    │    └─→ AgentWorkspace 页：CRUD + AI 提案（agentProposalService 生成草案 → 人工评审 → 落库）
    └─→ sandboxService：profile（local-sandbox/container/remote）+ attachRepositoryToContainer（挂 /workspace）
         └─→ environmentInstallService：安装计划在沙箱内分阶段执行 + 验证 + 回滚
@@ -278,14 +278,14 @@ rin 侧完整链（补齐缺口）：
 ## 8. 关键决策（含本轮新增/修订）
 
 1. MVP 主轴：Phase 5→6→7→8（资产链路 + 笔记/知识闭环 + UI 补齐 + 装配）为主轴；team/remote/github/im 后置。✅
-2. CC 包袱 UI（grove/REPL/DesktopUpsell/ClaudeCodeHint）：直接砍、不留兼容。✅
+2. 上游包袱 UI（grove/REPL/DesktopUpsell/ClaudeCodeHint）：直接砍、不留兼容。✅
 3. 桌面端弃、TUI 后置 → **本轮修订**：改为一等产品 **GUI 桌面壳 @rin/gui（Tauri 2 内嵌 rin web-ui）**；TUI 取消（dsh 生态已有多款社区 TUI、价值不显）。
 4. 更名策略作废（迁移 = 重写，旧 repo 留档，不搬名、不物理重命名）。✅
 5. asset-repository 对齐 B（按 asset-repository 包逐模块移植）——已完成，schema 版本 rin.dev/v1。✅
 6. Computer Use + Agent Migration 进 MVP Phase 6 → **本轮修订**：维持「MVP 后半段」意图，但排在 Phase 8 之后按需启用（本轮主轴被资产链路与笔记/知识闭环占用）。✅（修订）
 7. **笔记升等（本轮新增）**：notes 从「并入 knowledge」改为独立一等公民 @rin/notes；SessionBackup 并入 notes（会话 → markdown 笔记），独立页取消。✅
 8. **token 优化缩略（本轮新增）**：五栈 + codeGraph 预算折叠为三控件（响应风格开关 / prompt 清理开关 / 裁剪级别滑块），见 §5。✅
-9. **GUI 选型（本轮定稿）**：**Tauri 2 薄壳**（Rust + 系统 WebView，产物轻量；旧项目即 Tauri，配置/窗口/sidecar/品牌资产可迁移）+ **内嵌 rin web-ui**（零前端重写，复用 11 页）+ **host 形态 = 发布态 sidecar 打包 dsh runtime（复用 python/sdk-runtime 的 dsh-jsonrpc-agent-pkg 先例 + 旧项目 cyberpsychosis-sidecar 模式）/ 开发态 spawn `rin`** + **品牌资产迁移**（海豹 app-icon.svg、字体、provider-icons）。TUI 取消。真机验收点：Tauri 构建 + WebView 连 8320 + 托盘/回收。✅
+9. **GUI 选型（本轮定稿）**：**Tauri 2 薄壳**（Rust + 系统 WebView，产物轻量；旧项目即 Tauri，配置/窗口/sidecar/品牌资产可迁移）+ **内嵌 rin web-ui**（零前端重写，复用 11 页）+ **host 形态 = 发布态 sidecar 打包 dsh runtime（复用 python/sdk-runtime 的 dsh-jsonrpc-agent-pkg 先例 + 旧项目 sidecar 模式）/ 开发态 spawn `rin`** + **品牌资产迁移**（海豹 app-icon.svg、字体、provider-icons）。TUI 取消。真机验收点：Tauri 构建 + WebView 连 8320 + 托盘/回收。✅
 10. **装配零侵入（本轮定稿）**：`rin` 启动器直接装配 host（dsh-base + @rin 全家 + @rin/web-server），**不写入 $DSH_HOME profiles、不向 packages/boot 加模板、不列 dsh-web-app**；dsh 原生 web（`dsh --profile web`，3080）永不改动、随时可用。默认单 host 进程、单端口 8320：无性能浪费、无双端口冲突。✅
 
 ## 9. dsh 与 rin 更新迭代契约（本轮新增）
@@ -306,9 +306,9 @@ rin 侧完整链（补齐缺口）：
 - **🟢 HIGH（护城河，本轮必做）**：@rin/repository + @rin/environment（唯一差异化「harness 内环境」，本轮补执行）、@rin/agents + @rin/sandboxes（仓库接入 agent/sandbox 配置，本轮新晋）、@rin/notes（本轮新晋）、@rin/knowledge（补检索工具）、@rin/prompt-memory、@rin/skill-memory + @rin/evolution（自我进化）、@rin/session-search、token 优化三控件、@rin/web-server + web-ui + gui + bundle + cli（产品面）。
 - **🟡 MEDIUM（有价值，后置）**：team、remote/bridge、im-feishu/telegram、computer-use、agent-migration、codegraph、schedule、doctor。
 - **🔴 LOW（审慎，可能不值）**：worktree（bash 可替代）、editor-notebook（小众）、voice（边缘）、github（空桩，成本>价值）。
-- **⚫ 零值/负值（砍）**：dsh 已覆盖的 16 工具组 + messages/PromptInput/diff/permissions UI；CC 包袱 grove/REPL/ClaudeCodeHint/DesktopUpsell/subscriptions/marketplace/chrome/rate-limits；五栈独立服务与 codeGraph 独立页（折叠进三控件）；SessionBackup 独立页（并入 notes）。
+- **⚫ 零值/负值（砍）**：dsh 已覆盖的 16 工具组 + messages/PromptInput/diff/permissions UI；上游包袱 grove/REPL/ClaudeCodeHint/DesktopUpsell/subscriptions/marketplace/chrome/rate-limits；五栈独立服务与 codeGraph 独立页（折叠进三控件）；SessionBackup 独立页（并入 notes）。
 
-关键结论：内容资产（prompts/systemPromptSections）是 CC 派生，只能重写设计不能搬原文；github-app 是空桩；voice/worktree/editor-notebook 是边缘。**MVP = HIGH 域（约 14 host 插件 + web-ui 11 页 + gui + 装配层），其余后置。**
+关键结论：内容资产（prompts/systemPromptSections）是上游派生，只能重写设计不能搬原文；github-app 是空桩；voice/worktree/editor-notebook 是边缘。**MVP = HIGH 域（约 14 host 插件 + web-ui 11 页 + gui + 装配层），其余后置。**
 
 ## 11. 子 agent 并行执行计划（第四轮）
 
@@ -324,7 +324,7 @@ rin 侧完整链（补齐缺口）：
 
 ### 并行批次
 
-- 批次 A（Phase 5，2 并行）：@rin/agents、@rin/sandboxes——各自读 cyber 的 src/server/services/{agentService,agentProposalService,sandboxService,environmentInstallService} 作参考，互不依赖；主线程先行补 @rin/environment 执行状态机（两包都依赖它）。
+- 批次 A（Phase 5，2 并行）：@rin/agents、@rin/sandboxes——各自读旧项目的 src/server/services/{agentService,agentProposalService,sandboxService,environmentInstallService} 作参考，互不依赖；主线程先行补 @rin/environment 执行状态机（两包都依赖它）。
 - 批次 B（Phase 6，2 并行）：@rin/notes、@rin/knowledge 检索工具 + 页补全——互不依赖。
 - 批次 C（Phase 7）：web-ui 新页（依赖 A/B 的路由契约）。
 - 批次 D（Phase 8，主线程收口）：@rin/bundle + @rin/cli + 共存开关 + 文档收口。

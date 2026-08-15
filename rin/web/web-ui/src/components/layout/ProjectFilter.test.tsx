@@ -47,7 +47,7 @@ describe('ProjectFilter', () => {
       projectDisplayNames: {},
       availableProjects: [
         'Users-dev-workspace-myself_code-OpenCutSkill',
-        'Users-dev-workspace-myself_code-cybercode',
+        'Users-dev-workspace-myself_code-demo-repo',
       ],
     })
   })
@@ -56,11 +56,11 @@ describe('ProjectFilter', () => {
     getRecentProjectsMock.mockResolvedValue({
       projects: [
         {
-          projectPath: 'Users-dev-workspace-myself_code-cybercode',
-          realPath: '/path/to/cybercode',
-          projectName: 'cybercode',
+          projectPath: 'Users-dev-workspace-myself_code-demo-repo',
+          realPath: '/path/to/demo-repo',
+          projectName: 'demo-repo',
           isGit: true,
-          repoName: 'wk42worldworld/cybercode',
+          repoName: 'example-user/demo-repo',
           branch: 'main',
           modifiedAt: '2026-04-20T10:00:00.000Z',
           sessionCount: 4,
@@ -70,7 +70,7 @@ describe('ProjectFilter', () => {
           realPath: '/Users/dev/workspace/myself_code/OpenCutSkill',
           projectName: 'OpenCutSkill',
           isGit: true,
-          repoName: 'wk42worldworld/OpenCutSkill',
+          repoName: 'example-user/OpenCutSkill',
           branch: 'main',
           modifiedAt: '2026-04-20T09:00:00.000Z',
           sessionCount: 2,
@@ -83,40 +83,40 @@ describe('ProjectFilter', () => {
     fireEvent.click(screen.getByRole('button', { name: /All projects/i }))
 
     await waitFor(() => {
-      expect(screen.getByText('wk42worldworld/cybercode')).toBeInTheDocument()
-      expect(screen.queryByText('/path/to/cybercode')).not.toBeInTheDocument()
-      expect(screen.getByText('wk42worldworld/OpenCutSkill')).toBeInTheDocument()
+      expect(screen.getByText('example-user/demo-repo')).toBeInTheDocument()
+      expect(screen.queryByText('/path/to/demo-repo')).not.toBeInTheDocument()
+      expect(screen.getByText('example-user/OpenCutSkill')).toBeInTheDocument()
     })
 
-    const cybercodeProject = screen.getByRole('button', { name: /wk42worldworld\/cybercode/i })
-    expect(cybercodeProject).toHaveAttribute('title', '/path/to/cybercode')
-    fireEvent.click(cybercodeProject)
+    const demoRepoProject = screen.getByRole('button', { name: /example-user\/demo-repo/i })
+    expect(demoRepoProject).toHaveAttribute('title', '/path/to/demo-repo')
+    fireEvent.click(demoRepoProject)
 
     await waitFor(() => {
-      expect(useSessionStore.getState().selectedProjects).toEqual(['Users-dev-workspace-myself_code-cybercode'])
+      expect(useSessionStore.getState().selectedProjects).toEqual(['Users-dev-workspace-myself_code-demo-repo'])
       expect(useSessionStore.getState().selectedSessionScope).toBe('project')
     })
 
     act(() => {
       useSessionStore.getState().renameProject(
-        'Users-dev-workspace-myself_code-cybercode',
-        'Cyber Workspace',
+        'Users-dev-workspace-myself_code-demo-repo',
+        'Demo Workspace',
       )
     })
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Cyber Workspace/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Demo Workspace/i })).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /Cyber Workspace/i }))
-    fireEvent.click(screen.getByRole('button', { name: /wk42worldworld\/OpenCutSkill/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Demo Workspace/i }))
+    fireEvent.click(screen.getByRole('button', { name: /example-user\/OpenCutSkill/i }))
 
     await waitFor(() => {
       expect(useSessionStore.getState().selectedProjects).toEqual(['Users-dev-workspace-myself_code-OpenCutSkill'])
       expect(useSessionStore.getState().selectedSessionScope).toBe('project')
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /wk42worldworld\/OpenCutSkill/i }))
+    fireEvent.click(screen.getByRole('button', { name: /example-user\/OpenCutSkill/i }))
     fireEvent.click(screen.getByRole('button', { name: /Temporary sessions/i }))
 
     await waitFor(() => {

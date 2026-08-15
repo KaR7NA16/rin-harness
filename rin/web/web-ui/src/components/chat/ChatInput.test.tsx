@@ -322,8 +322,8 @@ describe('ChatInput composer controls', () => {
   it('attaches desktop paperclip selections by path without reading file contents', async () => {
     const readSpy = vi.spyOn(FileReader.prototype, 'readAsDataURL')
     vi.mocked(open).mockResolvedValue([
-      '/Users/wang/Desktop/voice.mp3',
-      '/Users/wang/Documents/report.pdf',
+      '/Users/user/Desktop/voice.mp3',
+      '/Users/user/Documents/report.pdf',
     ])
     Object.defineProperty(window, '__TAURI_INTERNALS__', {
       value: {},
@@ -345,12 +345,12 @@ describe('ChatInput composer controls', () => {
       expect.objectContaining({
         type: 'file',
         name: 'voice.mp3',
-        path: '/Users/wang/Desktop/voice.mp3',
+        path: '/Users/user/Desktop/voice.mp3',
       }),
       expect.objectContaining({
         type: 'file',
         name: 'report.pdf',
-        path: '/Users/wang/Documents/report.pdf',
+        path: '/Users/user/Documents/report.pdf',
       }),
     ])
   })
@@ -362,7 +362,7 @@ describe('ChatInput composer controls', () => {
     })
     vi.mocked(invoke).mockImplementation(async (command) => {
       if (command === 'capture_screen_region') {
-        return '/tmp/cybercode-screenshot-test.png'
+        return '/tmp/screenshot-test.png'
       }
       if (command === 'read_image_preview_data_url') {
         return 'data:image/png;base64,captured-preview'
@@ -375,11 +375,11 @@ describe('ChatInput composer controls', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Capture screen region' }))
 
-    const preview = await screen.findByRole('img', { name: 'cybercode-screenshot-test.png' })
+    const preview = await screen.findByRole('img', { name: 'screenshot-test.png' })
     expect(preview).toHaveAttribute('src', 'data:image/png;base64,captured-preview')
     expect(invoke).toHaveBeenNthCalledWith(1, 'capture_screen_region')
     expect(invoke).toHaveBeenNthCalledWith(2, 'read_image_preview_data_url', {
-      path: '/tmp/cybercode-screenshot-test.png',
+      path: '/tmp/screenshot-test.png',
       mimeType: 'image/png',
     })
 
@@ -387,8 +387,8 @@ describe('ChatInput composer controls', () => {
     expect(onSubmit).toHaveBeenCalledWith('', [
       expect.objectContaining({
         type: 'image',
-        name: 'cybercode-screenshot-test.png',
-        path: '/tmp/cybercode-screenshot-test.png',
+        name: 'screenshot-test.png',
+        path: '/tmp/screenshot-test.png',
         mimeType: 'image/png',
       }),
     ])
@@ -457,7 +457,7 @@ describe('ChatInput composer controls', () => {
 
   it('shows desktop-selected image paths as image thumbnails without browser file reads', async () => {
     const readSpy = vi.spyOn(FileReader.prototype, 'readAsDataURL')
-    vi.mocked(open).mockResolvedValue('/Users/wang/Pictures/mockup.png')
+    vi.mocked(open).mockResolvedValue('/Users/user/Pictures/mockup.png')
     Object.defineProperty(window, '__TAURI_INTERNALS__', {
       value: {},
       configurable: true,
@@ -471,7 +471,7 @@ describe('ChatInput composer controls', () => {
     const preview = await screen.findByRole('img', { name: 'mockup.png' })
     expect(preview).toHaveAttribute('src', 'data:image/png;base64,desktop-preview')
     expect(invoke).toHaveBeenCalledWith('read_image_preview_data_url', {
-      path: '/Users/wang/Pictures/mockup.png',
+      path: '/Users/user/Pictures/mockup.png',
       mimeType: 'image/png',
     })
     expect(convertFileSrc).not.toHaveBeenCalled()
@@ -483,7 +483,7 @@ describe('ChatInput composer controls', () => {
       expect.objectContaining({
         type: 'image',
         name: 'mockup.png',
-        path: '/Users/wang/Pictures/mockup.png',
+        path: '/Users/user/Pictures/mockup.png',
         previewUrl: 'data:image/png;base64,desktop-preview',
         mimeType: 'image/png',
       }),
@@ -523,8 +523,8 @@ describe('ChatInput composer controls', () => {
       getData: vi.fn((type: string) =>
         type === 'text/uri-list'
           ? [
-              'file:///Users/wang/Desktop/meeting.wav',
-              'file:///Users/wang/Documents/report.pdf',
+              'file:///Users/user/Desktop/meeting.wav',
+              'file:///Users/user/Documents/report.pdf',
             ].join('\n')
           : '',
       ),
@@ -543,19 +543,19 @@ describe('ChatInput composer controls', () => {
       expect.objectContaining({
         type: 'file',
         name: 'meeting.wav',
-        path: '/Users/wang/Desktop/meeting.wav',
+        path: '/Users/user/Desktop/meeting.wav',
       }),
       expect.objectContaining({
         type: 'file',
         name: 'report.pdf',
-        path: '/Users/wang/Documents/report.pdf',
+        path: '/Users/user/Documents/report.pdf',
       }),
     ])
   })
 
   it('falls back to a Tauri asset URL when desktop image preview reading fails', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.mocked(open).mockResolvedValue('/Users/wang/Pictures/mockup.png')
+    vi.mocked(open).mockResolvedValue('/Users/user/Pictures/mockup.png')
     vi.mocked(invoke).mockRejectedValueOnce(new Error('preview read failed'))
     Object.defineProperty(window, '__TAURI_INTERNALS__', {
       value: {},
@@ -567,12 +567,12 @@ describe('ChatInput composer controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add files or photos' }))
 
     const preview = await screen.findByRole('img', { name: 'mockup.png' })
-    expect(preview).toHaveAttribute('src', 'asset://localhost/%2FUsers%2Fwang%2FPictures%2Fmockup.png')
+    expect(preview).toHaveAttribute('src', 'asset://localhost/%2FUsers%2Fuser%2FPictures%2Fmockup.png')
     expect(warnSpy).toHaveBeenCalledWith(
       '[ChatInput] Failed to read image preview data URL:',
       expect.any(Error),
     )
-    expect(convertFileSrc).toHaveBeenCalledWith('/Users/wang/Pictures/mockup.png')
+    expect(convertFileSrc).toHaveBeenCalledWith('/Users/user/Pictures/mockup.png')
   })
 
   it('queues extra input while the assistant is active', () => {

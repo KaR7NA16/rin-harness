@@ -49,7 +49,7 @@
 
 - [ ] `src-tauri/icons/` 核心 7 件（icon.png/32/64/128/128@2x/icon.ico/icon.icns）就位。
 - [ ] `assets/fonts/` 7 款、`assets/provider-icons/`（含 styled/rin-*.png）、`assets/icons/github.svg` 就位。
-- [ ] 无 `cybercode-*`/`cyberpsychosis-*` 残留文件名；wordmark 已弃用或重绘为 rin。
+- [ ] 无旧品牌文件名残留（provider-icons 已全部为 rin-*）；wordmark 已弃用或重绘为 rin。
 
 ## 7. NSIS 安装器（Windows）
 

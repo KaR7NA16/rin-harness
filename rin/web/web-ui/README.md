@@ -8,19 +8,25 @@ Vite + React 18 + React Router 6 + TypeScript（jsx: react-jsx）。
 
 ## 页面
 
-11 个页面（App.tsx 左侧 sidebar 导航 + Routes）：
+17 个页面（`src/pages/*.tsx` 16 个 + `src/features/scheduledTasks/ScheduledTasks.tsx` 1 个）：
 
-- Repository → /api/repository
-- Environment → /api/environment/plan
-- Knowledge → /api/knowledge/*
-- SessionSearch → /api/sessions/*
-- PromptMemory → /api/prompt-memory/*
-- SkillMemory → /api/skill-memory/overview
-- Evolution → /api/evolution/overview
-- TokenOptimization → 三控件（响应风格开关 / Prompt 清理开关 → /api/token-optimization/set；智能裁剪级别滑块 + enabled 开关 → /api/smart-pruning/set）。即时提交、乐观更新、失败回滚，无轮询无图表。
-- Notes → /api/notes/*（列表/搜索/编辑保存/新建/删除/会话备份/图谱/待办）
-- Sandboxes → /api/sandboxes（profile CRUD + probe + execute，显示 InstallRun 状态与分阶段日志）
-- Agents → /api/agents（列表/新建/编辑/删除/投影/AI 提案草案填充）
+- ActiveSession → 活动会话（聊天主体）
+- EmptySession → 空会话（新会话选择器）
+- KnowledgeSpace → 知识空间
+- Notes → 笔记
+- Sandboxes → 沙箱
+- Monitor → 监控
+- RepositoryWorkspace → 仓库工作区
+- AgentWorkspace → Agent 工作区
+- Settings → 设置中枢（overview + 各设置子页入口）
+- AdapterSettings → 适配器设置
+- AgentMigration → Agent 迁移
+- ComputerUseSettings → 计算机使用设置
+- ExecutionBehaviorSettings → 执行行为设置
+- McpSettings → MCP 设置
+- SessionBackup → 会话备份
+- TokenOptimization → 三控件（响应风格开关 / Prompt 清理开关 / 智能裁剪级别滑块 + enabled 开关）。即时提交、乐观更新、失败回滚，无轮询无图表。
+- ScheduledTasks → 定时任务（`src/features/scheduledTasks/`）
 
 ## 与 @rin/gui 的统一 UI
 

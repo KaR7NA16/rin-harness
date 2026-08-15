@@ -9,7 +9,7 @@ describe('ProviderLogo', () => {
   it('uses preset provider assets inside the unified logo frame', () => {
     render(<ProviderLogo name="DeepSeek" providerId="deepseek" />)
 
-    expect(screen.getByAltText('DeepSeek logo')).toHaveAttribute('src', '/provider-icons/styled/cybercode-deepseek.png')
+    expect(screen.getByAltText('DeepSeek logo')).toHaveAttribute('src', '/provider-icons/styled/rin-deepseek.png')
     expect(screen.getByAltText('DeepSeek logo')).toHaveStyle({
       objectFit: 'contain',
     })

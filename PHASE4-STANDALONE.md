@@ -56,7 +56,7 @@ Base: `http://<host>:<port>`（默认 `http://127.0.0.1:8320`）。
 - `/api/prompt-memory/{status,file,review-logs}` → `ctx.promptMemory`。
 - `/api/evolution/overview` → `ctx.evolution.readConfig/readState`。
 - `/api/skill-memory/overview` → `ctx['skill-memory'].createStore` + 路径助手枚举。
-- 前端 `@rin/web-ui`（Vite + React + Router，8 页），源码在 `rin/web/web-ui/`，真机构建（沙箱 vite spawn 被拦）。
+- 前端 `@rin/web-ui`（Vite + React + Router，17 页），源码在 `rin/web/web-ui/`，真机构建（沙箱 vite spawn 被拦）。
 
 ## 5. 与 MIGRATION.md 的关系
 

@@ -20,19 +20,21 @@ function currentServerPort(): number {
   return parsed
 }
 
+// NOTE: the @rin/web-server backend does not yet implement /api/rin-oauth/*.
+// These calls are a stub carried over from the legacy desktop frontend.
 export const cybercodeOAuthApi = {
   start() {
     return api.post<{ authorizeUrl: string; state: string }>(
-      '/api/cybercode-oauth/start',
+      '/api/rin-oauth/start',
       { serverPort: currentServerPort() },
     )
   },
 
   status() {
-    return api.get<CybercodeOAuthStatus>('/api/cybercode-oauth')
+    return api.get<CybercodeOAuthStatus>('/api/rin-oauth')
   },
 
   logout() {
-    return api.delete<{ ok: true }>('/api/cybercode-oauth')
+    return api.delete<{ ok: true }>('/api/rin-oauth')
   },
 }

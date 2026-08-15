@@ -327,7 +327,7 @@ describe('Settings > Providers tab', () => {
 
     render(<ProviderSettings />)
 
-    expect(screen.getByAltText('DeepSeek logo')).toHaveAttribute('src', '/provider-icons/styled/cybercode-deepseek.png')
+    expect(screen.getByAltText('DeepSeek logo')).toHaveAttribute('src', '/provider-icons/styled/rin-deepseek.png')
     expect(screen.getByAltText('DeepSeek logo')).toHaveStyle({
       objectFit: 'contain',
     })

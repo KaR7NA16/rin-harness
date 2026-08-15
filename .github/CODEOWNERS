@@ -1,0 +1,24 @@
+# CODEOWNERS
+#
+# Syntax: each line is a path pattern followed by one or more owners.
+# Owners may be GitHub usernames (@user), teams (@org/team), or email addresses.
+# The last matching rule takes precedence, so more specific rules come last.
+
+# NOTE: @your-name and @dsh-upstream are PLACEHOLDERS. Replace them with the real
+# maintainer handles before the repository is published.
+
+# Default owner for the whole repository (fallback for anything not covered below).
+* @your-name
+
+# rin asset layer — the project's own code (rin/ is the only writable layer).
+rin/** @your-name
+
+# dsh upstream code (packages/, apps/, docs/, vendor/, python/, native/).
+# These currently fall back to the default owner above. When an upstream dsh
+# maintainer is named, uncomment and fill in their handle:
+# packages/** @dsh-upstream
+# apps/**     @dsh-upstream
+# docs/**     @dsh-upstream
+# vendor/**   @dsh-upstream
+# python/**   @dsh-upstream
+# native/**   @dsh-upstream

@@ -41,13 +41,13 @@ describe('cybercodeOAuthStore', () => {
 
   it('login does not start polling until the browser launch succeeds', async () => {
     startMock.mockResolvedValue({
-      authorizeUrl: 'http://localhost:3456/api/cybercode-oauth/callback',
+      authorizeUrl: 'http://localhost:3456/api/rin-oauth/callback',
       state: 'state-123',
     })
 
     const result = await useCybercodeOAuthStore.getState().login()
 
-    expect(result.authorizeUrl).toContain('/api/cybercode-oauth/callback')
+    expect(result.authorizeUrl).toContain('/api/rin-oauth/callback')
     expect(useCybercodeOAuthStore.getState().isPolling).toBe(false)
   })
 

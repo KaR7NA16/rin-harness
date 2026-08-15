@@ -47,9 +47,9 @@ describe('AgentWorkspace proposal review', () => {
     vi.mocked(repositoriesApi.environmentProfiles).mockResolvedValue({
       repositoryId: repository.id,
       profiles: [
-        { apiVersion: 'cyberpsychosis.dev/v2', kind: 'EnvironmentProfile', metadata: { id: 'scientific-base', name: 'Scientific base', version: '1.0.0' }, spec: { packages: ['python-numpy'] } },
-        { apiVersion: 'cyberpsychosis.dev/v2', kind: 'EnvironmentProfile', metadata: { id: 'mathematical-modeling', name: 'Mathematical modeling', version: '1.0.0' }, spec: { packages: [] } },
-        { apiVersion: 'cyberpsychosis.dev/v2', kind: 'EnvironmentProfile', metadata: { id: 'bioinformatics-base', name: 'Bioinformatics base', version: '1.0.0' }, spec: { packages: [] } },
+        { apiVersion: 'rin.dev/v1', kind: 'EnvironmentProfile', metadata: { id: 'scientific-base', name: 'Scientific base', version: '1.0.0' }, spec: { packages: ['python-numpy'] } },
+        { apiVersion: 'rin.dev/v1', kind: 'EnvironmentProfile', metadata: { id: 'mathematical-modeling', name: 'Mathematical modeling', version: '1.0.0' }, spec: { packages: [] } },
+        { apiVersion: 'rin.dev/v1', kind: 'EnvironmentProfile', metadata: { id: 'bioinformatics-base', name: 'Bioinformatics base', version: '1.0.0' }, spec: { packages: [] } },
       ],
     })
     vi.mocked(agentsApi.listRepository).mockResolvedValue({ agents: [] })

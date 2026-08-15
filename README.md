@@ -12,35 +12,45 @@ It uses an architecture where **everything is a plugin**, and is powered by [Cor
 
 rin-harness inherits DeepSeek Harness's _developer preview_ status and is iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
 
+## Features
+
+rin layers a set of `@rin/*` packages on top of the `dsh` base:
+
+- **Asset repository** (`@rin/repository`) and **environment** (`@rin/environment`) — read the asset repository and resolve environment installation plans.
+- **Memory** — four packages: `@rin/knowledge`, `@rin/prompt-memory`, `@rin/skill-memory`, and `@rin/session-search`.
+- **Notes** (`@rin/notes`) — Obsidian-style notes with session backup.
+- **Optimization** (`@rin/token-optimization`, `@rin/smart-pruning`) — token and output optimization controls.
+- **Evolution** (`@rin/evolution`) — self-evolution state and configuration.
+- **Web** (`@rin/web-server`, `@rin/web-ui`) — a standalone Web UI served on its own port (default `8320`).
+- **Desktop shell** (`@rin/gui`) — a Tauri shell embedding the same Web UI.
+
 ## Run
-
-### Run from `npm`
-
-Install `Node.js`, then run:
-
-```sh
-npx @deepseek-ai/dsh web
-```
-
-The command starts the Web UI, served at `http://127.0.0.1:3080` by default. See [Web UI guide](docs/user/guide/index.md).
 
 ### Run from source
 
 To run from a repository checkout:
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
 pnpm install
-pnpm run build
-pnpm dsh web
+pnpm run rin
 ```
+
+The `rin` host serves the Web UI at `http://127.0.0.1:8320` by default.
+
+### Distribution
+
+rin ships in three forms, published at the [release page](https://github.com/your-name/rin-harness/releases):
+
+- **npm package** — the `@rin/*` packages, including the `@rin/cli` binary.
+- **Windows executable** — a Tauri installer (`nsis`) built from `@rin/gui`.
+- **Linux deb** — a Tauri `deb` package built from `@rin/gui`.
+
+<!-- TODO: replace https://github.com/your-name/rin-harness with the actual repository URL before release. -->
 
 ## Community and support
 
-- Feel free to submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
-- Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.
-- Join <a href="https://discord.gg/Ycq5dCaS4">DeepSeek Harness Discord community</a>.
+- Submit feedback and bug reports through [GitHub Discussions](https://github.com/your-name/rin-harness/discussions).
+- Track and file issues through [GitHub Issues](https://github.com/your-name/rin-harness/issues).
 
 ## Contributing
 

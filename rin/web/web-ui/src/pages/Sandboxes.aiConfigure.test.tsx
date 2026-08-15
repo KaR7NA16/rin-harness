@@ -53,7 +53,7 @@ describe('Sandboxes AI configuration entry', () => {
     vi.mocked(repositoriesApi.environmentProfiles).mockResolvedValue({
       repositoryId: repository.id,
       profiles: [{
-        apiVersion: 'cyberpsychosis.dev/v2', kind: 'EnvironmentProfile',
+        apiVersion: 'rin.dev/v1', kind: 'EnvironmentProfile',
         metadata: { id: 'scientific-base', name: 'Scientific base', version: '1.0.0' },
         spec: { packages: ['system-git', 'python-numpy'] },
       }],

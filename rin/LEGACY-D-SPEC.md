@@ -4,7 +4,7 @@
 >
 > 适用范围：/api/providers/auth-status、/api/sessions/recent-projects、/api/effort、/api/sessions/{id} 的 git-info / usage / slash-commands 三个子动作。
 >
-> 只读调研基线（已验证源码）：dsh 侧 packages/credentials/credentials/src/index.ts、packages/workspace/workspace/src/index.ts(+types.ts/entity.ts)、packages/interaction/commands/src/index.ts(+types.ts)、packages/llm/token-meter/src/index.ts(+projection.ts)、packages/shell/shell/src/index.ts(+types.ts)、packages/llm/llm/src/index.ts(+types.ts)、packages/core/agent/src/index.ts、packages/core/agent-default-model/src/index.ts、packages/core/session/src/types.ts、packages/session/session-projection/src/index.ts；装配侧 packages/bundle/base/cordis.patch.yml、packages/bundle/web-app/cordis.patch.yml、rin/bundle/rin/src/cordis.yml、rin/bundle/rin/src/index.ts；旧项目 /mnt/e/_projects/agent/cyberpsychosis/src/server/api/sessions.ts、api/models.ts、services/providerService.ts、utils/effort.ts、router.ts；现桩 rin/web/web-server/src/routes/legacy.ts。
+> 只读调研基线（已验证源码）：dsh 侧 packages/credentials/credentials/src/index.ts、packages/workspace/workspace/src/index.ts(+types.ts/entity.ts)、packages/interaction/commands/src/index.ts(+types.ts)、packages/llm/token-meter/src/index.ts(+projection.ts)、packages/shell/shell/src/index.ts(+types.ts)、packages/llm/llm/src/index.ts(+types.ts)、packages/core/agent/src/index.ts、packages/core/agent-default-model/src/index.ts、packages/core/session/src/types.ts、packages/session/session-projection/src/index.ts；装配侧 packages/bundle/base/cordis.patch.yml、packages/bundle/web-app/cordis.patch.yml、rin/bundle/rin/src/cordis.yml、rin/bundle/rin/src/index.ts；旧项目 src/server/api/sessions.ts、api/models.ts、services/providerService.ts、utils/effort.ts、router.ts；现桩 rin/web/web-server/src/routes/legacy.ts。
 
 ---
 
@@ -41,8 +41,8 @@ packages/bundle/base/cordis.patch.yml 已装配（ctx.<name> 可用）：
     { "hasAuth": false, "source": "none" }
 
 ### 旧项目语义（providerService.ts:865-901 checkAuthStatus）
-    { hasAuth: boolean, source: 'cybercode-provider' | 'original-settings' | 'env' | 'none', activeProvider?: string }
-判定顺序：① cybercode 激活 provider 有 apiKey（或 preset 免 key）→ cybercode-provider；② 进程 env 有 ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN → env；③ 原 ~/.cyber/settings.json 有上述 key → original-settings；④ 否则 none。
+    { hasAuth: boolean, source: 'legacy-provider' | 'original-settings' | 'env' | 'none', activeProvider?: string }
+判定顺序：① 旧项目激活 provider 有 apiKey（或 preset 免 key）→ legacy-provider；② 进程 env 有 ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN → env；③ 原旧项目配置目录 settings.json 有上述 key → original-settings；④ 否则 none。
 
 ### dsh 数据源
 
@@ -70,7 +70,7 @@ ctx.credentials（CredentialProvider，抽象服务；本地实现 credentials-l
 
 ACTIVE_PROVIDER_REF：建议一个出货 adapter 常量表 { 'deepseek-official': 'DEEPSEEK_API_KEY' }；未知 provider 回退 { hasAuth: false, source: 'none' }。这是当前唯一不侵入 llm 服务的做法。
 
-字段/语义注意：旧 source 词汇（cybercode-provider/original-settings）在 dsh 没有对应物。建议保留 hasAuth，source 用三档 'env' | 'managed' | 'none'（managed 对应 dsh 的 file 托管源 $DSH_HOME/.credentials.yaml），并保留 activeProvider。若前端只认旧四个字面量，可退化 env → 'env'、file → 'cybercode-provider'（语义最近但易误导，需注释说明）。
+字段/语义注意：旧 source 词汇（legacy-provider/original-settings）在 dsh 没有对应物。建议保留 hasAuth，source 用三档 'env' | 'managed' | 'none'（managed 对应 dsh 的 file 托管源 $DSH_HOME/.credentials.yaml），并保留 activeProvider。若前端只认旧四个字面量，可退化 env → 'env'、file → 'legacy-provider'（语义最近但易误导，需注释说明）。
 
 ---
 

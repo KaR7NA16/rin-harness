@@ -47,7 +47,7 @@ export type RepositoryInstallPlan = {
 }
 
 export type EnvironmentProfile = {
-  apiVersion: 'cyberpsychosis.dev/v2'
+  apiVersion: 'rin.dev/v1'
   kind: 'EnvironmentProfile'
   metadata: { id: string; name: string; version: string }
   spec: {
