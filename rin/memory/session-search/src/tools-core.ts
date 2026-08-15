@@ -1,14 +1,14 @@
 /**
- * Model-visible tool logic over the derived index: keyword search and
- * aggregate stats. Each entry point opens a fresh SQLite handle and closes it
- * before returning (use-then-close), so a tool call never holds a connection
- * across turns.
+ * Model-visible tool logic over the derived index: keyword search, message
+ * scrolling, and aggregate stats. Each entry point opens a fresh SQLite handle
+ * and closes it before returning (use-then-close), so a tool call never holds
+ * a connection across turns.
  *
  * @module @rin/session-search
  */
 
 import { openSessionSearchDb, sessionKey } from './db.ts'
-import { discoverSessionSearch } from './query.ts'
+import { discoverSessionSearch, scrollSessionSearch } from './query.ts'
 import type { SessionSearchDatabase } from './types.ts'
 
 /** One search result exposed to the model. */
@@ -28,6 +28,33 @@ export interface SessionSearchToolHit {
 /** Search result, or an explicit error when the index is unavailable. */
 export type SessionSearchToolResult =
   | { results: SessionSearchToolHit[] }
+  | { error: string }
+
+/** One scroll-window message exposed to the model. */
+export interface SessionSearchScrollToolMessage {
+  id: number
+  role: string
+  type: string
+  content: string
+  line: number
+  timestamp?: string
+  model?: string
+  anchor?: boolean
+}
+
+/** One scroll window exposed to the model. */
+export interface SessionSearchScrollToolResult {
+  sessionId: string
+  projectPath: string
+  title: string
+  messages: SessionSearchScrollToolMessage[]
+  messagesBefore: number
+  messagesAfter: number
+}
+
+/** Scroll result, or an explicit error when the index is unavailable. */
+export type SessionSearchScrollResult =
+  | { scroll: SessionSearchScrollToolResult }
   | { error: string }
 
 /** Aggregate index counts. */
@@ -95,6 +122,62 @@ export async function searchSessionIndex(params: {
       score: total - index,
     }))
     return { results }
+  } finally {
+    db.close()
+  }
+}
+
+/**
+ * Scroll around one message in an indexed session and return the window plus
+ * its distance from the session ends.
+ * @param params - index path and scroll arguments (sessionId, aroundMessageId).
+ * @returns the shaped scroll result or an explicit error.
+ */
+export async function scrollSessionIndex(params: {
+  dbPath: string
+  sessionId: string
+  aroundMessageId: number
+  window?: number
+  projectPath?: string
+}): Promise<SessionSearchScrollResult> {
+  let db: SessionSearchDatabase
+  try {
+    db = openSessionSearchDb(params.dbPath)
+  } catch (error: unknown) {
+    return { error: `session-search index unavailable: ${errorMessage(error)}` }
+  }
+  try {
+    const scrolled = await scrollSessionSearch({
+      sessionId: params.sessionId,
+      aroundMessageId: params.aroundMessageId,
+      ...(params.projectPath !== undefined ? { projectPath: params.projectPath } : {}),
+      ...(params.window !== undefined ? { window: params.window } : {}),
+      db,
+    })
+    if (!scrolled) {
+      return {
+        error: `no session or message found for sessionId ${params.sessionId} around message ${params.aroundMessageId}`,
+      }
+    }
+    return {
+      scroll: {
+        sessionId: scrolled.sessionId,
+        projectPath: scrolled.projectPath,
+        title: scrolled.title,
+        messages: scrolled.messages.map(message => ({
+          id: message.id,
+          role: message.role,
+          type: message.type,
+          content: message.content,
+          line: message.line,
+          ...(message.timestamp !== null ? { timestamp: message.timestamp } : {}),
+          ...(message.model !== null ? { model: message.model } : {}),
+          ...(message.anchor === true ? { anchor: true } : {}),
+        })),
+        messagesBefore: scrolled.messagesBefore,
+        messagesAfter: scrolled.messagesAfter,
+      },
+    }
   } finally {
     db.close()
   }

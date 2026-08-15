@@ -12,15 +12,20 @@
 
 import { homedir } from 'node:os'
 import { openSessionSearchDb } from './db.ts'
+import { buildSessionHistoryTranscripts } from './history.ts'
 import { writeSessionToSearchIndex } from './indexStore.ts'
 import { getSessionSearchDbPath } from './paths.ts'
 import { projectSessionToTranscript, type SeamSession } from './projectSession.ts'
 import {
+  scrollSessionIndex,
   searchSessionIndex,
   sessionIndexStats,
+  type SessionSearchScrollResult,
   type SessionSearchStatsResult,
   type SessionSearchToolResult,
 } from './tools-core.ts'
+import { parseSessionTranscriptContent } from './transcript.ts'
+import type { ParsedSessionTranscript, SessionHistoryOptions, SessionHistorySource } from './types.ts'
 
 /** Structural projection of a dsh tool definition (the defineTool input). */
 export interface SessionSearchTool {
@@ -110,7 +115,8 @@ const SEARCH_DESCRIPTION =
   'Search the rin cross-workspace session index by free text and return the strongest matching sessions '
   + 'with their project path, title, snippet, and relevance score. This index covers full transcripts, '
   + 'history logs, and derived project memories across every workspace, complementing the per-workspace '
-  + 'event-level dsh session_search tool. Use it to recall past work from any project.'
+  + 'event-level dsh session_search tool. To page within one already-found session, pass sessionId plus '
+  + 'aroundMessageId to scroll a window around that message instead.'
 
 const STATS_DESCRIPTION =
   'Report aggregate counts for the rin session index: indexed sessions, messages, derived project memories, '
@@ -161,9 +167,88 @@ export class SessionSearchCore {
     })
   }
 
+  /** Scroll around one message (the rin_session_search execute body in scroll mode). */
+  scroll(args: Record<string, unknown>): Promise<SessionSearchScrollResult> {
+    const sessionId = typeof args.sessionId === 'string' ? args.sessionId : ''
+    const aroundMessageId =
+      typeof args.aroundMessageId === 'number' ? args.aroundMessageId : Number.NaN
+    if (!sessionId || !Number.isFinite(aroundMessageId)) {
+      return Promise.resolve({
+        error: 'sessionId (string) and aroundMessageId (number) are required to scroll',
+      })
+    }
+    return scrollSessionIndex({
+      dbPath: this.config.dbPath,
+      sessionId,
+      aroundMessageId,
+      ...(typeof args.window === 'number' ? { window: args.window } : {}),
+      ...(typeof args.projectPath === 'string' ? { projectPath: args.projectPath } : {}),
+    })
+  }
+
   /** Aggregate index stats (the rin_session_stats execute body). */
   stats(): SessionSearchStatsResult {
     return sessionIndexStats(this.config.dbPath)
+  }
+
+  /**
+   * Write an already-parsed transcript into the derived index. Temporary
+   * transcripts (isTemporary: true) derive a project memory on write; full
+   * transcripts index only their session and message rows.
+   * @param parsed - the normalized transcript to index.
+   */
+  indexTranscript(parsed: ParsedSessionTranscript): void {
+    this.writeParsedTranscript(parsed)
+  }
+
+  /**
+   * Parse one raw session transcript JSONL string and index it. This is the
+   * only index input that can mark a session isTemporary: true (from its
+   * `session-meta` entry), which is what turns project-memory derivation on
+   * instead of leaving it a no-op delete.
+   * @param params - raw content and source file metadata.
+   * @returns the parsed transcript that was indexed.
+   */
+  indexTranscriptContent(params: {
+    raw: string
+    filePath: string
+    projectPath: string
+    sessionId: string
+    fileBirthtime: Date
+    fileMtime: Date
+    fileMtimeMs: number
+    fileSize: number
+  }): ParsedSessionTranscript {
+    const parsed = parseSessionTranscriptContent(params)
+    this.writeParsedTranscript(parsed)
+    return parsed
+  }
+
+  /**
+   * Project one append-only history log into searchable sessions and index each.
+   * @param raw - the history.jsonl content.
+   * @param source - source file metadata for timestamps and path keys.
+   * @param options - working-directory normalization policy.
+   * @returns the projected transcripts that were indexed.
+   */
+  indexHistoryLog(
+    raw: string,
+    source: SessionHistorySource,
+    options: SessionHistoryOptions,
+  ): ParsedSessionTranscript[] {
+    const transcripts = buildSessionHistoryTranscripts(raw, source, options)
+    for (const transcript of transcripts) this.writeParsedTranscript(transcript)
+    return transcripts
+  }
+
+  /** Write one parsed transcript into the derived index under a fresh handle. */
+  private writeParsedTranscript(parsed: ParsedSessionTranscript): void {
+    const db = openSessionSearchDb(this.config.dbPath)
+    try {
+      writeSessionToSearchIndex(db, parsed, { homeDir: this.config.homeDir })
+    } finally {
+      db.close()
+    }
   }
 
   /** Project one live session and write it into the derived index, fail-loud but non-blocking. */
@@ -174,12 +259,7 @@ export class SessionSearchCore {
         projectPath: this.config.projectPathForWorkingDirectory(workDir),
         filePath: `live:${session.id}`,
       })
-      const db = openSessionSearchDb(this.config.dbPath)
-      try {
-        writeSessionToSearchIndex(db, parsed, { homeDir: this.config.homeDir })
-      } finally {
-        db.close()
-      }
+      this.writeParsedTranscript(parsed)
     } catch (error: unknown) {
       // Fail loud, but never throw from a session/created listener: a
       // synchronous throw would veto and roll back session creation.
@@ -195,9 +275,13 @@ export class SessionSearchCore {
       name: SEARCH_TOOL_NAME,
       description: SEARCH_DESCRIPTION,
       parameters: {
-        query: { type: 'string', required: true, description: 'Free-text search query over indexed session messages.' },
+        query: { type: 'string', description: 'Free-text search query over indexed session messages.' },
         limit: { type: 'number', description: 'Maximum sessions to return. Defaults to 3, capped at 10.' },
         scope: { type: 'string', description: 'Restrict to one workspace by its normalized project path.' },
+        sessionId: { type: 'string', description: 'Scroll mode: the session to scroll within.' },
+        aroundMessageId: { type: 'number', description: 'Scroll mode: the message id to center the window on.' },
+        window: { type: 'number', description: 'Scroll mode: messages on each side of the anchor. Defaults to 5.' },
+        projectPath: { type: 'string', description: 'Scroll mode: restrict to one project path.' },
       },
       output: {
         schema: {
@@ -226,13 +310,62 @@ export class SessionSearchCore {
             {
               type: 'object',
               additionalProperties: false,
+              properties: {
+                scroll: {
+                  type: 'object',
+                  required: true,
+                  additionalProperties: false,
+                  properties: {
+                    sessionId: { type: 'string', required: true },
+                    projectPath: { type: 'string', required: true },
+                    title: { type: 'string', required: true },
+                    messages: {
+                      type: 'array',
+                      required: true,
+                      items: {
+                        type: 'object',
+                        additionalProperties: false,
+                        properties: {
+                          id: { type: 'integer', required: true },
+                          role: { type: 'string', required: true },
+                          type: { type: 'string', required: true },
+                          content: { type: 'string', required: true },
+                          line: { type: 'integer', required: true },
+                          timestamp: { type: 'string' },
+                          model: { type: 'string' },
+                          anchor: { type: 'boolean' },
+                        },
+                      },
+                    },
+                    messagesBefore: { type: 'integer', required: true },
+                    messagesAfter: { type: 'integer', required: true },
+                  },
+                },
+              },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
               properties: { error: { type: 'string', required: true } },
             },
           ],
         },
         render: (_args, value) => {
-          const result = value as SessionSearchToolResult
+          const result = value as SessionSearchToolResult | SessionSearchScrollResult
           if ('error' in result) return [{ type: 'text', text: result.error }]
+          if ('scroll' in result) {
+            const scroll = result.scroll
+            if (scroll.messages.length === 0) {
+              return [{ type: 'text', text: 'No messages around that point.' }]
+            }
+            const lines = scroll.messages.map(
+              message => `${message.role} (line ${message.line}): ${message.content}${message.anchor ? ' [anchor]' : ''}`,
+            )
+            return [{
+              type: 'text',
+              text: `${scroll.title} — ${scroll.messagesBefore} earlier, ${scroll.messagesAfter} later:\n\n${lines.join('\n\n')}`,
+            }]
+          }
           const hits = result.results
           if (hits.length === 0) {
             return [{ type: 'text', text: 'No matching sessions found in the rin session index.' }]
@@ -243,13 +376,20 @@ export class SessionSearchCore {
           return [{ type: 'text', text: `Found ${hits.length} session(s):\n\n${lines.join('\n\n')}` }]
         },
       },
-      execute: args => this.search(args),
-      presentCall: args => ({
-        card: 'generic',
-        title: 'Search rin session index',
-        kind: 'search',
-        rawInput: typeof args.query === 'string' ? args.query : '',
-      }),
+      execute: args => {
+        if (typeof args.sessionId === 'string' && typeof args.aroundMessageId === 'number') {
+          return this.scroll(args)
+        }
+        return this.search(args)
+      },
+      presentCall: args => typeof args.aroundMessageId === 'number'
+        ? { card: 'generic', title: 'Scroll rin session index', kind: 'search', rawInput: '' }
+        : {
+            card: 'generic',
+            title: 'Search rin session index',
+            kind: 'search',
+            rawInput: typeof args.query === 'string' ? args.query : '',
+          },
     }
   }
 

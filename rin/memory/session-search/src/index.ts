@@ -246,5 +246,13 @@ export { resolveSessionSearchConfig, SessionSearchCore } from './seam-core.ts'
 export type { SessionSearchConfig, SessionSearchConfigInput, SessionSearchSeam, SessionSearchTool } from './seam-core.ts'
 export { projectSessionToTranscript } from './projectSession.ts'
 export type { SeamSession, SeamSessionEvent, SeamSessionHeader } from './projectSession.ts'
-export { searchSessionIndex, sessionIndexStats } from './tools-core.ts'
-export type { SessionSearchStats, SessionSearchStatsResult, SessionSearchToolHit, SessionSearchToolResult } from './tools-core.ts'
+export { scrollSessionIndex, searchSessionIndex, sessionIndexStats } from './tools-core.ts'
+export type {
+  SessionSearchScrollResult,
+  SessionSearchScrollToolMessage,
+  SessionSearchScrollToolResult,
+  SessionSearchStats,
+  SessionSearchStatsResult,
+  SessionSearchToolHit,
+  SessionSearchToolResult,
+} from './tools-core.ts'
