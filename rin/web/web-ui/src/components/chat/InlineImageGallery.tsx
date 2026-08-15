@@ -1,0 +1,125 @@
+import { useMemo, useState } from 'react'
+import { ImageGalleryModal } from './ImageGalleryModal'
+import { getBaseUrl } from '../../api/client'
+import { useTranslation } from '../../i18n'
+import { Icon } from '../shared/Icon'
+
+const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)$/i
+
+/**
+ * Extracts absolute image file paths from text content.
+ * Matches paths like /Users/.../image.png, /tmp/output.jpg, etc.
+ */
+export function extractImagePaths(text: string): string[] {
+  // Match absolute paths ending with image extensions
+  // Handles paths that may be wrapped in backticks, quotes, or standalone
+  const regex = /(?:^|[\s`"'(])(\/?(?:[A-Za-z]:[\\/]|\/)[^\s`"')<>]+\.(?:png|jpe?g|gif|webp|svg|bmp|avif|ico))/gim
+  const paths: string[] = []
+  const seen = new Set<string>()
+
+  let match: RegExpExecArray | null
+  while ((match = regex.exec(text)) !== null) {
+    const p = match[1]!.trim()
+    if (!seen.has(p) && IMAGE_EXTENSIONS.test(p)) {
+      seen.add(p)
+      paths.push(p)
+    }
+  }
+
+  return paths
+}
+
+function fileUrl(filePath: string): string {
+  return `${getBaseUrl()}/api/filesystem/file?path=${encodeURIComponent(filePath)}`
+}
+
+function fileName(filePath: string): string {
+  return filePath.split(/[\\/]/).pop() || filePath
+}
+
+type Props = {
+  text: string
+}
+
+export function InlineImageGallery({ text }: Props) {
+  const t = useTranslation()
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const [failedSrcs, setFailedSrcs] = useState<ReadonlySet<string>>(new Set())
+
+  const imagePaths = useMemo(() => extractImagePaths(text), [text])
+
+  const images = useMemo(
+    () => imagePaths.map((p) => ({ src: fileUrl(p), name: fileName(p) })),
+    [imagePaths],
+  )
+
+  if (images.length === 0) return null
+
+  return (
+    <>
+      <div className="mt-3 space-y-2">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-outline)]">
+          <Icon name="image" size={12} />
+          {images.length === 1 ? t('chat.imageCountSingle') : t('chat.imageCountPlural', { count: images.length })}
+        </div>
+        <div className={`grid gap-2 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+          {images.map((img, i) => {
+            if (failedSrcs.has(img.src)) {
+              return (
+                <div
+                  key={img.src}
+                  className="flex items-center gap-2 rounded-md border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-container-low)] px-3 py-4 text-[var(--color-text-tertiary)]"
+                >
+                  <Icon name="image" size={16} />
+                  <span className="truncate text-[11px]">{img.name}</span>
+                </div>
+              )
+            }
+            return (
+              <button
+                key={img.src}
+                type="button"
+                onClick={() => setActiveIndex(i)}
+                className="group relative overflow-hidden rounded-md border-2 border-[var(--color-border)] bg-[var(--color-surface-container-low)] text-left transition-colors duration-100 hover:border-[var(--color-border-focus)]"
+              >
+                <img
+                  src={img.src}
+                  alt={img.name}
+                  loading="lazy"
+                  className="w-full object-cover"
+                  style={{ maxHeight: images.length === 1 ? 400 : 240 }}
+                  onError={() => {
+                    setFailedSrcs((current) => {
+                      if (current.has(img.src)) return current
+                      const next = new Set(current)
+                      next.add(img.src)
+                      return next
+                    })
+                  }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-[background-color,opacity] duration-100 group-hover:bg-black/20 group-hover:opacity-100">
+                  <Icon name="fullscreen" size={18} className="rounded-full bg-[var(--color-surface-container-lowest)] p-2 text-[20px] text-[var(--color-text-primary)] shadow-[0_8px_20px_rgba(0,0,0,0.12)]" />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2.5 pb-2 pt-6">
+                  <span className="text-[10px] font-medium text-white/90 drop-shadow-sm">
+                    {img.name}
+                  </span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {activeIndex !== null && activeIndex >= 0 && (
+        <ImageGalleryModal
+          open={activeIndex !== null}
+          images={images}
+          activeIndex={activeIndex}
+          onClose={() => setActiveIndex(null)}
+          onSelect={setActiveIndex}
+        />
+      )}
+    </>
+  )
+}

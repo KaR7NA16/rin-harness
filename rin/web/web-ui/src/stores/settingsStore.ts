@@ -1,0 +1,201 @@
+import { create } from 'zustand'
+import { settingsApi } from '../api/settings'
+import { modelsApi } from '../api/models'
+import type { PermissionMode, EffortLevel, ModelInfo, ThemeMode, ConnectionMode } from '../types/settings'
+import { isLocale, type Locale } from '../i18n/localeConfig'
+import { useUIStore } from './uiStore'
+
+const LOCALE_STORAGE_KEY = 'cybercode-locale'
+
+const LANGUAGE_BY_LOCALE: Record<Locale, string> = {
+  en: 'English',
+  zh: 'Chinese',
+  ja: 'Japanese',
+  ko: 'Korean',
+}
+
+let promptMemoryLanguageSync: Promise<unknown> = Promise.resolve()
+
+function syncPromptMemoryLanguage(language: string): Promise<void> {
+  const next = promptMemoryLanguageSync
+    .catch(() => {})
+    .then(() => settingsApi.updateUser({ promptMemoryLanguage: language }))
+  promptMemoryLanguageSync = next
+  return next.then(() => undefined)
+}
+
+function getStoredLocale(): Locale {
+  try {
+    const stored = localStorage.getItem(LOCALE_STORAGE_KEY)
+    if (isLocale(stored)) return stored
+  } catch { /* localStorage unavailable */ }
+  return 'zh'
+}
+
+type SettingsStore = {
+  permissionMode: PermissionMode
+  currentModel: ModelInfo | null
+  effortLevel: EffortLevel
+  availableModels: ModelInfo[]
+  activeProviderName: string | null
+  locale: Locale
+  theme: ThemeMode
+  skipWebFetchPreflight: boolean
+  worktreeEnabled: boolean
+  connectionMode: ConnectionMode
+  displayName: string
+  isLoading: boolean
+  error: string | null
+
+  fetchAll: () => Promise<void>
+  setPermissionMode: (mode: PermissionMode) => Promise<void>
+  setModel: (modelId: string) => Promise<void>
+  setEffort: (level: EffortLevel) => Promise<void>
+  setLocale: (locale: Locale) => Promise<void>
+  setTheme: (theme: ThemeMode) => Promise<void>
+  setSkipWebFetchPreflight: (enabled: boolean) => Promise<void>
+  setWorktreeEnabled: (enabled: boolean) => Promise<void>
+  setConnectionMode: (mode: ConnectionMode) => Promise<void>
+  setDisplayName: (displayName: string) => Promise<void>
+}
+
+export const useSettingsStore = create<SettingsStore>((set, get) => ({
+  permissionMode: 'bypassPermissions',
+  currentModel: null,
+  effortLevel: 'medium',
+  availableModels: [],
+  activeProviderName: null,
+  locale: getStoredLocale(),
+  theme: useUIStore.getState().theme,
+  skipWebFetchPreflight: true,
+  worktreeEnabled: false,
+  connectionMode: 'local',
+  displayName: '',
+  isLoading: false,
+  error: null,
+
+  fetchAll: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      const [{ mode }, modelsRes, { model }, { level }, userSettings] = await Promise.all([
+        settingsApi.getPermissionMode(),
+        modelsApi.list(),
+        modelsApi.getCurrent(),
+        modelsApi.getEffort(),
+        settingsApi.getUser(),
+      ])
+      const theme = userSettings.theme === 'dark' ? 'dark' : 'light'
+      const locale = get().locale
+      const selectedLanguage = LANGUAGE_BY_LOCALE[locale]
+      if (userSettings.promptMemoryLanguage?.toLowerCase() !== selectedLanguage.toLowerCase()) {
+        await syncPromptMemoryLanguage(selectedLanguage).catch(() => {})
+      }
+      useUIStore.getState().setTheme(theme)
+      set({
+        permissionMode: mode,
+        availableModels: modelsRes.models,
+        activeProviderName: modelsRes.provider?.name ?? null,
+        currentModel: model,
+        effortLevel: level,
+        theme,
+        skipWebFetchPreflight: userSettings.skipWebFetchPreflight !== false,
+        worktreeEnabled: userSettings.worktreeEnabled === true,
+        connectionMode: userSettings.connectionMode === 'remote' ? 'remote' : 'local',
+        displayName: typeof userSettings.displayName === 'string' ? userSettings.displayName : '',
+        isLoading: false,
+        error: null,
+      })
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to load desktop settings'
+      set({ isLoading: false, error: message })
+      throw error
+    }
+  },
+
+  setPermissionMode: async (mode) => {
+    const prev = get().permissionMode
+    set({ permissionMode: mode })
+    try {
+      await settingsApi.setPermissionMode(mode)
+    } catch {
+      set({ permissionMode: prev })
+    }
+  },
+
+  setModel: async (modelId) => {
+    await modelsApi.setCurrent(modelId)
+    const { model } = await modelsApi.getCurrent()
+    set({ currentModel: model })
+  },
+
+  setEffort: async (level) => {
+    const prev = get().effortLevel
+    set({ effortLevel: level })
+    try {
+      await modelsApi.setEffort(level)
+    } catch {
+      set({ effortLevel: prev })
+    }
+  },
+
+  setLocale: async (locale) => {
+    set({ locale })
+    try { localStorage.setItem(LOCALE_STORAGE_KEY, locale) } catch { /* noop */ }
+    await syncPromptMemoryLanguage(LANGUAGE_BY_LOCALE[locale]).catch(() => {})
+  },
+
+  setTheme: async (theme) => {
+    const prev = get().theme
+    set({ theme })
+    useUIStore.getState().setTheme(theme)
+    try {
+      await settingsApi.updateUser({ theme })
+    } catch {
+      set({ theme: prev })
+      useUIStore.getState().setTheme(prev)
+    }
+  },
+
+  setSkipWebFetchPreflight: async (enabled) => {
+    const prev = get().skipWebFetchPreflight
+    set({ skipWebFetchPreflight: enabled })
+    try {
+      await settingsApi.updateUser({ skipWebFetchPreflight: enabled })
+    } catch {
+      set({ skipWebFetchPreflight: prev })
+    }
+  },
+
+  setWorktreeEnabled: async (enabled) => {
+    const prev = get().worktreeEnabled
+    set({ worktreeEnabled: enabled })
+    try {
+      await settingsApi.updateUser({ worktreeEnabled: enabled })
+    } catch {
+      set({ worktreeEnabled: prev })
+    }
+  },
+
+  setConnectionMode: async (mode) => {
+    const prev = get().connectionMode
+    set({ connectionMode: mode })
+    try {
+      await settingsApi.updateUser({ connectionMode: mode })
+    } catch {
+      set({ connectionMode: prev })
+    }
+  },
+
+  setDisplayName: async (displayName) => {
+    const prev = get().displayName
+    const trimmed = displayName.trim()
+    set({ displayName: trimmed })
+    try {
+      await settingsApi.updateUser({ displayName: trimmed || undefined })
+    } catch {
+      set({ displayName: prev })
+      throw new Error('Failed to save display name')
+    }
+  },
+}))

@@ -1,0 +1,220 @@
+import { useEffect, useState } from 'react'
+import { useTaskStore } from '../taskStore'
+import { useChatStore } from '../../../stores/chatStore'
+import { useTabStore } from '../../../stores/tabStore'
+import { useSettingsStore } from '../../../stores/settingsStore'
+import { useTranslation, type TranslationKey } from '../../../i18n'
+import { parseRunOutput } from '../parseRunOutput'
+import type { TaskRun } from '../taskTypes'
+import { Icon } from '../../../components/shared/Icon'
+
+function RunOutput({ run }: { run: TaskRun }) {
+  const t = useTranslation()
+
+  // Show error prominently if present
+  if (run.error) {
+    return (
+      <div className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-[10px] border border-[var(--color-error)]/20 bg-[var(--color-error-container)]/28 p-2.5 text-[12px] text-[var(--color-error)]">
+        {run.error}
+      </div>
+    )
+  }
+
+  const text = parseRunOutput(run.output || '')
+
+  if (!text) {
+    return (
+      <div className="mt-2 rounded-[10px] bg-[var(--color-surface-container)] p-2.5 text-[12px] italic text-[var(--color-text-tertiary)]">
+        {run.sessionId ? t('tasks.outputHintSession') : t('tasks.noOutputText')}
+      </div>
+    )
+  }
+
+  // Render AI text response with proper formatting (not monospace <pre>)
+  return (
+    <div className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap break-words rounded-[10px] bg-[var(--color-surface-container)] p-2.5 text-[12px] leading-relaxed text-[var(--color-text-secondary)]">
+      {text}
+    </div>
+  )
+}
+
+type Props = {
+  taskId: string
+  onClose: () => void
+  refreshKey?: number
+}
+
+const STATUS_CONFIG: Record<string, { icon: string; color: string }> = {
+  running:   { icon: 'sync',         color: 'var(--color-warning)' },
+  completed: { icon: 'check_circle', color: 'var(--color-success)' },
+  failed:    { icon: 'error',        color: 'var(--color-error)' },
+  timeout:   { icon: 'timer_off',    color: 'var(--color-error)' },
+}
+
+const STATUS_I18N_KEY: Record<TaskRun['status'], TranslationKey> = {
+  running:   'tasks.runStatus.running',
+  completed: 'tasks.runStatus.completed',
+  failed:    'tasks.runStatus.failed',
+  timeout:   'tasks.runStatus.timeout',
+}
+
+export function TaskRunsPanel({ taskId, onClose, refreshKey }: Props) {
+  const t = useTranslation()
+  const locale = useSettingsStore((s) => s.locale)
+  const { fetchTaskRuns } = useTaskStore()
+  const connectToSession = useChatStore((s) => s.connectToSession)
+  const openTab = useTabStore((s) => s.openTab)
+  const [runs, setRuns] = useState<TaskRun[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const openSession = (sessionId: string, taskName?: string) => {
+    openTab(sessionId, taskName || 'Task Run')
+    connectToSession(sessionId)
+  }
+
+  const refresh = () => {
+    setLoadFailed(false)
+    fetchTaskRuns(taskId).then((r) => {
+      setRuns(r)
+      setLoading(false)
+    }).catch(() => {
+      setLoading(false)
+      setLoadFailed(true)
+    })
+  }
+
+  // Initial fetch + re-fetch when refreshKey changes
+  useEffect(() => {
+    setLoading(true)
+    refresh()
+  }, [taskId, fetchTaskRuns, refreshKey])
+
+  // Auto-poll while any run is "running" or shortly after a manual trigger.
+  // Uses faster 1s polling for the first 10s after refreshKey changes, then 3s.
+  const hasRunning = runs.some((r) => r.status === 'running')
+  useEffect(() => {
+    if (!hasRunning && refreshKey === 0) return // no reason to poll initially
+    // Start with fast polling (1s) to give snappy feedback after "Run Now"
+    let interval = 1000
+    let timer = setInterval(refresh, interval)
+    // After 10s, switch to slower 3s polling if still running
+    const slowDown = setTimeout(() => {
+      clearInterval(timer)
+      if (hasRunning) {
+        timer = setInterval(refresh, 3000)
+      }
+    }, 10000)
+    // If nothing is running and initial window passes, stop entirely
+    const stopTimer = hasRunning ? undefined : setTimeout(() => clearInterval(timer), 12000)
+    return () => {
+      clearInterval(timer)
+      clearTimeout(slowDown)
+      if (stopTimer) clearTimeout(stopTimer)
+    }
+  }, [hasRunning, taskId, refreshKey])
+
+  return (
+    <div className="mb-1 mt-2 overflow-hidden rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-[20px] py-[10px] bg-[var(--color-surface-container)]">
+        <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">{t('tasks.logsTitle')}</span>
+        <button
+          onClick={onClose}
+          className="p-0.5 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors"
+        >
+          <Icon name="close" size={16} />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="max-h-64 overflow-y-auto">
+        {loading ? (
+          <div className="flex items-center justify-center py-6">
+            <div className="animate-spin w-4 h-4 border-2 border-[var(--color-brand)] border-t-transparent rounded-full" />
+          </div>
+        ) : loadFailed ? (
+          <div className="flex flex-col items-center gap-2 px-4 py-6 text-center">
+            <span className="text-[12px] text-[var(--color-error)]">{t('tasks.loadFailed')}</span>
+            <button
+              onClick={() => { setLoading(true); refresh() }}
+              className="text-[12px] font-semibold text-[var(--color-brand)] hover:underline"
+            >
+              {t('common.retry')}
+            </button>
+          </div>
+        ) : runs.length === 0 ? (
+          <div className="px-4 py-6 text-center text-[12px] text-[var(--color-text-tertiary)]">
+            {t('tasks.noLogs')}
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--color-border-separator)]">
+            {runs.map((run) => {
+              const cfg = STATUS_CONFIG[run.status] || STATUS_CONFIG.failed!
+              const isExpanded = expandedId === run.id
+              return (
+                <div key={run.id} className="px-4 py-2.5">
+                  <div className="flex items-center gap-3">
+                    {/* Status icon */}
+                    <Icon
+                      name={cfg.icon}
+                      size={16}
+                      className={run.status === 'running' ? 'animate-spin' : ''}
+                      style={{ color: cfg.color }}
+                    />
+
+                    {/* Status text */}
+                    <span className="text-[12px] font-medium" style={{ color: cfg.color }}>
+                      {t(STATUS_I18N_KEY[run.status] ?? 'tasks.runStatus.failed')}
+                    </span>
+
+                    {/* Time */}
+                    <span className="text-[12px] text-[var(--color-text-tertiary)]">
+                      {new Date(run.startedAt).toLocaleString(locale)}
+                    </span>
+
+                    {/* Duration */}
+                    {run.durationMs != null && (
+                      <span className="text-[12px] text-[var(--color-text-tertiary)]">
+                        {t('tasks.duration', { s: Math.round(run.durationMs / 1000) })}
+                      </span>
+                    )}
+
+                    <div className="ml-auto flex items-center gap-2">
+                      {/* Open session — only after run completes (session is empty while running) */}
+                      {run.sessionId && run.status !== 'running' && (
+                        <button
+                          onClick={() => openSession(run.sessionId!, run.taskName)}
+                          className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-container-low)] px-2 py-1 text-[12px] font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                        >
+                          <Icon name="open_in_new" size={14} />
+                          {t('tasks.openSession')}
+                        </button>
+                      )}
+
+                      {/* Summary toggle */}
+                      {(run.output || run.error) && (
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : run.id)}
+                          className="text-[12px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors"
+                        >
+                          {isExpanded ? t('tasks.hideOutput') : t('tasks.viewOutput')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Expanded output */}
+                  {isExpanded && (
+                    <RunOutput run={run} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

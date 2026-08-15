@@ -1,0 +1,191 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { useTabStore } from './tabStore'
+import { sessionsApi } from '../api/sessions'
+
+vi.mock('../api/sessions', () => ({
+  sessionsApi: {
+    list: vi.fn(async () => ({ sessions: [] })),
+  },
+}))
+
+describe('tabStore', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    useTabStore.setState({ tabs: [], activeTabId: null, recentSessionIds: [], navHistory: [], navIndex: -1 })
+  })
+
+  it('opens tabs without replacing existing tabs', () => {
+    useTabStore.getState().openTab('session-1', 'Session 1')
+    useTabStore.getState().openTab('session-2', 'Session 2')
+
+    expect(useTabStore.getState().tabs).toMatchObject([
+      { sessionId: 'session-1', title: 'Session 1', type: 'session' },
+      { sessionId: 'session-2', title: 'Session 2', type: 'session' },
+    ])
+    expect(useTabStore.getState().activeTabId).toBe('session-2')
+    expect(useTabStore.getState().recentSessionIds).toEqual(['session-2', 'session-1'])
+  })
+
+  it('creates first-class terminal tabs with stable incrementing titles', () => {
+    const firstId = useTabStore.getState().openTerminalTab()
+    const secondId = useTabStore.getState().openTerminalTab()
+
+    expect(firstId).not.toBe(secondId)
+    expect(useTabStore.getState().tabs.filter((tab) => tab.type === 'terminal')).toMatchObject([
+      { sessionId: firstId, title: 'Terminal 1' },
+      { sessionId: secondId, title: 'Terminal 2' },
+    ])
+    expect(useTabStore.getState().activeTabId).toBe(secondId)
+
+    useTabStore.getState().closeTab(firstId)
+    const thirdId = useTabStore.getState().openTerminalTab()
+
+    expect(thirdId).not.toBe(secondId)
+    expect(useTabStore.getState().tabs.filter((tab) => tab.type === 'terminal')).toMatchObject([
+      { sessionId: secondId, title: 'Terminal 2' },
+      { sessionId: thirdId, title: 'Terminal 3' },
+    ])
+  })
+
+  it('closes arbitrary tabs and keeps a sensible active tab', () => {
+    useTabStore.getState().openTab('session-1', 'Session 1')
+    useTabStore.getState().openTab('session-2', 'Session 2')
+    useTabStore.getState().openTab('session-3', 'Session 3')
+
+    useTabStore.getState().closeTab('session-2')
+    expect(useTabStore.getState().tabs.map((tab) => tab.sessionId)).toEqual(['session-1', 'session-3'])
+    expect(useTabStore.getState().activeTabId).toBe('session-3')
+
+    useTabStore.getState().closeTab('session-3')
+    expect(useTabStore.getState().activeTabId).toBe('session-1')
+  })
+
+  it('persists and restores the projectPath locator for session tabs', async () => {
+    vi.mocked(sessionsApi.list).mockResolvedValueOnce({
+      total: 1,
+      sessions: [
+        {
+          id: 'session-1',
+          title: 'Restored Session',
+          lastMessage: '',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          modifiedAt: '2026-01-01T00:00:00.000Z',
+          messageCount: 1,
+          projectPath: '-project-a',
+          workDir: '/project/a',
+          workDirExists: true,
+          isTemporary: false,
+        },
+      ],
+    })
+
+    useTabStore.getState().openTab('session-1', 'Session 1', 'session', '-project-a')
+    useTabStore.setState({ tabs: [], activeTabId: null, recentSessionIds: [] })
+
+    await useTabStore.getState().restoreTabs()
+
+    expect(useTabStore.getState().tabs).toMatchObject([
+      { sessionId: 'session-1', projectPath: '-project-a', title: 'Restored Session' },
+    ])
+  })
+
+  it('persists only session and terminal tabs after tool pages move to the rail', () => {
+    useTabStore.getState().openTab('session-1', 'Session 1')
+    useTabStore.getState().openTab('__repository__', 'Repository', 'repository')
+    const terminalId = useTabStore.getState().openTerminalTab()
+
+    const persisted = JSON.parse(localStorage.getItem('cybercode-open-tabs') || '{}')
+    expect(persisted.openTabs).toMatchObject([
+      { sessionId: 'session-1', type: 'session' },
+      { sessionId: terminalId, type: 'terminal' },
+    ])
+    expect(persisted.activeTabId).toBe(terminalId)
+  })
+
+  it('drops legacy persisted tool tabs during restore', async () => {
+    localStorage.setItem('cybercode-open-tabs', JSON.stringify({
+      openTabs: [
+        { sessionId: '__repository__', title: 'Repository', type: 'repository' },
+        { sessionId: '__agents__', title: 'Agents', type: 'agents' },
+      ],
+      activeTabId: '__repository__',
+    }))
+
+    await useTabStore.getState().restoreTabs()
+
+    expect(useTabStore.getState().tabs).toEqual([])
+    expect(useTabStore.getState().activeTabId).toBeNull()
+    expect(localStorage.getItem('cybercode-open-tabs')).toBeNull()
+  })
+
+  it('updates a duplicate session id only in the matching project tab', () => {
+    useTabStore.setState({
+      tabs: [
+        {
+          sessionId: 'session-dup',
+          projectPath: '-project-a',
+          title: 'Project A',
+          type: 'session',
+          status: 'idle',
+        },
+        {
+          sessionId: 'session-dup',
+          projectPath: '-project-b',
+          title: 'Project B',
+          type: 'session',
+          status: 'idle',
+        },
+      ],
+    })
+
+    useTabStore.getState().updateTabTitle('session-dup', 'Renamed A', '-project-a')
+
+    expect(useTabStore.getState().tabs.map((tab) => tab.title)).toEqual([
+      'Renamed A',
+      'Project B',
+    ])
+  })
+
+  it('records navigation history and supports back/forward navigation', () => {
+    useTabStore.getState().openTab('session-1', 'Session 1')
+    useTabStore.getState().openTab('session-2', 'Session 2')
+    useTabStore.getState().openTab('session-3', 'Session 3')
+
+    expect(useTabStore.getState().navHistory).toEqual(['session-1', 'session-2', 'session-3'])
+    expect(useTabStore.getState().navIndex).toBe(2)
+
+    useTabStore.getState().goBack()
+    expect(useTabStore.getState().activeTabId).toBe('session-2')
+    expect(useTabStore.getState().navIndex).toBe(1)
+
+    useTabStore.getState().goBack()
+    expect(useTabStore.getState().activeTabId).toBe('session-1')
+    expect(useTabStore.getState().navIndex).toBe(0)
+
+    // At the oldest entry, back is a no-op.
+    useTabStore.getState().goBack()
+    expect(useTabStore.getState().activeTabId).toBe('session-1')
+
+    useTabStore.getState().goForward()
+    expect(useTabStore.getState().activeTabId).toBe('session-2')
+
+    // Visiting a new tab after going back truncates the forward branch.
+    useTabStore.getState().switchToSession('session-4', 'Session 4')
+    expect(useTabStore.getState().navHistory).toEqual(['session-1', 'session-2', 'session-4'])
+    expect(useTabStore.getState().navIndex).toBe(2)
+  })
+
+  it('resolves a terminal tab with back/forward and re-anchors after closing a tab', () => {
+    useTabStore.getState().openTab('session-1', 'Session 1')
+    useTabStore.getState().openTerminalTab({ title: 'Terminal 1' })
+    useTabStore.getState().goBack()
+
+    expect(useTabStore.getState().activeTabId).toBe('session-1')
+    useTabStore.getState().goForward()
+    expect(useTabStore.getState().activeTabId).toBe('__terminal__1')
+
+    useTabStore.getState().closeTab('__terminal__1')
+    expect(useTabStore.getState().navHistory).not.toContain('__terminal__1')
+    expect(useTabStore.getState().activeTabId).toBe('session-1')
+  })
+})

@@ -34,6 +34,10 @@ export async function handle(
   config: Config,
 ): Promise<JsonResponse | null> {
   switch (pathname) {
+    case '/health':
+      return json(200, { status: 'ok', version: '0.1.0', uptime: process.uptime() })
+    case '/api/status':
+      return json(200, { status: 'ok', version: '0.1.0', uptime: process.uptime() })
     case '/api/health':
       return healthRoute(services)
     case '/api/repository':

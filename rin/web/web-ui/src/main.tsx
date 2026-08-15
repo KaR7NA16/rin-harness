@@ -1,18 +1,24 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
-import App from './App'
-import './index.css'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { App } from './App'
+import { ScreenshotOverlay } from './components/screenshot/ScreenshotOverlay'
+import './theme/globals.css'
+import { initializeTheme } from './stores/uiStore'
 
-const rootElement = document.getElementById('root')
-if (rootElement === null) {
-  throw new Error('rin web-ui: #root element not found')
+const isTauriRuntime = typeof window !== 'undefined' && (
+  '__TAURI_INTERNALS__' in window || '__TAURI__' in window
+)
+
+document.documentElement.setAttribute('data-runtime', isTauriRuntime ? 'tauri' : 'web')
+initializeTheme()
+
+const isScreenshotWindow = new URLSearchParams(window.location.search).get('window') === 'screenshot'
+if (isScreenshotWindow) {
+  document.getElementById('boot-splash')?.remove()
 }
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  </StrictMode>,
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    {isScreenshotWindow ? <ScreenshotOverlay /> : <App />}
+  </React.StrictMode>,
 )
