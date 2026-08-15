@@ -74,3 +74,12 @@
 2. **web-server/tests/smoke.ts 破损**（notes/agents 段断言过期，B1/F1b 均确认）：应删除（已被 legacy-wire + 各写路由 smoke 覆盖）或修复。
 3. **/api/environment/plan?root= 与 sandboxes-execute body root**（F1b 范围外，走同一 readAssetRepository 向量）：后续补 containment。
 4. **knowledge dbPath containment 已做**（?db= resolve 到 knowledgeDbPath 目录内）。
+
+## 发布策略决策（用户确认 2026-08-16）
+
+**rin 将发布三种包体**：
+1. **npm 包**：22 个 @rin/* 库包（含 @rin/cli 的 bin）——需配套：去 private（改 verify-rin-structure 门禁）、版本机制（changesets 或复用 dsh bump）、release 家族（families.ts 加 rin）、publint 覆盖 rin、manifest 入口自洽（F2a' 在做）。
+2. **Tauri Windows exe**：rin/gui 的 tauri build（nsis）。
+3. **Tauri Linux deb**：rin/gui 的 tauri build（deb）。
+
+（之前『不发布 npm』的推断已撤销，F2a 删字段方向已还原并改派修复方向。）

@@ -1,6 +1,10 @@
 # Pack and publish the dsh release sequence: every package under packages/ plus
 # the apps/ entries, all on one version. The vendored framework and the native
 # packages are separate sequences with their own workflows and version lines.
+# The rin @rin/* library packages are a third sequence: the shared release
+# scripts (bump/pack/publish) support --family rin, so rin can reuse this
+# workflow or ship through its own alongside the Tauri desktop release
+# (.github/workflows/rin-release.yml).
 #
 # Pack runs without credentials on every pull request and master push, so a
 # pull request proves the whole publish set still packs. Publication is a

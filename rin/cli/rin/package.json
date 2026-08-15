@@ -4,23 +4,31 @@
   "version": "0.1.0",
   "license": "MIT",
   "type": "module",
-  "private": true,
-  "main": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-name/rin-harness.git"
+  },
+  "homepage": "https://github.com/your-name/rin-harness",
+  "bugs": {
+    "url": "https://github.com/your-name/rin-harness/issues"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "main": "lib/types/index.js",
   "types": "lib/types/index.d.ts",
   "bin": {
-    "rin": "lib/bin.js"
+    "rin": "lib/types/bin.js"
   },
   "exports": {
     ".": {
       "types": "./lib/types/index.d.ts",
-      "default": "./lib/index.js"
+      "default": "./lib/types/index.js"
     },
     "./package.json": "./package.json"
   },
   "files": [
-    "lib/index.js",
-    "lib/bin.js",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*"
   ],
   "dependencies": {
     "@rin/bundle": "workspace:^",
@@ -31,5 +39,8 @@
     "@deepseek-ai/cordis": "workspace:^",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

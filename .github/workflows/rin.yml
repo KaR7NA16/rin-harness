@@ -1,3 +1,9 @@
+# rin quality gates.
+#
+# rin publishes three release forms: the @rin/* npm library packages, a Tauri
+# Windows NSIS installer (.exe), and a Tauri Linux Debian package (.deb) from a
+# rin-v* tag (see rin-release.yml). This workflow is the pull-request gate for
+# the @rin packages and the web-ui the desktop app embeds.
 name: rin
 
 on:
@@ -38,6 +44,12 @@ jobs:
 
       - name: Typecheck
         run: pnpm rin:typecheck
+
+      - name: Typecheck web-ui
+        run: pnpm --filter @rin/web-ui run typecheck
+
+      - name: Build web-ui
+        run: pnpm run rin:build
 
       - name: Lint
         run: pnpm rin:lint

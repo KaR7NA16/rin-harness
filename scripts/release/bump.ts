@@ -5,10 +5,11 @@
  *
  * The dsh family shares one version across its members and the workspace root:
  * `major`, `minor`, `patch`, or an explicit `x.y.z` (including a prerelease such
- * as `0.0.1-rc.1`). The vendored family has one version line per package, but
- * every release advances and publishes the complete family so the next release
- * never reuses an unchanged member's existing version from a different
- * repository state.
+ * as `0.0.1-rc.1`). The rin family shares one version across its @rin/* library
+ * members the same way, without touching the workspace root. The vendored
+ * family has one version line per package, but every release advances and
+ * publishes the complete family so the next release never reuses an unchanged
+ * member's existing version from a different repository state.
  *
  * The version lands in the manifests, the lockfile follows, and a human creates
  * the tag after the commit merges. CI never writes to the repository.
@@ -124,15 +125,16 @@ export function compareVersions(left: string, right: string): number {
 }
 
 /**
- * The next dsh version.
+ * The next shared version for a single-version family.
+ * @param familyId - the family identifier, for the usage error.
  * @param current - the family's current shared version.
  * @param request - `major`, `minor`, `patch`, or an explicit version.
  * @returns The target version.
  */
-function nextSharedVersion(current: string, request: string): string {
+function nextSharedVersion(familyId: string, current: string, request: string): string {
   if (!RELEASE_TYPES.includes(request as typeof RELEASE_TYPES[number])) {
     if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(request)) {
-      throw new Error(`usage: release:dsh <major|minor|patch|x.y.z>, got ${request}`)
+      throw new Error(`usage: release:${familyId} <major|minor|patch|x.y.z>, got ${request}`)
     }
     return request
   }
@@ -236,11 +238,14 @@ function rootVersion(root: string): string {
 }
 
 /**
- * Plan the dsh family's rewrite: one version for every member and the root.
- * @param family - the dsh family.
+ * Plan a shared-version family's rewrite: one version for every member, plus
+ * the workspace root when the family carries it (the dsh family does; rin does
+ * not, since its @rin/* members keep a version line separate from the root).
+ * @param family - the shared-version family.
  * @param root - repository root.
  * @param members - the family's members.
  * @param request - `major`, `minor`, `patch`, or an explicit version.
+ * @param includeRoot - whether the workspace root manifest carries this version.
  * @returns The manifests to rewrite and the shared target version.
  */
 function planShared(
@@ -248,15 +253,17 @@ function planShared(
   root: string,
   members: readonly ReleaseMember[],
   request: string,
+  includeRoot: boolean,
 ): { planned: PlannedVersion[]; version: string } {
   const [first] = members
   if (first === undefined) throw new Error(`release family ${family.id} has no members`)
-  const version = nextSharedVersion(first.version, request)
-  // The workspace root carries the family version too: the workspace constraint
-  // requires every member's version to equal the root's.
-  const planned: PlannedVersion[] = [
-    { manifestPath: ROOT_MANIFEST, label: ROOT_MANIFEST, from: rootVersion(root), to: version, tag: undefined },
-  ]
+  const version = nextSharedVersion(family.id, first.version, request)
+  const planned: PlannedVersion[] = []
+  if (includeRoot) {
+    // The workspace root carries the family version too: the workspace
+    // constraint requires every dsh member's version to equal the root's.
+    planned.push({ manifestPath: ROOT_MANIFEST, label: ROOT_MANIFEST, from: rootVersion(root), to: version, tag: undefined })
+  }
   for (const member of members) {
     planned.push({
       manifestPath: join(member.directory, 'package.json'),
@@ -311,7 +318,7 @@ function main(): void {
     },
     allowPositionals: true,
   })
-  if (values.family === undefined) throw new Error('usage: bump.ts --family <dsh|vendor> [version]')
+  if (values.family === undefined) throw new Error('usage: bump.ts --family <dsh|vendor|rin> [version]')
 
   const family = releaseFamily(values.family)
   const root = process.cwd()
@@ -320,13 +327,13 @@ function main(): void {
 
   let planned: PlannedVersion[]
   let sharedVersion: string | undefined
-  if (family.id === 'dsh') {
+  if (family.id === 'dsh' || family.id === 'rin') {
     const request = positionals[0]
-    if (request === undefined) throw new Error('usage: release:dsh <major|minor|patch|x.y.z>')
+    if (request === undefined) throw new Error(`usage: release:${family.id} <major|minor|patch|x.y.z>`)
     if (values.prerelease !== undefined) {
-      throw new Error('release:dsh takes the prerelease in its version argument, as in 0.0.1-rc.1')
+      throw new Error(`release:${family.id} takes the prerelease in its version argument, as in 0.0.1-rc.1`)
     }
-    const shared = planShared(family, root, members, request)
+    const shared = planShared(family, root, members, request, family.id === 'dsh')
     planned = shared.planned
     sharedVersion = shared.version
   } else {

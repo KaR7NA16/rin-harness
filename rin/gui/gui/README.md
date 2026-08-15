@@ -169,18 +169,20 @@ cd rin/gui/gui
 cargo tauri dev
 ```
 
-构建安装包：
+构建安装包（发布产物 = Windows exe / Linux deb）：
 
 ```sh
 cd rin/gui/gui
-cargo tauri build                 # 产物在 src-tauri/target/release/bundle/（.msi/.exe 或 .dmg/.deb/.rpm）
-# 指定目标/包格式：
-#   cargo tauri build --target x86_64-pc-windows-msvc
-#   cargo tauri build --bundles deb,rpm
+cargo tauri build --bundles deb   # Linux：src-tauri/target/release/bundle/deb/rin_<version>_amd64.deb
+cargo tauri build --bundles nsis  # Windows：src-tauri/target/release/bundle/nsis/rin_<version>_x64-setup.exe
 ```
 
+`tauri.conf.json` 的 `bundle.targets` 固定为 nsis（Windows exe）与 deb（Linux deb），不发布
+rpm/appimage/msi/dmg。打 tag `rin-v*` 后由 `.github/workflows/rin-release.yml` 自动出 deb/exe
+并上传 GitHub Releases。
+
 发布态还需先产出 sidecar（见 `scripts/build-sidecar.md`）并放入 `src-tauri/binaries/`，
-否则 bundle 里的 `externalBin` 会失败。
+否则 bundle 里的 `externalBin` 会失败；rin-release.yml 已留 sidecar 构建占位。
 
 ## Known Limitations and Deferred Work
 

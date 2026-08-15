@@ -1,9 +1,15 @@
 /**
  * The three independent publish sequences this repository releases from
- * (`packages/` + `apps/`, `vendor/`, and `native/`) and the two this module
- * owns: `dsh` and `vendor`. Each family carries its own version baseline, tag
- * naming, and publish set, so releasing one never republishes another
+ * (`packages/` + `apps/`, `vendor/`, and `native/`) and the three this module
+ * owns: `dsh`, `vendor`, and `rin`. Each family carries its own version
+ * baseline, tag naming, and publish set, so releasing one never republishes
+ * another
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
+ *
+ * rin publishes three release forms from one rin-v* tag: the @rin/* npm library
+ * packages (the `rin/` tree minus the gui/web-ui product layer), plus the Tauri
+ * desktop shell — a Windows NSIS installer (.exe) and a Linux Debian package
+ * (.deb) attached to GitHub Releases (see .github/workflows/rin-release.yml).
  *
  * The family dimension lives here only. A new sequence adds a subclass and a
  * `releaseFamilies()` entry; nothing else in the release scripts branches on it.
@@ -76,6 +82,9 @@ export abstract class ReleaseFamily {
   /** Git tag prefix this family publishes from. */
   abstract readonly tagPrefix: string
 
+  /** npm scope every member name must carry. */
+  abstract readonly scopePrefix: string
+
   /**
    * Discover this family's members.
    * @param root - repository root.
@@ -93,7 +102,7 @@ export abstract class ReleaseFamily {
       const name = requireString(manifest, 'name', normalized)
       const version = requireString(manifest, 'version', normalized)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
-      if (!name.startsWith('@deepseek-ai/')) throw new Error(`${normalized} must name an @deepseek-ai package`)
+      if (!name.startsWith(this.scopePrefix)) throw new Error(`${normalized} must name a ${this.scopePrefix} package`)
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
       members.push({
@@ -198,6 +207,7 @@ class DshFamily extends ReleaseFamily {
   readonly id = 'dsh'
   readonly patterns = ['packages/*/*/package.json', 'apps/*/package.json'] as const
   readonly tagPrefix = 'dsh-v'
+  readonly scopePrefix = '@deepseek-ai/'
 
   /**
    * Require one version across the family, the way a single tag can name it.
@@ -236,6 +246,7 @@ class VendorFamily extends ReleaseFamily {
   readonly id = 'vendor'
   readonly patterns = ['vendor/*/package.json'] as const
   readonly tagPrefix = 'vendor-'
+  readonly scopePrefix = '@deepseek-ai/'
 
   /**
    * Accept independent versions; only reject a version this repository cannot publish.
@@ -278,9 +289,66 @@ class VendorFamily extends ReleaseFamily {
   readonly installedEntry = undefined
 }
 
+/** The @rin/* library packages under `rin/`: one shared version, published to npm. */
+class RinFamily extends ReleaseFamily {
+  readonly id = 'rin'
+  readonly patterns = ['rin/*/*/package.json'] as const
+  readonly tagPrefix = 'rin-v'
+  readonly scopePrefix = '@rin/'
+
+  /**
+   * Product-layer packages with no npm entry points: the desktop shell and the
+   * web UI ship as the Tauri app, not as @rin/* packages.
+   */
+  private static readonly PRODUCT_LAYER = new Set(['rin/gui/gui', 'rin/web/web-ui'])
+
+  /**
+   * Exclude the product layer from the publish set.
+   * @param root - repository root.
+   * @returns The @rin/* library members.
+   */
+  override members(root: string): ReleaseMember[] {
+    return super.members(root).filter(member => !RinFamily.PRODUCT_LAYER.has(member.directory))
+  }
+
+  /**
+   * Require one version across the family, the way a single rin-v tag names it.
+   * @param members - this family's members.
+   */
+  verifyVersions(members: readonly ReleaseMember[]): void {
+    const versions = new Set(members.map(member => member.version))
+    if (versions.size !== 1) {
+      const detail = members.map(member => `${member.directory}: ${member.version}`).join('\n')
+      throw new Error(`rin release members must share one version:\n${detail}`)
+    }
+  }
+
+  /**
+   * The single family prefix: every member shares one version, so one tag names it.
+   * @returns `rin-v`.
+   */
+  tagPrefixFor(): string {
+    return this.tagPrefix
+  }
+
+  /**
+   * Require a non-empty payload. The harness policy that rejects source maps
+   * does not apply: rin ships raw tsc output under `lib/types/`, whose
+   * declaration and source maps are a legitimate part of that payload.
+   * @param member - the packed member.
+   * @param files - every path inside its tarball.
+   */
+  validatePayload(member: ReleaseMember, files: readonly string[]): void {
+    if (files.length === 0) throw new Error(`${member.name} packed an empty tarball`)
+  }
+
+  /** No installed-entry probe: the rin cli is a launcher, not a --version executable. */
+  readonly installedEntry = undefined
+}
+
 /** Every release family this module owns, in workflow order. */
 function releaseFamilies(): readonly ReleaseFamily[] {
-  return [new DshFamily(), new VendorFamily()]
+  return [new DshFamily(), new VendorFamily(), new RinFamily()]
 }
 
 /**

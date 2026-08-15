@@ -11,14 +11,16 @@ import { dirname, relative, resolve, sep } from 'node:path'
 import { parseArgs } from 'node:util'
 import { publint, type Message, type PackFile } from 'publint'
 import { formatMessage } from 'publint/utils'
+import { isEntry } from './release/process.ts'
 
 const CONCURRENCY_ENV = 'DSH_PUBLINT_CONCURRENCY'
 const repositoryRoot = resolve(import.meta.dirname, '..')
-const { values: options } = parseArgs({
-  args: process.argv.slice(2),
-  options: { 'packages-root': { type: 'string' } },
-})
-const packagesRoot = resolve(options['packages-root'] ?? repositoryRoot)
+
+/** Manifest globs the repository's npm publication view covers: dsh packages plus rin library packages. */
+const WORKSPACE_GLOBS = ['packages/*/*/package.json', 'rin/*/*/package.json'] as const
+
+/** rin product-layer packages (desktop shell and web UI) publish no npm entry points. */
+const RIN_PRODUCT_LAYER = new Set(['rin/gui/gui', 'rin/web/web-ui'])
 
 interface PackageTarget {
   path: string
@@ -35,14 +37,33 @@ type PublintResult =
   | { path: string; status: 'passed'; messages: Message[]; manifest: Record<string, unknown> }
   | { path: string; status: 'failed'; messages: Message[]; manifest: Record<string, unknown>; failure?: string }
 
-function workspacePackages(): PackageTarget[] {
-  return globSync('packages/*/*/package.json', { cwd: packagesRoot })
+/**
+ * Discover publish targets matching the given manifest globs, skipping the rin
+ * product layer.
+ * @param packagesRoot - repository root the globs resolve against.
+ * @param patterns - manifest globs, relative to the root.
+ * @returns Targets sorted by manifest path.
+ */
+function discoverTargets(packagesRoot: string, patterns: readonly string[]): PackageTarget[] {
+  return globSync([...patterns], { cwd: packagesRoot })
     .sort()
     .map((manifestPath) => {
+      const normalized = manifestPath.split(sep).join('/')
       const absoluteManifestPath = resolve(packagesRoot, manifestPath)
       const manifest = JSON.parse(readFileSync(absoluteManifestPath, 'utf8')) as PackageManifest
-      return { path: dirname(manifestPath), directory: dirname(absoluteManifestPath), manifest }
+      return { path: dirname(normalized), directory: dirname(absoluteManifestPath), manifest }
     })
+    .filter(target => !RIN_PRODUCT_LAYER.has(target.path))
+}
+
+/** Every npm-publishable workspace package: dsh packages plus rin library packages. */
+function workspacePackages(packagesRoot: string): PackageTarget[] {
+  return discoverTargets(packagesRoot, WORKSPACE_GLOBS)
+}
+
+/** The @rin/* library packages only, for the rin publish gate. */
+export function rinWorkspacePackages(repoRoot: string): PackageTarget[] {
+  return discoverTargets(repoRoot, ['rin/*/*/package.json'])
 }
 
 function publintConcurrency(total: number): number {
@@ -144,7 +165,18 @@ async function runAll(targets: PackageTarget[], concurrency: number): Promise<Pu
   })
 }
 
-function printResult(result: PublintResult): void {
+/**
+ * Run publint over the given targets, sized to the available parallelism.
+ * @param targets - the packages to lint.
+ * @returns One result per target, in input order.
+ */
+export async function publintTargets(targets: PackageTarget[]): Promise<PublintResult[]> {
+  const concurrency = publintConcurrency(targets.length)
+  console.log(`publint-all: linting ${targets.length} package(s) with ${concurrency} worker(s).`)
+  return runAll(targets, concurrency)
+}
+
+export function printResult(result: PublintResult): void {
   console.log(`Running publint for ${result.path}...`)
   if ('failure' in result) console.error(result.failure)
   for (const message of result.messages) {
@@ -153,11 +185,13 @@ function printResult(result: PublintResult): void {
   if (result.status === 'passed' && result.messages.length === 0) console.log('All good!')
 }
 
-const packages = workspacePackages()
-const concurrency = publintConcurrency(packages.length)
-console.log(`publint-all: linting ${packages.length} package(s) with ${concurrency} worker(s).`)
-
-const results = await runAll(packages, concurrency)
-for (const result of results) printResult(result)
-
-if (results.some(result => result.status === 'failed')) process.exit(1)
+if (isEntry(import.meta.url)) {
+  const { values: options } = parseArgs({
+    args: process.argv.slice(2),
+    options: { 'packages-root': { type: 'string' } },
+  })
+  const packagesRoot = resolve(options['packages-root'] ?? repositoryRoot)
+  const results = await publintTargets(workspacePackages(packagesRoot))
+  for (const result of results) printResult(result)
+  if (results.some(result => result.status === 'failed')) process.exit(1)
+}

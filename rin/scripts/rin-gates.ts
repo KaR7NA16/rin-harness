@@ -1,5 +1,5 @@
 /**
- * Run the rin quality gates: assemble the four rin verify leaves.
+ * Run the rin quality gates: assemble the five rin verify leaves.
  *
  * The runner owns process spawning and diagnostics; each leaf owns its checks.
  * Mode argument is `check` (every leaf) or one leaf name. Leaves are TypeScript
@@ -13,7 +13,7 @@ import { resolve } from 'node:path'
 import { performance } from 'node:perf_hooks'
 
 /** A rin verify leaf name, also the single-leaf mode argument. */
-type LeafId = 'verify-rin-deps' | 'verify-rin-cordis' | 'verify-rin-structure' | 'verify-rin-readme'
+type LeafId = 'verify-rin-deps' | 'verify-rin-cordis' | 'verify-rin-structure' | 'verify-rin-readme' | 'verify-rin-publint'
 
 /** One rin verify leaf, owned by a sibling gate agent. */
 interface Leaf {
@@ -40,6 +40,7 @@ const LEAVES: readonly Leaf[] = [
   { id: 'verify-rin-cordis', script: 'rin/scripts/verify-rin-cordis.ts' },
   { id: 'verify-rin-structure', script: 'rin/scripts/verify-rin-structure.ts' },
   { id: 'verify-rin-readme', script: 'rin/scripts/verify-rin-readme.ts' },
+  { id: 'verify-rin-publint', script: 'rin/scripts/verify-rin-publint.ts' },
 ]
 
 if (import.meta.main) {
@@ -72,10 +73,10 @@ async function main(args: string[]): Promise<number> {
  */
 function parseMode(raw: string | undefined): Mode {
   if (raw === undefined || raw === '') {
-    throw new Error('rin-gates: expected a mode argument: check | verify-rin-deps | verify-rin-cordis | verify-rin-structure | verify-rin-readme.')
+    throw new Error('rin-gates: expected a mode argument: check | verify-rin-deps | verify-rin-cordis | verify-rin-structure | verify-rin-readme | verify-rin-publint.')
   }
   if (raw === 'check' || LEAVES.some(leaf => leaf.id === raw)) return raw as Mode
-  throw new Error(`rin-gates: unknown mode ${JSON.stringify(raw)}; expected check | verify-rin-deps | verify-rin-cordis | verify-rin-structure | verify-rin-readme.`)
+  throw new Error(`rin-gates: unknown mode ${JSON.stringify(raw)}; expected check | verify-rin-deps | verify-rin-cordis | verify-rin-structure | verify-rin-readme | verify-rin-publint.`)
 }
 
 /**

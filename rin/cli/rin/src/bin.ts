@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * rin launcher — process entry.
  *
