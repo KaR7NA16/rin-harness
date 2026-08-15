@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "@xterm/xterm/css/xterm.css";
 @import "@vscode/codicons/dist/codicon.css";
 @plugin "@tailwindcss/typography";
 
@@ -97,21 +96,6 @@
   --line-numbers-font-size: 11px;
 }
 
-.settings-terminal-host .xterm {
-  height: 100%;
-  padding: 0;
-}
-
-.settings-terminal-host .xterm-viewport {
-  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
-}
-[data-theme="dark"] .settings-terminal-host .xterm-viewport {
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
-}
-
-.settings-terminal-host .xterm-screen {
-  outline: none;
-}
 
 /* ─── AI activity text shimmer ─────────────────────── */
 .ai-shimmer-text {

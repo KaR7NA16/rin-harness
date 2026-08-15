@@ -903,6 +903,10 @@ describe('legacy: mcp', () => {
     expect(res?.body.servers[0].statusLabel).toBe('Unavailable')
     expect(res?.body.servers[0].enabled).toBe(true)
   })
+
+  test('wrong method returns 405', async () => {
+    expect(await handle('/api/mcp', '', 'POST', {}, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
+  })
 })
 
 describe('legacy: A/B/D services', () => {
@@ -923,6 +927,15 @@ describe('legacy: A/B/D services', () => {
     const s = makeServices({ tasks: () => ({ async listTasks() { return [{ id: '1' }] }, async listTaskLists() { return [{ id: 'l1' }] } }) })
     expect(await handle('/api/tasks', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { tasks: [{ id: '1' }] } })
     expect(await handle('/api/tasks/lists', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { lists: [{ id: 'l1' }] } })
+  })
+
+  test('teams wrong method returns 405', async () => {
+    expect(await handle('/api/teams', '', 'POST', {}, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
+  })
+
+  test('tasks wrong method returns 405', async () => {
+    expect(await handle('/api/tasks', '', 'PUT', {}, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
+    expect(await handle('/api/tasks/lists', '', 'DELETE', undefined, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
   })
 
   test('computer-use unmounted status', async () => {

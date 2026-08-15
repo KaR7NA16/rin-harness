@@ -47,9 +47,9 @@ export async function handle(
   config: Config,
 ): Promise<JsonResponse | null> {
   if (pathname === '/api/sandboxes') {
-    return method === 'POST'
-      ? sandboxesCreateRoute(method, body, services)
-      : sandboxesListRoute(services)
+    if (method === 'POST') return sandboxesCreateRoute(method, body, services)
+    if (method === 'GET' || method === 'HEAD') return sandboxesListRoute(services)
+    return error(405, 'method not allowed; GET or POST /api/sandboxes')
   }
   if (pathname === '/api/sandboxes/execute') {
     return sandboxesExecuteRoute(method, body, services, config)

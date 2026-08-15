@@ -40,5 +40,6 @@ pnpm run rin                 # 启动 host：http://127.0.0.1:8320 伺服 dist/�
 - 沙箱无法构建本包：vite build 被 spawn 拦截，且 react 等外部依赖需要联网 `pnpm install`。真机 `pnpm --filter @rin/web-ui run build` 验证。
 - `src/types.ts` 手抄了 server 的领域类型（AgentRecord / SandboxProfile / NoteMeta / InstallRun 等）：**server 领域类型变了必须同步这里**，否则页面字段名漂移。
 - Sandboxes 的 aiConfigure、AgentWorkspace 的 AI 提案默认 LLM 适配器需要真机（dsh llm seam / sandbox provider）验证；MVP 未接入 aiConfigure。
+- terminal 桌面特性已移除（Tauri 命令未实现）：遗留的 terminal tab 导航壳（tabStore / IconRail / Sandboxes exec / composerUtils slash action）入口显示空白内容区，待后续清理或实现。
 - 智能裁剪滑块为 0–3 档，映射到三个真实级别（conservative / balanced / aggressive），第 3 档饱和到 aggressive。
 - 后端契约见 @rin/web-server 的 README 与 PHASE4-STANDALONE.md。

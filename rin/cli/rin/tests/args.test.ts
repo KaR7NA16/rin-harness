@@ -19,6 +19,11 @@ describe('parseArgs commands', () => {
   test('parses the web command', () => {
     expect(parseArgs(['web']).command).toBe('web')
   })
+
+  test('stops parsing at the -- terminator', () => {
+    expect(parseArgs(['--', 'web']).command).toBe('default')
+    expect(parseArgs(['web', '--', '--port']).command).toBe('web')
+  })
 })
 
 describe('parseArgs help and version', () => {

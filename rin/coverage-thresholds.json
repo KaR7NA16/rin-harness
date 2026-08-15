@@ -6,27 +6,27 @@
     "vitest": "4.1.8",
     "recordedAt": "2026-08-16",
     "testFiles": {
-      "total": 143,
-      "passed": 143,
+      "total": 151,
+      "passed": 151,
       "failed": 0
     },
     "tests": {
-      "total": 1242,
-      "passed": 1242,
+      "total": 1308,
+      "passed": 1308,
       "failed": 0
     },
     "globalCoverage": {
-      "statements": 60.54,
-      "branches": 55.82,
-      "functions": 55.18,
-      "lines": 62.34
+      "statements": 63.08,
+      "branches": 57.57,
+      "functions": 58.1,
+      "lines": 65.01
     }
   },
   "globalThresholds": {
-    "statements": 55,
-    "branches": 50,
-    "functions": 50,
-    "lines": 57
+    "statements": 58,
+    "branches": 53,
+    "functions": 53,
+    "lines": 60
   },
   "packages": {
     "@rin/bundle": {
@@ -36,10 +36,10 @@
       "lines": 51
     },
     "@rin/cli": {
-      "statements": 35,
-      "branches": 46,
-      "functions": 12,
-      "lines": 36
+      "statements": 60,
+      "branches": 50,
+      "functions": 50,
+      "lines": 60
     },
     "@rin/environment": {
       "statements": 47,
@@ -72,10 +72,10 @@
       "lines": 42
     },
     "@rin/session-search": {
-      "statements": 34,
-      "branches": 25,
-      "functions": 32,
-      "lines": 36
+      "statements": 60,
+      "branches": 50,
+      "functions": 55,
+      "lines": 60
     },
     "@rin/skill-memory": {
       "statements": 40,
@@ -108,10 +108,10 @@
       "lines": 55
     },
     "@rin/web-ui": {
-      "statements": 35,
-      "branches": 33,
-      "functions": 32,
-      "lines": 36
+      "statements": 55,
+      "branches": 50,
+      "functions": 50,
+      "lines": 55
     },
     "@rin/agents": {
       "statements": 55,

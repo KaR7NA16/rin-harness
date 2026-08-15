@@ -30,15 +30,20 @@ describe('sandboxes: list', () => {
     const res = await handle('/api/sandboxes', '', 'GET', undefined, s, config)
     expect(res).toEqual({ status: 500, body: { error: 'boom' } })
   })
+
+  test('non-GET/non-POST returns 405', async () => {
+    const s = services({ async list() { return [{ id: 'sb1' }] } })
+    expect(await handle('/api/sandboxes', '', 'PUT', {}, s, config)).toEqual({ status: 405, body: { error: 'method not allowed; GET or POST /api/sandboxes' } })
+    expect(await handle('/api/sandboxes', '', 'DELETE', undefined, s, config)).toEqual({ status: 405, body: { error: 'method not allowed; GET or POST /api/sandboxes' } })
+  })
+
+  test('HEAD lists', async () => {
+    const s = services({ async list() { return [{ id: 'sb1' }] } })
+    expect(await handle('/api/sandboxes', '', 'HEAD', undefined, s, config)).toEqual({ status: 200, body: { mounted: true, sandboxes: [{ id: 'sb1' }] } })
+  })
 })
 
 describe('sandboxes: create', () => {
-  test('non-POST /api/sandboxes lists', async () => {
-    const s = services({ async list() { return [{ id: 'sb1' }] } })
-    const res = await handle('/api/sandboxes', '', 'PUT', {}, s, config)
-    expect(res).toEqual({ status: 200, body: { mounted: true, sandboxes: [{ id: 'sb1' }] } })
-  })
-
   test('requires name and type', async () => {
     const s = services({})
     expect(await handle('/api/sandboxes', '', 'POST', {}, s, config)).toEqual({ status: 400, body: { error: 'name is required' } })

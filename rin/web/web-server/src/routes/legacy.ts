@@ -121,12 +121,12 @@ export async function handle(
   if (providerItem !== null && providerItem[1] !== undefined) {
     return providerItemRoute(providerItem[1], providerItem[3], method, body)
   }
-  if (pathname === '/api/mcp') return mcpListRoute(services)
+  if (pathname === '/api/mcp') return mcpListRoute(method, services)
 
   // A-class automation/collaboration surfaces over the new @rin services.
-  if (pathname === '/api/teams') return teamsListRoute(services)
-  if (pathname === '/api/tasks') return tasksRoute(services)
-  if (pathname === '/api/tasks/lists') return taskListsRoute(services)
+  if (pathname === '/api/teams') return teamsListRoute(method, services)
+  if (pathname === '/api/tasks') return tasksRoute(method, services)
+  if (pathname === '/api/tasks/lists') return taskListsRoute(method, services)
   if (pathname === '/api/computer-use/status') return computerUseStatusRoute(services)
   if (pathname === '/api/computer-use/apps') return computerUseAppsRoute(services)
   if (pathname === '/api/computer-use/authorized-apps') return computerUseAuthorizedAppsRoute(services)
@@ -1065,7 +1065,8 @@ async function promptMemoryInsightsRoute(services: RinServiceRefs): Promise<Json
   }
 }
 
-async function tasksRoute(services: RinServiceRefs): Promise<JsonResponse> {
+async function tasksRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'GET') return error(405, 'method not allowed')
   const tasks = services.tasks()
   if (tasks === undefined) return json(200, { lists: [], tasks: [] })
   try {
@@ -1075,7 +1076,8 @@ async function tasksRoute(services: RinServiceRefs): Promise<JsonResponse> {
   }
 }
 
-async function taskListsRoute(services: RinServiceRefs): Promise<JsonResponse> {
+async function taskListsRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'GET') return error(405, 'method not allowed')
   const tasks = services.tasks()
   if (tasks === undefined) return json(200, { lists: [], tasks: [] })
   try {
@@ -1085,7 +1087,8 @@ async function taskListsRoute(services: RinServiceRefs): Promise<JsonResponse> {
   }
 }
 
-async function teamsListRoute(services: RinServiceRefs): Promise<JsonResponse> {
+async function teamsListRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'GET') return error(405, 'method not allowed')
   const teams = services.teams()
   if (teams === undefined) return json(200, { teams: [] })
   try {
@@ -1095,7 +1098,8 @@ async function teamsListRoute(services: RinServiceRefs): Promise<JsonResponse> {
   }
 }
 
-async function mcpListRoute(services: RinServiceRefs): Promise<JsonResponse> {
+async function mcpListRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'GET') return error(405, 'method not allowed')
   const mcp = services.mcp()
   if (mcp === undefined) return json(200, { servers: [] })
   try {
