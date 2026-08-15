@@ -157,12 +157,24 @@ function attachProjection(handle: DshAgentHandleLike): void {
     }
   })
 
+  const errorDisposer = agent.ctx.on('agent/error', (...args: unknown[]) => {
+    const payload = args[0] as { error?: unknown } | undefined
+    const message = payload?.error instanceof Error
+      ? payload.error.message
+      : 'agent run failed'
+    for (const ws of sockets) {
+      send(ws, { type: 'error', message, code: 'AGENT_ERROR' })
+      send(ws, { type: 'status', state: 'idle' })
+    }
+  })
+
   // Expose registration by monkey-patching the handle's private socket set is
   // too clever; instead sockets are tracked by a process-level map keyed by
   // session id through this module's exported register helper below.
   legacySocketRegistries.set(agent.id, sockets)
   legacyProjectionDisposers.set(agent.id, () => {
     if (typeof disposer === 'function') disposer()
+    if (typeof errorDisposer === 'function') errorDisposer()
     legacySocketRegistries.delete(agent.id)
     legacyProjectionDisposers.delete(agent.id)
   })
