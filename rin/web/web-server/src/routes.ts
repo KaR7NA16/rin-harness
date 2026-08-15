@@ -31,6 +31,33 @@ import { handle as handleSandboxes } from './routes/sandboxes.ts'
 import { handle as handleToken } from './routes/token.ts'
 import { handle as handleLegacy } from './routes/legacy.ts'
 
+/**
+ * Minimal structural view of the dsh session services the legacy desktop API
+ * needs. Kept structural so web-server does not require the dsh package graph.
+ */
+export interface DshSessionEventLike {
+  readonly type: string
+  readonly seq: number
+  readonly time: number
+  readonly data: unknown
+}
+
+export interface DshSessionLike {
+  readonly id: string
+  readonly events: readonly DshSessionEventLike[]
+}
+
+export interface DshSessionStoreLike {
+  list(): DshSessionLike[]
+  get(id: string): DshSessionLike | undefined
+  create(id?: string, options?: { meta?: { cwd?: string } }): DshSessionLike
+}
+
+export interface DshSessionPersistenceLike {
+  list(): Promise<Array<{ readonly id: string; readonly createdAt: number; readonly cwd?: string }>>
+  prepare(id: string): Promise<void>
+}
+
 /** Lazily-read optional @rin services, resolved at request time. */
 export interface RinServiceRefs {
   repository(): RepositoryStore | undefined
@@ -45,6 +72,8 @@ export interface RinServiceRefs {
   notes(): NotesStore | undefined
   sandboxes(): SandboxStore | undefined
   tokenOptimization(): TokenOptimizationRef | undefined
+  sessions(): DshSessionStoreLike | undefined
+  sessionPersistence(): DshSessionPersistenceLike | undefined
 }
 
 /**

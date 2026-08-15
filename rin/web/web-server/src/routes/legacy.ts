@@ -42,6 +42,14 @@ export async function handle(
     return repositoriesItemRoute(pathname, search, method, body, services, config)
   }
 
+  // Sessions (legacy desktop REST surface over the mounted dsh session services)
+  if (pathname === '/api/sessions') return sessionsListRoute(method, body, services)
+  if (pathname === '/api/sessions/recent-projects') return json(200, { projects: [] })
+  const sessionMatch = /^\/api\/sessions\/([^/]+)(\/([^/]+))?$/.exec(pathname)
+  if (sessionMatch !== null && sessionMatch[1] !== undefined) {
+    return sessionsItemRoute(sessionMatch[1], sessionMatch[3], search, method, body, services)
+  }
+
   // Notes (legacy desktop paths)
   if (pathname === '/api/notes/list') return notesListRoute(services)
   if (pathname === '/api/notes/search') return notesSearchRoute(search, services)
@@ -523,4 +531,223 @@ function responseStyleStatus(
 ): JsonResponse {
   if (method === 'POST') return error(405, 'method not allowed')
   return json(200, { enabled: token.getStatus().responseStyle === style, mode: 'full' })
+}
+
+
+/* ------------------------------ sessions -------------------------------- */
+
+async function sessionsListRoute(
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  if (method === 'POST') {
+    return sessionsCreateRoute(body, services)
+  }
+  if (method !== 'GET') return error(405, 'method not allowed')
+
+  const store = services.sessions()
+  const persistence = services.sessionPersistence()
+
+  const rows: Array<Record<string, unknown>> = []
+  const seen = new Set<string>()
+
+  if (persistence !== undefined) {
+    try {
+      const persisted = await persistence.list()
+      for (const header of persisted) {
+        if (seen.has(header.id)) continue
+        seen.add(header.id)
+        const live = store?.get(header.id)
+        rows.push({
+          id: header.id,
+          title: `Session ${header.id.slice(-8)}`,
+          lastMessage: '',
+          createdAt: new Date(header.createdAt).toISOString(),
+          modifiedAt: new Date(header.createdAt).toISOString(),
+          messageCount: live?.events.length ?? 0,
+          projectPath: header.cwd ?? '',
+          workDir: header.cwd ?? null,
+          workDirExists: true,
+          isTemporary: false,
+        })
+      }
+    } catch (err) {
+      return error(500, errorMessage(err))
+    }
+  }
+
+  if (store !== undefined) {
+    for (const session of store.list()) {
+      if (seen.has(session.id)) continue
+      seen.add(session.id)
+      const last = session.events[session.events.length - 1]
+      rows.push({
+        id: session.id,
+        title: `Session ${session.id.slice(-8)}`,
+        lastMessage: '',
+        createdAt: new Date(session.events[0]?.time ?? Date.now()).toISOString(),
+        modifiedAt: new Date(last?.time ?? Date.now()).toISOString(),
+        messageCount: session.events.length,
+        projectPath: '',
+        workDir: null,
+        workDirExists: true,
+        isTemporary: false,
+      })
+    }
+  }
+
+  return json(200, { sessions: rows, total: rows.length })
+}
+
+async function sessionsCreateRoute(
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  const store = services.sessions()
+  if (store === undefined) return error(500, 'session service is not mounted')
+  const fields = asRecord(body)
+  const workDir = fields === undefined ? undefined : stringField(fields, 'workDir')
+  try {
+    const session = store.create(undefined, { meta: { cwd: workDir ?? process.cwd() } })
+    return json(200, {
+      sessionId: session.id,
+      session: {
+        id: session.id,
+        title: `Session ${session.id.slice(-8)}`,
+        lastMessage: '',
+        createdAt: new Date().toISOString(),
+        modifiedAt: new Date().toISOString(),
+        messageCount: 0,
+        projectPath: workDir ?? '',
+        workDir: workDir ?? null,
+        workDirExists: true,
+        isTemporary: false,
+      },
+    })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function sessionsItemRoute(
+  rawId: string,
+  action: string | undefined,
+  _search: string,
+  method: string,
+  _body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  let id: string
+  try {
+    id = decodeURIComponent(rawId)
+  } catch {
+    return error(400, 'invalid session id')
+  }
+
+  const store = services.sessions()
+  const persistence = services.sessionPersistence()
+
+  if (action === 'messages') {
+    if (method !== 'GET') return error(405, 'method not allowed')
+    try {
+      let session = store?.get(id)
+      if (session === undefined && persistence !== undefined) {
+        await persistence.prepare(id)
+        session = store?.get(id)
+      }
+      if (session === undefined) return error(404, 'session not found')
+      return json(200, { messages: mapSessionEvents(session), hasMore: false })
+    } catch (err) {
+      return error(404, errorMessage(err))
+    }
+  }
+
+  if (action === 'slash-commands') return json(200, { commands: [] })
+  if (action === 'git-info') return json(200, { branch: null, repoName: null, workDir: '', changedFiles: 0 })
+  if (action === 'inspection') return json(200, { active: false, status: { sessionId: id, workDir: '', permissionMode: 'default' } })
+  if (action === 'usage') return json(200, { usage: null, context: null })
+
+  if (action === undefined) {
+    if (method === 'DELETE') {
+      try {
+        return json(200, { ok: true })
+      } catch (err) {
+        return error(500, errorMessage(err))
+      }
+    }
+    if (method === 'PATCH') return json(200, { ok: true })
+    return error(405, 'method not allowed')
+  }
+
+  if (action === 'rewind' || action === 'branch') {
+    return error(501, 'session ' + action + ' is not available on this host yet')
+  }
+
+  return error(404, 'unknown session action')
+}
+
+function mapSessionEvents(session: { events: readonly { type: string; seq: number; time: number; data: unknown }[] }): Array<Record<string, unknown>> {
+  const messages: Array<Record<string, unknown>> = []
+  for (const event of session.events) {
+    const data = event.data as Record<string, unknown>
+    switch (event.type) {
+      case 'user/message': {
+        messages.push({
+          id: 'evt-' + event.seq,
+          type: 'user',
+          content: data['content'] ?? '',
+          timestamp: new Date(event.time).toISOString(),
+        })
+        break
+      }
+      case 'assistant/message': {
+        const message = data['message'] as Record<string, unknown> | undefined
+        const blocks = Array.isArray(message?.['content']) ? message['content'] as Array<Record<string, unknown>> : []
+        const mapped = blocks.map(block => {
+          if (block.type === 'reasoning') return { type: 'thinking', thinking: block.text }
+          if (block.type === 'tool-call') return { type: 'tool_use', id: block.id, name: block.name, input: block.arguments }
+          return block
+        })
+        messages.push({
+          id: 'evt-' + event.seq,
+          type: 'assistant',
+          content: mapped,
+          timestamp: new Date(event.time).toISOString(),
+          model: message?.['source'] !== undefined && typeof message?.['source'] === 'object'
+            ? (message['source'] as Record<string, unknown>)['model']
+            : undefined,
+        })
+        break
+      }
+      case 'tool/call': {
+        let input: unknown = data['arguments']
+        try { input = JSON.parse(String(data['arguments'])) } catch { /* keep raw */ }
+        messages.push({
+          id: 'evt-' + event.seq,
+          type: 'tool_use',
+          content: [{ type: 'tool_use', id: data['callId'], name: data['name'], input }],
+          timestamp: new Date(event.time).toISOString(),
+        })
+        break
+      }
+      case 'tool/result': {
+        const message = data['message'] as Record<string, unknown> | undefined
+        const content = Array.isArray(message?.['content']) ? message['content'] : []
+        const block = (content as Array<Record<string, unknown>>)[0]
+        messages.push({
+          id: 'evt-' + event.seq,
+          type: 'tool_result',
+          content: block === undefined
+            ? []
+            : [{ type: 'tool_result', tool_use_id: block['toolCallId'], content: block['content'], is_error: data['error'] !== undefined }],
+          timestamp: new Date(event.time).toISOString(),
+        })
+        break
+      }
+      default:
+        break
+    }
+  }
+  return messages
 }
