@@ -29,6 +29,7 @@ import { handle as handleAgents } from './routes/agents.ts'
 import { handle as handleNotes } from './routes/notes.ts'
 import { handle as handleSandboxes } from './routes/sandboxes.ts'
 import { handle as handleToken } from './routes/token.ts'
+import { handle as handleLegacy } from './routes/legacy.ts'
 
 /** Lazily-read optional @rin services, resolved at request time. */
 export interface RinServiceRefs {
@@ -64,7 +65,8 @@ export async function routeApi(
   services: RinServiceRefs,
   config: Config,
 ): Promise<JsonResponse | null> {
-  return (await handleCore(pathname, search, method, body, services, config))
+  return (await handleLegacy(pathname, search, method, body, services, config))
+    ?? (await handleCore(pathname, search, method, body, services, config))
     ?? (await handleKnowledge(pathname, search, method, body, services, config))
     ?? (await handleSessions(pathname, search, method, body, services, config))
     ?? (await handlePromptMemory(pathname, search, method, body, services, config))

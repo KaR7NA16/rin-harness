@@ -102,7 +102,7 @@ async function handleRequest(
     return
   }
 
-  if (method === 'POST' && isApi) {
+  if ((method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') && isApi) {
     const bodyResult = await readJsonBody(req)
     if (!bodyResult.ok) {
       respondError(res, bodyResult.status, bodyResult.message)
@@ -120,7 +120,7 @@ async function handleRequest(
   respondError(res, 405, 'method not allowed')
 }
 
-/** Read and parse a POST body, enforcing the 1 MiB cap and JSON syntax. */
+/** Read and parse an API JSON body, enforcing the 1 MiB cap and JSON syntax. */
 async function readJsonBody(
   req: IncomingMessage,
 ): Promise<{ ok: true; value: unknown } | { ok: false; status: number; message: string }> {
