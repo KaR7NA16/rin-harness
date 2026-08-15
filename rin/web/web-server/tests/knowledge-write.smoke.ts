@@ -28,7 +28,7 @@ function expect(label, actual, expected) {
   }
 }
 
-const config = { knowledgeDbPath: '/tmp/kb.db' }
+const config = { knowledgeDbPath: '/tmp/kb.db', knowledgeSourcesRoots: ['/tmp'] }
 
 /** A minimal KnowledgeSource matching the @rin/knowledge model. */
 const sourceA = {

@@ -11,7 +11,10 @@
 
 import { randomUUID } from 'node:crypto'
 import type { Server } from 'node:http'
+import type { Duplex } from 'node:stream'
 import { WebSocketServer, type WebSocket } from 'ws'
+import type { Config } from './types.ts'
+import { extractBearerToken, isAllowedHostHeader } from './http.ts'
 import type { DshAgentHandleLike, RinServiceRefs } from './routes.ts'
 
 const WS_PATH_RE = /^\/ws\/([^/]+)$/
@@ -22,8 +25,19 @@ interface ClientMessage {
   content?: string
 }
 
-/** Attach the legacy WebSocket upgrade route to the running HTTP server. */
-export function attachLegacyWebSocket(server: Server, services: RinServiceRefs): void {
+/**
+ * Attach the legacy WebSocket upgrade route to the running HTTP server.
+ * @param server - the node:http server to attach the upgrade handler to.
+ * @param services - thunks that read the optional @rin services.
+ * @param config - the resolved plugin configuration (authToken and bound port).
+ * @param getBoundPort - reads the actual bound port, set after listen().
+ */
+export function attachLegacyWebSocket(
+  server: Server,
+  services: RinServiceRefs,
+  config: Config,
+  getBoundPort: () => number,
+): void {
   const wss = new WebSocketServer({ noServer: true })
   const agents = new Map<string, Promise<DshAgentHandleLike>>()
 
@@ -34,10 +48,23 @@ export function attachLegacyWebSocket(server: Server, services: RinServiceRefs):
       socket.destroy()
       return
     }
+    if (!isAllowedHostHeader(req.headers.host, getBoundPort())) {
+      rejectUpgrade(socket, 403, 'Forbidden')
+      return
+    }
+    if (config.authToken !== undefined && extractBearerToken(req.headers.authorization, url.search) !== config.authToken) {
+      rejectUpgrade(socket, 401, 'Unauthorized')
+      return
+    }
     wss.handleUpgrade(req, socket, head, ws => {
       void handleSocket(ws, decodeURIComponent(match[1] ?? ''), services, agents)
     })
   })
+}
+
+/** Write a minimal HTTP rejection to an upgrade socket and close it. */
+function rejectUpgrade(socket: Duplex, status: number, reason: string): void {
+  socket.end(`HTTP/1.1 ${status} ${reason}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`)
 }
 
 async function handleSocket(

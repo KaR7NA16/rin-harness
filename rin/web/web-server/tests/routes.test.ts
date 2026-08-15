@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { routeApi } from '../src/routes.ts'
 
-const config = { port: 8320, host: '127.0.0.1', repositoryRoot: '/repo', knowledgeDbPath: '/tmp/kb.db' }
+const config = { port: 8320, host: '127.0.0.1', repositoryRoot: '/repo', knowledgeDbPath: '/tmp/kb.db', knowledgeSourcesRoots: ['/sources'] }
 
 function services(overrides: Record<string, () => unknown> = {}) {
   const base: Record<string, () => unknown> = {

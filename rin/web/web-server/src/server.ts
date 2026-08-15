@@ -14,7 +14,7 @@ import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { fileURLToPath } from 'node:url'
 import type { Config, JsonResponse } from './types.ts'
-import { errorMessage } from './http.ts'
+import { errorMessage, extractBearerToken, isAllowedHostHeader, isSameOrigin } from './http.ts'
 import { routeApi } from './routes.ts'
 import type { RinServiceRefs } from './routes.ts'
 import { readStaticFile } from './static.ts'
@@ -43,8 +43,11 @@ export interface RinWebServer {
  */
 export function createWebServer(config: Config, services: RinServiceRefs): RinWebServer {
   const staticRoot = config.staticRoot ?? DEFAULT_STATIC_ROOT
+  // Actual bound port, captured after listen(); Host/Origin validation compares
+  // against this rather than config.port so ephemeral ports (port 0) still work.
+  let boundPort = config.port
   const server: Server = createServer((req, res) => {
-    handleRequest(req, res, services, config, staticRoot).catch((err: unknown) => {
+    handleRequest(req, res, services, config, staticRoot, boundPort).catch((err: unknown) => {
       if (res.headersSent || res.writableEnded) {
         res.destroy()
         return
@@ -52,7 +55,7 @@ export function createWebServer(config: Config, services: RinServiceRefs): RinWe
       respondError(res, 500, errorMessage(err))
     })
   })
-  attachLegacyWebSocket(server, services)
+  attachLegacyWebSocket(server, services, config, () => boundPort)
 
   return {
     listen(port: number, host: string): Promise<AddressInfo> {
@@ -65,6 +68,7 @@ export function createWebServer(config: Config, services: RinServiceRefs): RinWe
             rejectListen(new Error('rin web-server: unexpected listen address'))
             return
           }
+          boundPort = address.port
           resolveListen(address)
         })
       })
@@ -83,10 +87,36 @@ async function handleRequest(
   services: RinServiceRefs,
   config: Config,
   staticRoot: string,
+  boundPort: number,
 ): Promise<void> {
   const method = req.method ?? 'GET'
   const url = new URL(req.url ?? '/', 'http://localhost')
   const isApi = url.pathname.startsWith('/api/')
+
+  // Host validation (anti DNS-rebinding): reject any request whose Host header
+  // is not a loopback name on the bound port, regardless of token configuration.
+  if (!isAllowedHostHeader(req.headers.host, boundPort)) {
+    respondError(res, 403, 'forbidden host')
+    return
+  }
+
+  // Token gate for the mutating/reading API surface when authToken is configured.
+  // The static frontend stays unauthenticated so a tokenless deployment (the
+  // default) keeps working exactly as before.
+  if (isApi && config.authToken !== undefined) {
+    const provided = extractBearerToken(req.headers.authorization, url.search)
+    if (provided !== config.authToken) {
+      respondError(res, 401, 'unauthorized')
+      return
+    }
+  }
+
+  // Origin check (CSRF/DNS-rebinding): when a browser sent an Origin, it must be
+  // same-origin as the request Host.
+  if (req.headers.origin !== undefined && !isSameOrigin(req.headers.origin, req.headers.host, boundPort)) {
+    respondError(res, 403, 'cross-origin request forbidden')
+    return
+  }
 
   if (method === 'GET' || method === 'HEAD') {
     const headOnly = method === 'HEAD'

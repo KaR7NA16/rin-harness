@@ -12,7 +12,7 @@
 import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
 import { readFile, readdir, realpath, stat } from 'node:fs/promises'
-import { basename, extname, parse, relative, resolve } from 'node:path'
+import { basename, extname, isAbsolute, parse, relative, resolve } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
 import { openKnowledgeDb } from './db.ts'
 import type {
@@ -138,18 +138,19 @@ export class KnowledgeService {
    *
    * @param paths - filesystem paths to register as sources.
    * @param options.waitForIndex - resolve only after indexing finishes.
+   * @param options.allowedRoots - when non-empty, each path must resolve inside one of these roots.
    * @returns the registered sources.
    */
   async addSources(
     paths: string[],
-    options: { waitForIndex?: boolean } = {},
+    options: { waitForIndex?: boolean; allowedRoots?: readonly string[] } = {},
   ): Promise<KnowledgeSource[]> {
     const cleanPaths = [...new Set(paths.map((value) => value.trim()).filter(Boolean))]
     if (cleanPaths.length === 0) throw new Error('rin knowledge: At least one source path is required')
 
     const sourceIds: string[] = []
     for (const inputPath of cleanPaths) {
-      const normalizedPath = await validateSourcePath(inputPath)
+      const normalizedPath = await validateSourcePath(inputPath, options.allowedRoots)
       const sourceStat = await stat(normalizedPath)
       const kind: KnowledgeSourceKind = sourceStat.isDirectory() ? 'folder' : 'file'
       const id = stableId(normalizedPath)
@@ -565,7 +566,7 @@ export class KnowledgeService {
   }
 }
 
-async function validateSourcePath(inputPath: string): Promise<string> {
+async function validateSourcePath(inputPath: string, allowedRoots: readonly string[] = []): Promise<string> {
   const resolvedPath = resolve(inputPath).normalize('NFC')
   const normalizedPath = (await realpath(resolvedPath)).normalize('NFC')
   const sourceStat = await stat(normalizedPath)
@@ -578,7 +579,16 @@ async function validateSourcePath(inputPath: string): Promise<string> {
       throw new Error('rin knowledge: Choose a project or document folder, not the disk root or entire home folder')
     }
   }
+  if (allowedRoots.length > 0 && !allowedRoots.some(root => isPathWithinRoot(normalizedPath, root))) {
+    throw new Error('rin knowledge: Knowledge source is outside the allowed sources roots')
+  }
   return normalizedPath
+}
+
+/** True when `child` resolves to `parent` or a path beneath it. */
+function isPathWithinRoot(child: string, parent: string): boolean {
+  const relation = relative(resolve(parent), resolve(child))
+  return relation === '' || (!relation.startsWith('..') && !isAbsolute(relation))
 }
 
 async function collectFiles(rootPath: string): Promise<IndexedFile[]> {

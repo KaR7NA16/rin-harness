@@ -156,6 +156,8 @@
     repositoryRoot: !!js builtinRepositoryRoot()
     staticRoot: !!js webUiDistRoot()
     knowledgeDbPath: !!js rinHome('knowledge/knowledge.db')
+    knowledgeSourcesRoots:
+      - !!js rinHome('knowledge/sources')
     skillMemoryRoots:
       globalConfigRoot: !!js rinHome('skill-memory')
       projectConfigRoot: !!js rinHome()

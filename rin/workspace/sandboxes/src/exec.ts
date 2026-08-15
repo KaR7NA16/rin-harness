@@ -13,20 +13,31 @@ import type { InstallPlanStage, ResolvedEnvironmentPlan } from '@rin/repository'
 import type { InstallExecutor, InstallRun } from '@rin/environment'
 import type { SandboxProfile, StageCommandRunner } from './types.ts'
 
+/** Options controlling environment-plan execution. */
+export interface ExecuteEnvironmentPlanOptions {
+  /**
+   * Explicitly approve a resolved plan before execution. A ready plan is
+   * rejected without it, so no caller can auto-approve a plan it resolved.
+   */
+  approve?: boolean
+}
+
 /**
  * Execute a resolved environment plan inside a profile's sandbox.
  *
  * The run goes through create → approve → execute (with per-stage audit
- * logging); a blocked plan short-circuits to a blocked run. The environment
- * orchestration functions are imported dynamically because they are a value
- * dependency on @rin/environment, which the strip-types smoke script must not
- * resolve at load time.
+ * logging); a blocked plan short-circuits to a blocked run, and a ready plan
+ * requires explicit approval. The environment orchestration functions are
+ * imported dynamically because they are a value dependency on
+ * @rin/environment, which the strip-types smoke script must not resolve at
+ * load time.
  *
  * @param profile - the target sandbox profile.
  * @param repositoryId - the repository the plan resolves from.
  * @param environmentProfileId - the environment profile the plan resolves.
  * @param plan - the resolved plan (see ctx.environment.plan).
  * @param runner - the stage-command runner selected for the profile's type.
+ * @param options - execution options; `approve: true` is required for ready plans.
  * @returns the terminal install run with its audit log.
  */
 export async function executeEnvironmentPlan(
@@ -35,6 +46,7 @@ export async function executeEnvironmentPlan(
   environmentProfileId: string,
   plan: ResolvedEnvironmentPlan,
   runner: StageCommandRunner,
+  options: ExecuteEnvironmentPlanOptions = {},
 ): Promise<InstallRun> {
   const { approveInstallRun, createInstallRun, executeInstallRun } = await import('@rin/environment')
   const created = createInstallRun({
@@ -43,6 +55,9 @@ export async function executeEnvironmentPlan(
     environmentProfileId,
     plan,
   })
+  if (created.status === 'resolved' && options.approve !== true) {
+    throw new Error('rin sandboxes: environment-plan execution requires explicit approval (pass approve: true)')
+  }
   const approved = created.status === 'resolved' ? approveInstallRun(created) : created
   return executeInstallRun(approved, buildStageExecutor(runner, profile))
 }

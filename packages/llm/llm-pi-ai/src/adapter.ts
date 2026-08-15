@@ -331,6 +331,17 @@ export class PiAiAdapter extends LlmAdapter {
             exhausted = true
             return
           }
+          // pi-ai 0.84 reports a caller-cancelled stream as an `error` event
+          // (stopReason "error", abort reason as its message) rather than an
+          // `aborted` one; re-classify so a cancelled request keeps surfacing
+          // `aborted` instead of an error.
+          if (result.value.type === 'finish' && options.signal?.aborted && result.value.reason.kind !== 'aborted') {
+            yield {
+              ...result.value,
+              reason: { kind: 'aborted', failure: { message: 'pi-ai request aborted by caller', code: 'ABORTED' } },
+            }
+            continue
+          }
           yield result.value
         }
       } finally {

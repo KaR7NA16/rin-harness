@@ -17,12 +17,16 @@ export interface Config {
   host: string
   /** When false, keep the service mounted (health reports it) but do not listen. Defaults to true. */
   enabled?: boolean
+  /** Optional bearer token; when set, every /api/* request must present it via Authorization: Bearer or ?token=. */
+  authToken?: string
   /** Optional default repository root, used when a request omits ?root=. */
   repositoryRoot?: string
   /** Optional static frontend root; defaults to the package's static/ directory. */
   staticRoot?: string
   /** Optional knowledge database path; knowledge endpoints accept ?db= to override. */
   knowledgeDbPath?: string
+  /** Optional allowed roots for /api/knowledge/sources; a source path must resolve inside one of them. */
+  knowledgeSourcesRoots?: string[]
   /** Optional skill-memory config roots used by /api/skill-memory/overview. */
   skillMemoryRoots?: SkillMemoryRootsConfig
 }

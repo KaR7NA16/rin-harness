@@ -205,22 +205,30 @@ describe('sandboxes: execute', () => {
 
   test('requires root when not configured', async () => {
     const s = services({}, {})
-    const res = await handle('/api/sandboxes/execute', '', 'POST', { profileId: 'p', repositoryId: 'r', environmentProfileId: 'e' }, s, { ...config, repositoryRoot: undefined })
+    const res = await handle('/api/sandboxes/execute', '', 'POST', { profileId: 'p', repositoryId: 'r', environmentProfileId: 'e', approve: true }, s, { ...config, repositoryRoot: undefined })
     expect(res).toEqual({ status: 400, body: { error: 'repository root not configured; pass root in the body or set Config.repositoryRoot' } })
+  })
+
+  test('requires approve to execute', async () => {
+    const s = services({}, {})
+    const res = await handle('/api/sandboxes/execute', '', 'POST', { profileId: 'p', repositoryId: 'r', environmentProfileId: 'e' }, s, config)
+    expect(res).toEqual({ status: 400, body: { error: 'approve must be true to execute an environment plan' } })
   })
 
   test('executes the full pipeline', async () => {
     const calls: string[] = []
+    let execOptions: unknown
     const s = services({
       async get(id: string) { calls.push('get:' + id); return { id, environmentProfileId: 'e', repositoryId: 'r' } },
       async probeCapabilities() { calls.push('probe'); return ['docker'] },
-      async executeEnvironmentPlan() { calls.push('execute'); return { run: true } },
+      async executeEnvironmentPlan(_p: unknown, _r: unknown, _e: unknown, _plan: unknown, options: unknown) { calls.push('execute'); execOptions = options; return { run: true } },
     }, {
       async plan() { calls.push('plan'); return { plan: true } },
     })
-    const res = await handle('/api/sandboxes/execute', '', 'POST', { profileId: 'p', repositoryId: 'r', environmentProfileId: 'e' }, s, config)
+    const res = await handle('/api/sandboxes/execute', '', 'POST', { profileId: 'p', repositoryId: 'r', environmentProfileId: 'e', approve: true }, s, config)
     expect(res).toEqual({ status: 200, body: { mounted: true, run: { run: true } } })
     expect(calls).toEqual(['get:p', 'probe', 'plan', 'execute'])
+    expect(execOptions).toEqual({ approve: true })
   })
 
   test('environment unmounted returns 500', async () => {

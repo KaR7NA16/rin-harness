@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { handle } from '../src/routes/knowledge.ts'
 
-const config = { port: 8320, host: '127.0.0.1', knowledgeDbPath: '/tmp/kb.db' }
+const config = { port: 8320, host: '127.0.0.1', knowledgeDbPath: '/tmp/kb.db', knowledgeSourcesRoots: ['/sources'] }
 
 interface FakeKnowledge {
   listSources(): unknown[]
@@ -72,8 +72,23 @@ describe('knowledge: sources list', () => {
   test('db query param overrides config path', async () => {
     let openedPath = ''
     const store = { open(dbPath: string) { openedPath = dbPath; return makeService() } }
-    await handle('/api/knowledge/sources', '?db=/override.db', 'GET', undefined, { knowledge: () => store }, config)
-    expect(openedPath).toBe('/override.db')
+    await handle('/api/knowledge/sources', '?db=/tmp/override.db', 'GET', undefined, { knowledge: () => store }, config)
+    expect(openedPath).toBe('/tmp/override.db')
+  })
+
+  test('db query param outside the configured directory returns 400', async () => {
+    const res = await handle('/api/knowledge/sources', '?db=/etc/passwd', 'GET', undefined, services(makeService()), config)
+    expect(res).toEqual({ status: 400, body: { error: 'knowledge database path must stay within the configured knowledge directory' } })
+  })
+
+  test('db query param with traversal returns 400', async () => {
+    const res = await handle('/api/knowledge/sources', '?db=/tmp/../etc/passwd', 'GET', undefined, services(makeService()), config)
+    expect(res).toEqual({ status: 400, body: { error: 'knowledge database path must stay within the configured knowledge directory' } })
+  })
+
+  test('db query param without a configured path returns 400', async () => {
+    const res = await handle('/api/knowledge/sources', '?db=/tmp/x.db', 'GET', undefined, services(makeService()), { ...config, knowledgeDbPath: undefined })
+    expect(res).toEqual({ status: 400, body: { error: 'knowledge database path override requires a configured knowledgeDbPath' } })
   })
 
   test('wrong method returns 405', async () => {
@@ -131,6 +146,18 @@ describe('knowledge: addSources', () => {
     const svc = makeService()
     const res = await handle('/api/knowledge/sources', '', 'POST', { paths: ['/a', '/b'] }, services(svc), config)
     expect(res).toEqual({ status: 200, body: [{ id: '/a' }, { id: '/b' }] })
+  })
+
+  test('forwards allowedRoots to addSources', async () => {
+    let options: unknown
+    const svc = makeService({ addSources: async (paths: string[], opts: unknown) => { options = opts; return paths.map(p => ({ id: p })) } })
+    await handle('/api/knowledge/sources', '', 'POST', { paths: ['/a'] }, services(svc), config)
+    expect(options).toEqual({ allowedRoots: ['/sources'] })
+  })
+
+  test('addSources without a configured sources root returns 400', async () => {
+    const res = await handle('/api/knowledge/sources', '', 'POST', { paths: ['/a'] }, services(makeService()), { ...config, knowledgeSourcesRoots: undefined })
+    expect(res).toEqual({ status: 400, body: { error: 'knowledge sources root is not configured; set Config.knowledgeSourcesRoots' } })
   })
 
   test('wrong method returns 405', async () => {

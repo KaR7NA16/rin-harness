@@ -92,6 +92,17 @@ describe('KnowledgeService', () => {
     expect(service.listDocuments({ sourceId: folderSource!.id })).toHaveLength(1)
     expect(service.search('Shared source content')).toHaveLength(2)
   })
+
+  test('rejects sources outside the allowed roots', async () => {
+    const fixture = await createFixture()
+    const project = join(fixture, 'project')
+    await mkdir(project)
+    await writeFile(join(project, 'notes.md'), 'inside')
+
+    const service = createService(fixture)
+    await expect(service.addSources([project], { allowedRoots: [project], waitForIndex: true })).resolves.toBeDefined()
+    await expect(service.addSources([fixture], { allowedRoots: [project] })).rejects.toThrow(/outside the allowed sources roots/)
+  })
 })
 
 async function createFixture(): Promise<string> {

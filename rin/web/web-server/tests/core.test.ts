@@ -80,8 +80,26 @@ describe('core: /api/repository', () => {
 
   test('reads via service', async () => {
     const s = services({ repository: () => ({ async read(root: string) { return { root } } }) })
-    const res = await handle('/api/repository', '?root=/other', 'GET', undefined, s, config)
-    expect(res).toEqual({ status: 200, body: { root: '/other' } })
+    const res = await handle('/api/repository', '?root=/repo/sub', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 200, body: { root: '/repo/sub' } })
+  })
+
+  test('root outside the configured repository returns 400', async () => {
+    const s = services({ repository: () => ({ async read() { return {} } }) })
+    const res = await handle('/api/repository', '?root=/etc', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 400, body: { error: 'repository root must resolve within the configured repository root' } })
+  })
+
+  test('root traversal returns 400', async () => {
+    const s = services({ repository: () => ({ async read() { return {} } }) })
+    const res = await handle('/api/repository', '?root=/repo/../etc', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 400, body: { error: 'repository root must resolve within the configured repository root' } })
+  })
+
+  test('root override without a configured root returns 400', async () => {
+    const s = services({ repository: () => ({ async read() { return {} } }) })
+    const res = await handle('/api/repository', '?root=/repo/sub', 'GET', undefined, s, { ...config, repositoryRoot: undefined })
+    expect(res).toEqual({ status: 400, body: { error: 'repository root override requires a configured repositoryRoot' } })
   })
 
   test('read failure returns 500', async () => {

@@ -109,6 +109,17 @@ export function mapStopReason(message: AssistantMessage, contextWindow?: number)
       const text = message.errorMessage ?? 'pi-ai stream error'
       return { kind: 'error', failure: { message: text, code: classifyPiAiError(text) } }
     }
+    case 'pending':
+    case 'deferred': {
+      // pi-ai 0.84 added these terminal states: a `deferred` turn is delivered
+      // asynchronously (via DeferredHandle) and a `pending` one never reached a
+      // terminal result. This synchronous stream consumer has no result to
+      // surface for either, so both surface as an error.
+      const text = message.stopReason === 'deferred'
+        ? `model "${message.model}" deferred this turn; deferred delivery is not supported by the stream consumer`
+        : `model "${message.model}" stream ended while the turn was still pending`
+      return { kind: 'error', failure: { message: text, code: 'PI_AI_ERROR' } }
+    }
   }
 }
 

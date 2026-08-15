@@ -676,6 +676,8 @@ describe('mapStopReason / mapUsage', () => {
     ['length', { kind: 'max-tokens' }],
     ['toolUse', { kind: 'tool-calls' }],
     ['aborted', { kind: 'aborted', failure: { message: 'pi-ai stream aborted', code: 'ABORTED' } }],
+    ['pending', { kind: 'error', failure: { message: 'model "deepseek-v4-flash" stream ended while the turn was still pending', code: 'PI_AI_ERROR' } }],
+    ['deferred', { kind: 'error', failure: { message: 'model "deepseek-v4-flash" deferred this turn; deferred delivery is not supported by the stream consumer', code: 'PI_AI_ERROR' } }],
   ] as const)('maps %s', (stopReason, expected) => {
     expect(mapStopReason(assistant({ stopReason, content: [{ type: 'text', text: 'ok' }] }))).toEqual(expected)
   })

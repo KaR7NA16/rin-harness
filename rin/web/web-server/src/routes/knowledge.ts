@@ -9,12 +9,14 @@
  * @module @rin/web-server
  */
 
+import { dirname } from 'node:path'
 import type { KnowledgeService } from '@rin/knowledge'
 import type { Config, JsonResponse } from '../types.ts'
 import {
   asRecord,
   error,
   errorMessage,
+  isPathWithin,
   json,
   mounted,
   mountedValue,
@@ -66,13 +68,11 @@ async function withKnowledge(
 ): Promise<JsonResponse> {
   const knowledge = services.knowledge()
   if (knowledge === undefined) return notMounted()
-  const dbPath = queryParam(search, 'db') ?? config.knowledgeDbPath
-  if (dbPath === undefined) {
-    return error(400, 'knowledge database path not configured; pass ?db=')
-  }
+  const resolved = resolveKnowledgeDbPath(search, config)
+  if (!resolved.ok) return error(400, resolved.message)
   let service: KnowledgeService
   try {
-    service = knowledge.open(dbPath)
+    service = knowledge.open(resolved.dbPath)
   } catch (err) {
     return error(500, errorMessage(err))
   }
@@ -85,6 +85,33 @@ async function withKnowledge(
       // the database handle is already closed; nothing further to release
     }
   }
+}
+
+/**
+ * Resolve the knowledge database path for one request, containing a ?db=
+ * override within the configured knowledge database directory.
+ * @param search - the URL query string.
+ * @param config - the resolved web-server configuration.
+ * @returns the resolved path, or an error message to reject the request.
+ */
+function resolveKnowledgeDbPath(
+  search: string,
+  config: Config,
+): { ok: true; dbPath: string } | { ok: false; message: string } {
+  const override = queryParam(search, 'db')
+  if (override === undefined) {
+    if (config.knowledgeDbPath === undefined) {
+      return { ok: false, message: 'knowledge database path not configured; pass ?db=' }
+    }
+    return { ok: true, dbPath: config.knowledgeDbPath }
+  }
+  if (config.knowledgeDbPath === undefined) {
+    return { ok: false, message: 'knowledge database path override requires a configured knowledgeDbPath' }
+  }
+  if (!isPathWithin(dirname(config.knowledgeDbPath), override)) {
+    return { ok: false, message: 'knowledge database path must stay within the configured knowledge directory' }
+  }
+  return { ok: true, dbPath: override }
 }
 
 function knowledgeSourcesRoute(
@@ -147,9 +174,13 @@ async function knowledgeAddSourcesRoute(
   if (fields === undefined) return error(400, 'request body must be a JSON object')
   const paths = parseSourcePaths(fields.paths)
   if (paths === undefined) return error(400, 'paths is required and must be a non-empty array of strings')
+  const allowedRoots = config.knowledgeSourcesRoots
+  if (allowedRoots === undefined || allowedRoots.length === 0) {
+    return error(400, 'knowledge sources root is not configured; set Config.knowledgeSourcesRoots')
+  }
   return withKnowledge(search, services, config, async (service) => {
     try {
-      return json(200, await service.addSources(paths))
+      return json(200, await service.addSources(paths, { allowedRoots }))
     } catch (err) {
       return error(500, errorMessage(err))
     }

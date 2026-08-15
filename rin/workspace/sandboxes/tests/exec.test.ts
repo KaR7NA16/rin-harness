@@ -76,15 +76,23 @@ describe('buildStageExecutor', () => {
 describe('executeEnvironmentPlan', () => {
   it('wires create → approve → execute to a ready run', async () => {
     const provider = recordingProvider([{ code: 0, stdout: 'ok', stderr: '' }])
-    const run = await executeEnvironmentPlan(PROFILE, 'repo', 'env', plan([{ id: 'python', commands: ['pip install x'] }]), provider)
+    const run = await executeEnvironmentPlan(PROFILE, 'repo', 'env', plan([{ id: 'python', commands: ['pip install x'] }]), provider, { approve: true })
     expect(run.status).toBe('ready')
     expect(run.logs.map(log => log.status)).toEqual(['running', 'succeeded'])
     expect(run.logs.every(log => log.stageId === 'python')).toBe(true)
   })
 
+  it('rejects a ready plan without explicit approval', async () => {
+    const provider = recordingProvider([{ code: 0, stdout: 'ok', stderr: '' }])
+    await expect(
+      executeEnvironmentPlan(PROFILE, 'repo', 'env', plan([{ id: 'python', commands: ['pip install x'] }]), provider),
+    ).rejects.toThrow(/requires explicit approval/)
+    expect(provider.commands).toEqual([])
+  })
+
   it('reaches failed when a stage command fails', async () => {
     const provider = recordingProvider([{ code: 2, stdout: '', stderr: 'boom' }])
-    const run = await executeEnvironmentPlan(PROFILE, 'repo', 'env', plan([{ id: 'python', commands: ['pip install x'] }]), provider)
+    const run = await executeEnvironmentPlan(PROFILE, 'repo', 'env', plan([{ id: 'python', commands: ['pip install x'] }]), provider, { approve: true })
     expect(run.status).toBe('failed')
     expect(run.logs[1]?.stderr).toBe('boom')
   })

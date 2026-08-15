@@ -19,6 +19,7 @@ import type {
   SandboxProfilePatch,
 } from './types.ts'
 import { FileSandboxStore, defaultSandboxProfilesPath } from './store.ts'
+import type { ExecuteEnvironmentPlanOptions } from './exec.ts'
 import { shellResolverFor, type ShellConfig } from './seam.ts'
 
 export type * from './types.ts'
@@ -54,7 +55,7 @@ export {
   containerName,
   defaultProbeExec,
 } from './providers.ts'
-export { executeEnvironmentPlan, buildStageExecutor } from './exec.ts'
+export { executeEnvironmentPlan, buildStageExecutor, type ExecuteEnvironmentPlanOptions } from './exec.ts'
 export {
   buildShellRunCommand,
   dryRunCommand,
@@ -134,6 +135,7 @@ export class SandboxStore extends Service {
    * @param repositoryId - the repository the plan resolves from.
    * @param environmentProfileId - the environment profile the plan resolves.
    * @param plan - the resolved plan (see ctx.environment.plan).
+   * @param options - execution options; `approve: true` is required for ready plans.
    * @returns the terminal install run with its audit log.
    */
   executeEnvironmentPlan(
@@ -141,8 +143,9 @@ export class SandboxStore extends Service {
     repositoryId: string,
     environmentProfileId: string,
     plan: ResolvedEnvironmentPlan,
+    options?: ExecuteEnvironmentPlanOptions,
   ): Promise<InstallRun> {
-    return this.store.executeEnvironmentPlan(profile, repositoryId, environmentProfileId, plan)
+    return this.store.executeEnvironmentPlan(profile, repositoryId, environmentProfileId, plan, options)
   }
 }
 

@@ -31,7 +31,7 @@ import {
 } from './profile.ts'
 import { parseSandboxStoreDocument, stringifySandboxStoreDocument } from './yaml.ts'
 import { defaultProviders, providerFor } from './providers.ts'
-import { executeEnvironmentPlan } from './exec.ts'
+import { executeEnvironmentPlan, type ExecuteEnvironmentPlanOptions } from './exec.ts'
 import { resolveStageRunner, type ShellConfig, type ShellExecutorLike } from './seam.ts'
 
 /** The current (v2) store filename. */
@@ -171,6 +171,7 @@ export class FileSandboxStore {
    * @param repositoryId - the repository the plan resolves from.
    * @param environmentProfileId - the environment profile the plan resolves.
    * @param plan - the resolved plan.
+   * @param options - execution options; `approve: true` is required for ready plans.
    * @returns the terminal install run.
    */
   async executeEnvironmentPlan(
@@ -178,11 +179,12 @@ export class FileSandboxStore {
     repositoryId: string,
     environmentProfileId: string,
     plan: ResolvedEnvironmentPlan,
+    options?: ExecuteEnvironmentPlanOptions,
   ): Promise<InstallRun> {
     const runner: StageCommandRunner = this.shell !== undefined
       ? resolveStageRunner(this.shell(), this.shellConfig ?? {})
       : providerFor(profile, this.providers)
-    return executeEnvironmentPlan(profile, repositoryId, environmentProfileId, plan, runner)
+    return executeEnvironmentPlan(profile, repositoryId, environmentProfileId, plan, runner, options)
   }
 
   private async load(): Promise<SandboxProfile[]> {

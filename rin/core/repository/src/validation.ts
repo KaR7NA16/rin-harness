@@ -29,7 +29,16 @@ export function assertSafeRPackage(name: string): void {
   if (!/^[A-Za-z][A-Za-z0-9.]*$/.test(name)) throw new Error('rin repository: unsafe R verifier package: ' + name)
 }
 
-/** Reject a verifier command that is too long or contains control characters. */
+/**
+ * Shell metacharacters a reviewable command must never contain: command
+ * separators, pipelines, backgrounding, parameter/command substitution,
+ * backticks, and redirection.
+ */
+const VERIFIER_COMMAND_SHELL_METACHARACTERS = /[\0\r\n;|&`$<>]/
+
+/** Reject a verifier command that is too long, contains control characters, or shell metacharacters. */
 export function assertSafeReviewableCommand(command: string): void {
-  if (command.length > 4096 || /[\0\r\n]/.test(command)) throw new Error('rin repository: unsafe verifier command text')
+  if (command.length > 4096 || VERIFIER_COMMAND_SHELL_METACHARACTERS.test(command)) {
+    throw new Error('rin repository: unsafe verifier command text')
+  }
 }

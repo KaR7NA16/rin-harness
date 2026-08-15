@@ -29,6 +29,7 @@ export {
   RIN_WEB_VERSION,
   parseBoolean,
   parseRepositoryQuery,
+  isPathWithin,
   parseEnvironmentPlanQuery,
   json,
   error,
@@ -46,6 +47,10 @@ export {
   asRecord,
   stringField,
   booleanField,
+  splitHostHeader,
+  isAllowedHostHeader,
+  isSameOrigin,
+  extractBearerToken,
 } from './http.ts'
 export { resolveStaticPath, readStaticFile, contentTypeFor } from './static.ts'
 export type { StaticFile } from './static.ts'
@@ -65,9 +70,11 @@ export const Config: z<RinWebConfig> = z.object({
   port: z.natural().max(65535).default(8320),
   host: z.string().default('127.0.0.1'),
   enabled: z.boolean().default(true),
+  authToken: z.string(),
   repositoryRoot: z.string(),
   staticRoot: z.string(),
   knowledgeDbPath: z.string(),
+  knowledgeSourcesRoots: z.array(z.string()),
   skillMemoryRoots: z.object({
     globalConfigRoot: z.string().required(),
     projectConfigRoot: z.string(),

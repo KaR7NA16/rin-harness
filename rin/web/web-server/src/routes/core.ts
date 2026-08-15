@@ -14,6 +14,7 @@ import {
   error,
   errorMessage,
   healthResponse,
+  isPathWithin,
   isSmartPruningLevel,
   json,
   mounted,
@@ -118,7 +119,16 @@ async function repositoryRoute(
   if (repository === undefined) {
     return error(500, 'repository service is not mounted')
   }
-  const root = parseRepositoryQuery(search).root ?? config.repositoryRoot
+  const queryRoot = parseRepositoryQuery(search).root
+  if (queryRoot !== undefined) {
+    if (config.repositoryRoot === undefined) {
+      return error(400, 'repository root override requires a configured repositoryRoot')
+    }
+    if (!isPathWithin(config.repositoryRoot, queryRoot)) {
+      return error(400, 'repository root must resolve within the configured repository root')
+    }
+  }
+  const root = queryRoot ?? config.repositoryRoot
   if (root === undefined) {
     return error(400, 'repository root not configured; pass ?root=')
   }

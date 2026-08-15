@@ -18,6 +18,10 @@ import {
   asRecord,
   stringField,
   booleanField,
+  splitHostHeader,
+  isAllowedHostHeader,
+  isSameOrigin,
+  extractBearerToken,
 } from '../src/http.ts'
 
 describe('parseBoolean', () => {
@@ -203,5 +207,80 @@ describe('asRecord / stringField / booleanField', () => {
     expect(stringField({ a: 1 }, 'a')).toBeUndefined()
     expect(booleanField({ b: true }, 'b')).toBe(true)
     expect(booleanField({ b: 'yes' }, 'b')).toBeUndefined()
+  })
+})
+
+describe('splitHostHeader', () => {
+  test('parses host:port', () => {
+    expect(splitHostHeader('127.0.0.1:8320')).toEqual({ hostname: '127.0.0.1', port: 8320 })
+    expect(splitHostHeader('localhost:8320')).toEqual({ hostname: 'localhost', port: 8320 })
+    expect(splitHostHeader('[::1]:8320')).toEqual({ hostname: '::1', port: 8320 })
+  })
+  test('parses hosts without a port', () => {
+    expect(splitHostHeader('127.0.0.1')).toEqual({ hostname: '127.0.0.1', port: null })
+    expect(splitHostHeader('localhost')).toEqual({ hostname: 'localhost', port: null })
+    expect(splitHostHeader('[::1]')).toEqual({ hostname: '::1', port: null })
+  })
+  test('rejects malformed hosts', () => {
+    expect(splitHostHeader('')).toBeNull()
+    expect(splitHostHeader('[]')).toBeNull()
+    expect(splitHostHeader('[::1')).toBeNull()
+    expect(splitHostHeader('[::1]x')).toBeNull()
+    expect(splitHostHeader('host:')).toBeNull()
+    expect(splitHostHeader(':8320')).toBeNull()
+    expect(splitHostHeader('127.0.0.1:99999')).toBeNull()
+    expect(splitHostHeader('127.0.0.1:abc')).toBeNull()
+    expect(splitHostHeader('::1')).toBeNull()
+  })
+})
+
+describe('isAllowedHostHeader', () => {
+  test('accepts loopback hosts on the bound port', () => {
+    expect(isAllowedHostHeader('127.0.0.1:8320', 8320)).toBe(true)
+    expect(isAllowedHostHeader('localhost:8320', 8320)).toBe(true)
+    expect(isAllowedHostHeader('[::1]:8320', 8320)).toBe(true)
+    expect(isAllowedHostHeader('LOCALHOST:8320', 8320)).toBe(true)
+  })
+  test('accepts loopback hosts without a port', () => {
+    expect(isAllowedHostHeader('127.0.0.1', 8320)).toBe(true)
+    expect(isAllowedHostHeader('localhost', 8320)).toBe(true)
+  })
+  test('rejects wrong port, non-loopback, missing, and malformed hosts', () => {
+    expect(isAllowedHostHeader('127.0.0.1:9999', 8320)).toBe(false)
+    expect(isAllowedHostHeader('evil.com:8320', 8320)).toBe(false)
+    expect(isAllowedHostHeader('evil.com', 8320)).toBe(false)
+    expect(isAllowedHostHeader(undefined, 8320)).toBe(false)
+    expect(isAllowedHostHeader('', 8320)).toBe(false)
+  })
+})
+
+describe('extractBearerToken', () => {
+  test('reads the Authorization Bearer value', () => {
+    expect(extractBearerToken('Bearer abc123', '')).toBe('abc123')
+    expect(extractBearerToken('bearer abc123', '')).toBe('abc123')
+  })
+  test('falls back to ?token=', () => {
+    expect(extractBearerToken(undefined, '?token=abc123')).toBe('abc123')
+    expect(extractBearerToken('', '?token=abc123')).toBe('abc123')
+  })
+  test('prefers Authorization and rejects malformed values', () => {
+    expect(extractBearerToken('Bearer header', '?token=query')).toBe('header')
+    expect(extractBearerToken('Bearer', '?token=query')).toBe('query')
+    expect(extractBearerToken('Basic abc', '')).toBeUndefined()
+    expect(extractBearerToken(undefined, '')).toBeUndefined()
+  })
+})
+
+describe('isSameOrigin', () => {
+  test('accepts a matching origin', () => {
+    expect(isSameOrigin('http://127.0.0.1:8320', '127.0.0.1:8320', 8320)).toBe(true)
+    expect(isSameOrigin('http://localhost:8320', 'localhost:8320', 8320)).toBe(true)
+  })
+  test('rejects mismatched host, port, scheme, and null origins', () => {
+    expect(isSameOrigin('http://evil.com:8320', '127.0.0.1:8320', 8320)).toBe(false)
+    expect(isSameOrigin('http://127.0.0.1:9999', '127.0.0.1:8320', 8320)).toBe(false)
+    expect(isSameOrigin('https://127.0.0.1:8320', '127.0.0.1:8320', 8320)).toBe(false)
+    expect(isSameOrigin('null', '127.0.0.1:8320', 8320)).toBe(false)
+    expect(isSameOrigin(undefined, '127.0.0.1:8320', 8320)).toBe(false)
   })
 })

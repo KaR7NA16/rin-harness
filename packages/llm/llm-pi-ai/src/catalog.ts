@@ -83,10 +83,11 @@ export const THINKING_LEVELS = Object.keys(THINKING_LEVEL_GATE) as readonly Mode
 type PiThinkingFormat = NonNullable<OpenAICompletionsCompat['thinkingFormat']>
 
 /**
- * pi-ai thinking formats a profile cannot name: both drive the request through
- * `chatTemplateKwargs`, which this configuration does not expose.
+ * pi-ai thinking formats a profile cannot name: they drive the request through
+ * template arguments this configuration does not expose (`chatTemplateKwargs`
+ * for `chat-template`/`qwen-chat-template`, `chatTemplateArgs` for `baseten`).
  */
-type WithheldThinkingFormat = 'chat-template' | 'qwen-chat-template'
+type WithheldThinkingFormat = 'chat-template' | 'qwen-chat-template' | 'baseten'
 
 /** One reasoning-dispatch wire format a profile may name. */
 export type PiAiThinkingFormat = Exclude<PiThinkingFormat, WithheldThinkingFormat>

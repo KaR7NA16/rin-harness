@@ -141,6 +141,7 @@ async function sandboxesExecuteRoute(
   if (profileId === undefined) return error(400, 'profileId is required')
   if (repositoryId === undefined) return error(400, 'repositoryId is required')
   if (environmentProfileId === undefined) return error(400, 'environmentProfileId is required')
+  if (booleanField(fields, 'approve') !== true) return error(400, 'approve must be true to execute an environment plan')
   const root = stringField(fields, 'root') ?? config.repositoryRoot
   if (root === undefined) return error(400, 'repository root not configured; pass root in the body or set Config.repositoryRoot')
   try {
@@ -148,7 +149,7 @@ async function sandboxesExecuteRoute(
     if (profile === null) return error(404, 'sandbox profile not found')
     const capabilities = await sandboxes.probeCapabilities(profile)
     const plan = await environment.plan(root, environmentProfileId, capabilities)
-    const run = await sandboxes.executeEnvironmentPlan(profile, repositoryId, environmentProfileId, plan)
+    const run = await sandboxes.executeEnvironmentPlan(profile, repositoryId, environmentProfileId, plan, { approve: true })
     return mountedValue('run', run)
   } catch (err) {
     return error(500, errorMessage(err))

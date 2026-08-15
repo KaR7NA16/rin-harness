@@ -257,7 +257,9 @@ async function sandboxesItemRoute(
       const environmentProfileId = profile.environmentProfileId ?? 'scientific-base'
       const capabilities = await sandboxes.probeCapabilities(profile)
       const plan = await environment.plan(repositoryRoot, environmentProfileId, capabilities)
-      const run = await sandboxes.executeEnvironmentPlan(profile, profile.repositoryId ?? 'builtin', environmentProfileId, plan)
+      // The legacy prepare flow already implies approval; the shared executor
+      // requires the flag so no caller can auto-approve a plan it resolves.
+      const run = await sandboxes.executeEnvironmentPlan(profile, profile.repositoryId ?? 'builtin', environmentProfileId, plan, { approve: true })
       const runs = legacyInstallRuns.get(id) ?? []
       runs.push(run as unknown as Record<string, unknown>)
       legacyInstallRuns.set(id, runs)

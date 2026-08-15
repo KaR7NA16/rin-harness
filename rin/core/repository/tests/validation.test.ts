@@ -62,4 +62,19 @@ describe('assertSafeReviewableCommand', () => {
     expect(() => assertSafeReviewableCommand('a\nb')).toThrow(/unsafe verifier command text/)
     expect(() => assertSafeReviewableCommand('x'.repeat(4097))).toThrow(/unsafe verifier command text/)
   })
+
+  test('rejects shell metacharacters', () => {
+    for (const command of [
+      'python -c "1"; rm -rf /',
+      'cat /etc/passwd | less',
+      'cmd & cmd2',
+      'echo $HOME',
+      'echo `id`',
+      'echo $(id)',
+      'cat < /etc/passwd',
+      'echo x > /tmp/y',
+    ]) {
+      expect(() => assertSafeReviewableCommand(command)).toThrow(/unsafe verifier command text/)
+    }
+  })
 })

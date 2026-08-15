@@ -19,6 +19,7 @@ All fields are optional and validated by the Config schema:
 | port | 8320 | Listen port (non-negative integer, ≤ 65535). |
 | host | 127.0.0.1 | Listen host (loopback or all-interfaces literal). |
 | enabled | true | When false, the service is still mounted (health reports it) but no listener starts. This is the coexistence switch that keeps the dsh Web UI (3080) independent: close only the rin 8320 surface. |
+| authToken | — | Optional bearer token. When set, every /api/* request must present it via `Authorization: Bearer <token>` or `?token=` (the latter for the static frontend); wrong or missing → 401. Static files stay open. |
 | repositoryRoot | — | Default repository root for endpoints that accept ?root=. |
 | staticRoot | <package>/static | Static frontend directory. |
 | knowledgeDbPath | — | Default knowledge database; knowledge endpoints accept ?db= to override. |
@@ -134,6 +135,22 @@ The vault root is owned by the @rin/notes Config; routes never pass a path.
 Static: GET / serves static/index.html; GET /<path> serves files under the static
 root with path-traversal protection; anything else is 404. The static/ directory
 is owned by the frontend package.
+
+## Request guards
+
+The server applies layered request guards at the single HTTP entry point (and
+the legacy WebSocket upgrade), regardless of `authToken`:
+
+- **Host**: the `Host` header must name a loopback host (`127.0.0.1`,
+  `localhost`, or `::1`) on the bound port (or with no port); anything else →
+  403. This blocks DNS-rebinding.
+- **Origin**: when a request carries an `Origin` header, it must be same-origin
+  (http, matching host + port) as the request Host; cross-origin → 403.
+- **Token**: when `authToken` is set, every `/api/*` request and the WebSocket
+  handshake must present it; wrong or missing → 401.
+
+The default (`authToken` unset) keeps the existing tokenless behavior for the
+static frontend: no UI change is required.
 
 ## Known Limitations and Deferred Work
 
