@@ -59,7 +59,6 @@ import type {
 } from './types.ts'
 
 export type * from './types.ts'
-export { SESSION_SEARCH_API_VERSION } from './types.ts'
 export {
   PROJECT_MEMORY_CONTEXT_TAG,
   appendProjectMemoryContext,

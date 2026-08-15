@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -31,19 +31,11 @@ vi.mock('../../pages/Settings', () => ({
   AboutSettings: () => <div data-testid="settings-page" />,
 }))
 
-vi.mock('../../pages/TerminalSettings', () => ({
-  TerminalSettings: ({ active, onNewTerminal, testId }: { active: boolean; onNewTerminal: () => void; testId: string }) => (
-    <div data-active={active ? 'true' : 'false'} data-testid={testId}>
-      <button type="button" onClick={onNewTerminal}>New Terminal</button>
-    </div>
-  ),
-}))
-
 import { ContentRouter } from './ContentRouter'
 import { useTabStore } from '../../stores/tabStore'
 import { useUIStore } from '../../stores/uiStore'
 
-describe('ContentRouter terminal tabs', () => {
+describe('ContentRouter content routing', () => {
   afterEach(() => {
     useTabStore.setState({ tabs: [], activeTabId: null })
     useUIStore.setState({ settingsOpen: false, settingsPanelView: 'settings', pendingSettingsTab: null })
@@ -55,34 +47,6 @@ describe('ContentRouter terminal tabs', () => {
     render(<ContentRouter />)
 
     expect(screen.getByTestId('empty-session')).toBeInTheDocument()
-  })
-
-  it('renders the active terminal tab as main content', () => {
-    useTabStore.setState({
-      tabs: [{ sessionId: '__terminal__1', title: 'Terminal 1', type: 'terminal', status: 'idle' }],
-      activeTabId: '__terminal__1',
-    })
-
-    render(<ContentRouter />)
-
-    expect(screen.getByTestId('terminal-host-__terminal__1')).toHaveAttribute('data-active', 'true')
-    expect(screen.queryByTestId('active-session')).not.toBeInTheDocument()
-  })
-
-  it('keeps terminal tabs mounted while chat content is active', () => {
-    useTabStore.setState({
-      tabs: [
-        { sessionId: '__terminal__1', title: 'Terminal 1', type: 'terminal', status: 'idle' },
-        { sessionId: 'session-1', title: 'Chat', type: 'session', status: 'idle' },
-      ],
-      activeTabId: 'session-1',
-      recentSessionIds: ['session-1'],
-    })
-
-    render(<ContentRouter />)
-
-    expect(screen.getByTestId('terminal-host-__terminal__1')).toHaveAttribute('data-active', 'false')
-    expect(screen.getByTestId('active-session')).toBeInTheDocument()
   })
 
   it('keeps only the current and previous chat panels warm across switches', () => {
@@ -118,19 +82,6 @@ describe('ContentRouter terminal tabs', () => {
     expect(sessionOne).toHaveAttribute('aria-hidden', 'true')
     expect(sessionTwo).not.toHaveClass('invisible')
     expect(sessionTwo).not.toHaveAttribute('aria-hidden', 'true')
-  })
-
-  it('can open another terminal tab from a terminal page', () => {
-    useTabStore.setState({
-      tabs: [{ sessionId: '__terminal__1', title: 'Terminal 1', type: 'terminal', status: 'idle' }],
-      activeTabId: '__terminal__1',
-    })
-
-    render(<ContentRouter />)
-    fireEvent.click(screen.getByRole('button', { name: 'New Terminal' }))
-
-    expect(useTabStore.getState().tabs.filter((tab) => tab.type === 'terminal')).toHaveLength(2)
-    expect(useTabStore.getState().activeTabId).not.toBe('__terminal__1')
   })
 
   it('redirects a legacy backup tab into the settings backup page', () => {

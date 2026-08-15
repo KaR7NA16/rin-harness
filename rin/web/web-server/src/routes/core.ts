@@ -8,7 +8,7 @@
  */
 
 import type { ResolverCapabilities } from '@rin/repository'
-import type { Config, JsonResponse, SmartPruningStatusBody } from '../types.ts'
+import type { Config, JsonResponse, SmartPruningLevel, SmartPruningStatusBody } from '../types.ts'
 import {
   asRecord,
   error,
@@ -87,17 +87,25 @@ function smartPruningSetRoute(method: string, body: unknown, services: RinServic
   const hasEnabled = 'enabled' in fields
   const hasLevel = 'level' in fields
   if (!hasEnabled && !hasLevel) return error(400, 'at least one of enabled or level is required')
-  let status = smartPruning.getStatus()
+
+  // Validate the field types before reading service state, so a malformed body
+  // is a 400 rather than a 500 surfaced from getStatus().
+  let enabled: boolean | undefined
   if (hasEnabled) {
     if (typeof fields.enabled !== 'boolean') return error(400, 'enabled must be a boolean')
-    status = smartPruning.setEnabled(fields.enabled)
+    enabled = fields.enabled
   }
+  let level: SmartPruningLevel | undefined
   if (hasLevel) {
     if (!isSmartPruningLevel(fields.level)) {
       return error(400, 'level must be conservative, balanced, or aggressive')
     }
-    status = smartPruning.setLevel(fields.level)
+    level = fields.level
   }
+
+  let status = smartPruning.getStatus()
+  if (enabled !== undefined) status = smartPruning.setEnabled(enabled)
+  if (level !== undefined) status = smartPruning.setLevel(level)
   return mounted(status)
 }
 

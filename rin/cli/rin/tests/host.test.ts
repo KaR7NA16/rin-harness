@@ -37,10 +37,8 @@ describe('@rin/bundle roster', () => {
 })
 
 describe('@rin/bundle default config', () => {
-  test('resolves a default for every plugin that carries one', () => {
-    expect(Object.keys(defaultConfig)).toHaveLength(8)
+  test('resolves a default for the web-server plugin the launcher overrides', () => {
+    expect(Object.keys(defaultConfig)).toHaveLength(1)
     expect(defaultConfig['web-server']).toMatchObject({ port: 8320, host: '127.0.0.1', enabled: true })
-    expect(defaultConfig['prompt-memory'].configRoot).toContain('.rin')
-    expect(defaultConfig.agents.defaultRepositoryRoot).toContain('repository')
   })
 })

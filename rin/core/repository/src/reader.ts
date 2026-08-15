@@ -98,13 +98,6 @@ export async function readAssetRepositoryManifest(rootPath: string): Promise<Ass
   return parseRepositoryManifest(await readYamlDocument(manifestPath), manifestPath)
 }
 
-/** Resolve one partition root from the manifest. */
-export async function resolveAssetRepositoryRoot(rootPath: string, key: RepositoryRoot): Promise<string> {
-  const root = resolve(rootPath)
-  const manifest = await readAssetRepositoryManifest(root)
-  return resolveRepositoryChild(root, manifest.spec.roots[key], key)
-}
-
 function parseRepositoryManifest(input: unknown, source: string): AssetRepositoryManifest {
   const value = requireRecord(input, source)
   if (value.apiVersion !== ASSET_REPOSITORY_API_VERSION) {

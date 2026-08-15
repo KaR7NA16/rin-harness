@@ -54,28 +54,6 @@ describe('notes routes', () => {
     expect(res).toEqual({ status: 500, body: { error: 'boom' } })
   })
 
-  test('search requires query', async () => {
-    const res = await handle('/api/notes/search', '', 'GET', undefined, services({}), config)
-    expect(res).toEqual({ status: 400, body: { error: 'query is required; pass ?query=' } })
-  })
-
-  test('search returns results', async () => {
-    const s = services({ async search() { return [{ path: 'a.md' }] } })
-    const res = await handle('/api/notes/search', '?query=x', 'GET', undefined, s, config)
-    expect(res).toEqual({ status: 200, body: { mounted: true, results: [{ path: 'a.md' }] } })
-  })
-
-  test('graph/todos/templates return mounted values', async () => {
-    const s = services({
-      async graph() { return { nodes: [] } },
-      async todos() { return [{ text: 'x' }] },
-      async templates() { return [{ id: 't' }] },
-    })
-    expect(await handle('/api/notes/graph', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { mounted: true, graph: { nodes: [] } } })
-    expect(await handle('/api/notes/todos', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { mounted: true, todos: [{ text: 'x' }] } })
-    expect(await handle('/api/notes/templates', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { mounted: true, templates: [{ id: 't' }] } })
-  })
-
   test('write requires path and content', async () => {
     const s = services({})
     expect(await handle('/api/notes/write', '', 'POST', {}, s, config)).toEqual({ status: 400, body: { error: 'path is required' } })

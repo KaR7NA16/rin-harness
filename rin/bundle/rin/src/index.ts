@@ -2,8 +2,8 @@
  * @rin/bundle — the rin assembly layer.
  *
  * Pure assembly metadata: the ordered package roster (dsh-base + the full @rin
- * host plugin family, without dsh-web-app), the resolved default configuration
- * per plugin, and the path helpers the launcher needs to boot the assembly.
+ * host plugin family, without dsh-web-app), the resolved web-server default
+ * configuration, and the path helpers the launcher needs to boot the assembly.
  * This module registers no Cordis plugin — it is data plus path resolution; the
  * declarative counterpart is the cordis.yml beside this module.
  *
@@ -26,9 +26,6 @@ export const DEFAULT_PORT = 8320
 
 /** Default listen host of the rin Web server (loopback). */
 export const DEFAULT_HOST = '127.0.0.1'
-
-/** Directory name of the rin configuration home under the OS home. */
-export const RIN_HOME_DIR = '.rin'
 
 /** The dsh core bundle every rin assembly composes over. */
 export const BASE_BUNDLE = '@deepseek-ai/dsh-base'
@@ -66,18 +63,8 @@ export const RIN_PLUGINS = [...RIN_HOST_PLUGINS, RIN_WEB_SERVER] as const
 /** The full assembly roster: dsh-base first, then every @rin plugin. */
 export const ASSEMBLY_LAYERS = [BASE_BUNDLE, ...RIN_PLUGINS] as const
 
-/** A review-model adapter: turns a review prompt into a completion string. */
-export type ReviewModel = (prompt: string, model: string) => Promise<string>
-
-/** Default configuration for each @rin plugin that carries one. */
+/** Default configuration for the @rin plugin the launcher overrides. */
 export interface RinDefaultConfig {
-  knowledge: { dbPath: string; configHome: string }
-  'prompt-memory': { configRoot: string; initialSoul: string }
-  'session-search': { configRoot: string }
-  evolution: { globalConfigRoot: string; reviewModel: ReviewModel }
-  notes: { vaultRoot: string }
-  agents: { agentsHome: string; defaultRepositoryRoot: string }
-  sandboxes: { profilesPath: string }
   'web-server': {
     port: number
     host: string
@@ -100,7 +87,7 @@ export function rinHome(subpath?: string): string {
   const fromEnv = process.env.RIN_HOME
   const root = fromEnv !== undefined && fromEnv.trim() !== ''
     ? fromEnv
-    : join(homedir(), RIN_HOME_DIR)
+    : join(homedir(), '.rin')
   return subpath === undefined || subpath === '' ? root : join(root, subpath)
 }
 
@@ -149,55 +136,8 @@ export function baseBundlePatchPath(): string {
   return createRequire(import.meta.url).resolve('@deepseek-ai/dsh-base/cordis.patch.yml')
 }
 
-/** Default SOUL identity written by @rin/prompt-memory when none exists yet. */
-export const DEFAULT_INITIAL_SOUL = `# Rin
-
-A harness assistant built on the DeepSeek Harness base with the @rin asset layer.
-`
-
-/**
- * The programmatic default review-model is a fail-loud stub: it needs the dsh
- * llm seam, which only exists at boot time. The launcher mounts a working !!js
- * adapter from cordis.yml; a programmatic assembler must supply its own
- * reviewModel instead of this placeholder.
- * @returns a review-model adapter that always throws.
- */
-export function placeholderReviewModel(): ReviewModel {
-  return async () => {
-    throw new Error(
-      '@rin/bundle: evolution reviewModel is a boot-time adapter; '
-      + 'supply one (see src/cordis.yml) or override defaultConfig.evolution.reviewModel',
-    )
-  }
-}
-
-/** Resolved default configuration for every @rin plugin that carries one. */
+/** Resolved default configuration for the @rin plugin the launcher overrides. */
 export const defaultConfig: RinDefaultConfig = {
-  knowledge: {
-    dbPath: rinHome('knowledge/knowledge.db'),
-    configHome: rinHome(),
-  },
-  'prompt-memory': {
-    configRoot: rinHome('prompt-memory'),
-    initialSoul: DEFAULT_INITIAL_SOUL,
-  },
-  'session-search': {
-    configRoot: rinHome('session-search'),
-  },
-  evolution: {
-    globalConfigRoot: rinHome('evolution'),
-    reviewModel: placeholderReviewModel(),
-  },
-  notes: {
-    vaultRoot: rinHome('notes'),
-  },
-  agents: {
-    agentsHome: rinHome('agents'),
-    defaultRepositoryRoot: builtinRepositoryRoot(),
-  },
-  sandboxes: {
-    profilesPath: rinHome('sandbox.yaml'),
-  },
   'web-server': {
     port: DEFAULT_PORT,
     host: DEFAULT_HOST,

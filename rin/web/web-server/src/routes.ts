@@ -33,7 +33,6 @@ import { handle as handleSkillMemory } from './routes/skill-memory.ts'
 import { handle as handleAgents } from './routes/agents.ts'
 import { handle as handleNotes } from './routes/notes.ts'
 import { handle as handleSandboxes } from './routes/sandboxes.ts'
-import { handle as handleToken } from './routes/token.ts'
 import { handle as handleLegacy } from './routes/legacy.ts'
 
 /**
@@ -222,5 +221,4 @@ export async function routeApi(
     ?? (await handleAgents(pathname, search, method, body, services, config))
     ?? (await handleNotes(pathname, search, method, body, services, config))
     ?? (await handleSandboxes(pathname, search, method, body, services, config))
-    ?? (await handleToken(pathname, search, method, body, services, config))
 }

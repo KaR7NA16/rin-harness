@@ -53,7 +53,7 @@ export function defaultSandboxProfilesPath(home = homedir()): string {
 export interface SandboxStoreOptions {
   profilesPath: string
   providers?: SandboxProviders
-  /** Lazy resolver for the dsh shell seam (see registerShellSeam). */
+  /** Lazy resolver for the dsh shell seam; resolved at execution time. */
   shell?: () => ShellExecutorLike | undefined
   /** Shell-seam execution options (dryRun, timeout, env). */
   shellConfig?: ShellConfig

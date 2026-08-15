@@ -159,17 +159,3 @@ export interface ResolvedEnvironmentPlan {
   preflight: InstallPreflightCheck[]
   stages: InstallPlanStage[]
 }
-
-/** One file produced by a repository migration. */
-export interface RepositoryMigrationFile {
-  path: string
-  document: AssetRepositoryManifest | EnvironmentPackageCatalog
-}
-
-/** A migration plan from a legacy repository format. */
-export interface RepositoryMigrationPlan {
-  sourceVersion: 1
-  targetVersion: 1
-  packageCount: number
-  files: RepositoryMigrationFile[]
-}

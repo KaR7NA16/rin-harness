@@ -8,8 +8,6 @@
  * @module @rin/knowledge
  */
 
-export const KNOWLEDGE_API_VERSION = 'rin.dev/v1' as const
-
 export type KnowledgeSourceKind = 'file' | 'folder'
 
 export type KnowledgeSourceStatus =

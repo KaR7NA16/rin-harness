@@ -17,8 +17,6 @@
  * @module @rin/skill-memory
  */
 
-export const SKILL_MEMORY_API_VERSION = 'rin.dev/v1' as const
-
 /** Which configuration scope a skill memory entry lives under. */
 export type SkillMemoryScope = 'global' | 'project'
 

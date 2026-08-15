@@ -35,7 +35,6 @@ export type {
   PermissionRequestInput,
 } from './types.ts'
 export {
-  COMPUTER_USE_API_VERSION,
   COMPUTER_USE_DIRNAME,
   COMPUTER_USE_STATE_FILENAME,
   DEFAULT_GRANT_FLAGS,

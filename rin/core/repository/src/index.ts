@@ -2,7 +2,7 @@
  * rin Asset Repository — Cordis plugin entry.
  *
  * Exposes a ctx.repository service (the file-backed single source of truth)
- * plus the domain model: reader, validation, writer, migration, and seed. The
+ * plus the domain model: reader and validation. The
  * plugin also registers the model-visible `repository_search` and
  * `repository_read` tools on the dsh tools seam so agents can browse the
  * repository's assets.
@@ -17,7 +17,7 @@ import { registerRepositorySeam } from './seam.ts'
 import type { RepositoryConfig } from './types.ts'
 
 export type * from './types.ts'
-export { readAssetRepository, readAssetRepositoryManifest, resolveAssetRepositoryRoot } from './reader.ts'
+export { readAssetRepository, readAssetRepositoryManifest } from './reader.ts'
 export {
   assertSafePackageName,
   assertSafePackageVersion,
@@ -25,10 +25,6 @@ export {
   assertSafeRPackage,
   assertSafeReviewableCommand,
 } from './validation.ts'
-export { createAssetRepository, writeEnvironmentPackages, applyRepositoryMigration } from './writer.ts'
-export { planLegacyRepositoryMigration } from './migration.ts'
-export { initializeWorkingRepository } from './seed.ts'
-export type { WorkingRepositoryResult } from './seed.ts'
 export { registerRepositorySeam, resolveRepositoryRoot } from './seam.ts'
 
 declare module '@deepseek-ai/cordis' {

@@ -1,8 +1,8 @@
 /**
  * rin web-server — notes routes.
  *
- * List/read/search/graph/todos/templates plus write/delete/session-backup over
- * ctx.notes. All @rin/notes imports are type-only, so this module stays
+ * List/read plus write/delete/session-backup over ctx.notes. All @rin/notes
+ * imports are type-only, so this module stays
  * runtime-dependency-free. Returns null for any pathname it does not claim.
  *
  * @module @rin/web-server
@@ -34,14 +34,6 @@ export async function handle(
       return notesListRoute(services)
     case '/api/notes/read':
       return notesReadRoute(search, services)
-    case '/api/notes/search':
-      return notesSearchRoute(search, services)
-    case '/api/notes/graph':
-      return notesGraphRoute(services)
-    case '/api/notes/todos':
-      return notesTodosRoute(services)
-    case '/api/notes/templates':
-      return notesTemplatesRoute(services)
     case '/api/notes/write':
       return notesWriteRoute(method, body, services)
     case '/api/notes/delete':
@@ -72,48 +64,6 @@ async function notesReadRoute(search: string, services: RinServiceRefs): Promise
     return mountedValue('note', await notes.read(path))
   } catch (err) {
     if (isMissingNoteError(err)) return error(404, 'note not found')
-    return error(500, errorMessage(err))
-  }
-}
-
-async function notesSearchRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
-  const notes = services.notes()
-  if (notes === undefined) return notMounted()
-  const query = queryParam(search, 'query')
-  if (query === undefined) return error(400, 'query is required; pass ?query=')
-  try {
-    return mountedValue('results', await notes.search(query))
-  } catch (err) {
-    return error(500, errorMessage(err))
-  }
-}
-
-async function notesGraphRoute(services: RinServiceRefs): Promise<JsonResponse> {
-  const notes = services.notes()
-  if (notes === undefined) return notMounted()
-  try {
-    return mountedValue('graph', await notes.graph())
-  } catch (err) {
-    return error(500, errorMessage(err))
-  }
-}
-
-async function notesTodosRoute(services: RinServiceRefs): Promise<JsonResponse> {
-  const notes = services.notes()
-  if (notes === undefined) return notMounted()
-  try {
-    return mountedValue('todos', await notes.todos())
-  } catch (err) {
-    return error(500, errorMessage(err))
-  }
-}
-
-async function notesTemplatesRoute(services: RinServiceRefs): Promise<JsonResponse> {
-  const notes = services.notes()
-  if (notes === undefined) return notMounted()
-  try {
-    return mountedValue('templates', await notes.templates())
-  } catch (err) {
     return error(500, errorMessage(err))
   }
 }

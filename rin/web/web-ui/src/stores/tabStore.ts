@@ -6,15 +6,6 @@ import { getDefaultSessionTitle, getSessionDisplayTitle, getSessionTitleText } f
 
 const TAB_STORAGE_KEY = 'cybercode-open-tabs'
 
-export const SCHEDULED_TAB_ID = '__scheduled__'
-export const NOTES_TAB_ID = '__notes__'
-export const CODEGRAPH_TAB_ID = '__codegraph__'
-export const SANDBOX_TAB_ID = '__sandbox__'
-export const BACKUP_TAB_ID = '__backup__'
-export const MONITOR_TAB_ID = '__monitor__'
-export const REPOSITORY_TAB_ID = '__repository__'
-export const AGENTS_TAB_ID = '__agents__'
-export const TERMINAL_TAB_ID = '__terminal__'
 export const TERMINAL_TAB_PREFIX = '__terminal__'
 
 export type TabType = 'session' | 'scheduled' | 'terminal' | 'notes' | 'codeGraph' | 'sandbox' | 'backup' | 'monitor' | 'repository' | 'agents'

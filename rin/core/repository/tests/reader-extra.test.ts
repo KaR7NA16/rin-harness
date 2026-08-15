@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
-import { readAssetRepository, readAssetRepositoryManifest, resolveAssetRepositoryRoot } from '../src/reader.ts'
+import { readAssetRepository, readAssetRepositoryManifest } from '../src/reader.ts'
 
 async function tempRepo() {
   return mkdtemp(join(tmpdir(), 'rin-reader-'))
@@ -57,24 +57,6 @@ describe('readAssetRepositoryManifest', () => {
     const missing = await tempRepo()
     await writeFile(join(missing, 'repository.yaml'), manifest({ agents: 'agents' }))
     await expect(readAssetRepositoryManifest(missing)).rejects.toThrow(/missing environments root/)
-  })
-})
-
-describe('resolveAssetRepositoryRoot', () => {
-  test('resolves a relative partition root', async () => {
-    const root = await tempRepo()
-    await writeFile(join(root, 'repository.yaml'), manifest())
-    expect(await resolveAssetRepositoryRoot(root, 'agents')).toBe(join(root, 'agents'))
-  })
-
-  test('rejects absolute and escaping roots', async () => {
-    const absolute = await tempRepo()
-    await writeFile(join(absolute, 'repository.yaml'), manifest({ environments: '/abs/path' }))
-    await expect(resolveAssetRepositoryRoot(absolute, 'environments')).rejects.toThrow(/must be relative/)
-
-    const escaping = await tempRepo()
-    await writeFile(join(escaping, 'repository.yaml'), manifest({ environments: '../escape' }))
-    await expect(resolveAssetRepositoryRoot(escaping, 'environments')).rejects.toThrow(/escapes the repository/)
   })
 })
 

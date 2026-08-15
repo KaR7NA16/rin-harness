@@ -33,12 +33,6 @@ vi.mock('../../features/scheduledTasks', () => ({
   ScheduledTasks: () => <div data-testid="scheduled-panel" />,
 }))
 
-vi.mock('../../pages/TerminalSettings', () => ({
-  TerminalSettings: ({ active, workspace }: { active: boolean; workspace: boolean }) => (
-    <div data-active={String(active)} data-workspace={String(workspace)} data-testid="terminal-panel" />
-  ),
-}))
-
 vi.mock('../../pages/TokenOptimization', () => ({
   TokenOptimization: ({ initialView = 'overview' }: { initialView?: string }) => (
     <div data-initial-view={initialView} data-testid="token-optimization-panel" />

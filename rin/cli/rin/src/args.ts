@@ -29,12 +29,6 @@ export interface RinArgs {
   version: boolean
 }
 
-/** Default Web-server port; mirrors @rin/bundle's DEFAULT_PORT. */
-export const DEFAULT_PORT = 8320
-
-/** Default Web-server host; mirrors @rin/bundle's DEFAULT_HOST. */
-export const DEFAULT_HOST = '127.0.0.1'
-
 /** Usage text printed by --help and by a malformed invocation. */
 export const USAGE = `usage: rin [web] [--port <n>] [--host <h>] [--url <u>] [--version] [--help]
 

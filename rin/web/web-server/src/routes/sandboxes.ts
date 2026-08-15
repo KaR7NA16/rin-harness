@@ -34,6 +34,9 @@ import type { RinServiceRefs } from '../routes.ts'
 /** The per-profile pathname actions keyed by profile id. */
 const SANDBOX_ACTION_RE = /^\/api\/sandboxes\/([^/]+)\/(update|remove|default|probe)$/
 
+/** The per-profile action verbs the regex admits. */
+type SandboxAction = 'update' | 'remove' | 'default' | 'probe'
+
 /** Dispatch the sandboxes pathnames; null for anything else. */
 export async function handle(
   pathname: string,
@@ -54,7 +57,8 @@ export async function handle(
   const match = SANDBOX_ACTION_RE.exec(pathname)
   if (match === null) return null
   const id = match[1]
-  const verb = match[2]
+  // SANDBOX_ACTION_RE restricts the verb, so the regex capture is this union.
+  const verb = match[2] as SandboxAction | undefined
   if (id === undefined || verb === undefined) return null
   return sandboxesActionRoute(method, verb, id, body, services)
 }
@@ -88,7 +92,7 @@ async function sandboxesCreateRoute(
 
 async function sandboxesActionRoute(
   method: string,
-  verb: string,
+  verb: SandboxAction,
   id: string,
   body: unknown,
   services: RinServiceRefs,
@@ -112,8 +116,6 @@ async function sandboxesActionRoute(
         if (profile === null) return error(404, 'sandbox profile not found')
         return mountedValue('capabilities', await sandboxes.probeCapabilities(profile))
       }
-      default:
-        return error(400, 'unknown sandbox action: ' + verb)
     }
   } catch (err) {
     return error(500, errorMessage(err))

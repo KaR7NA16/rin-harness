@@ -19,7 +19,6 @@ import { registerSkillMemorySeam } from './seam.ts'
 import type { SkillMemorySeamConfig } from './seam.ts'
 import type { SkillMemoryRoots } from './types.ts'
 
-export { SKILL_MEMORY_API_VERSION } from './types.ts'
 export type * from './types.ts'
 export {
   evaluateSkillCreationCandidate,

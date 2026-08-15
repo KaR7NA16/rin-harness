@@ -14,8 +14,6 @@
  * @module @rin/computer-use
  */
 
-export const COMPUTER_USE_API_VERSION = 'rin.dev/v1' as const
-
 export const COMPUTER_USE_DIRNAME = 'computer-use' as const
 export const COMPUTER_USE_STATE_FILENAME = 'state.json' as const
 

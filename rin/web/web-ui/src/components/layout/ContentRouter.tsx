@@ -10,7 +10,6 @@ import { Sandboxes } from '../../pages/Sandboxes'
 import { Monitor } from '../../pages/Monitor'
 import { RepositoryWorkspace } from '../../pages/RepositoryWorkspace'
 import { AgentWorkspace } from '../../pages/AgentWorkspace'
-import { TerminalSettings } from '../../pages/TerminalSettings'
 
 const WARM_SESSION_PANEL_COUNT = 2
 
@@ -23,7 +22,6 @@ export function ContentRouter() {
   const openSettings = useUIStore((s) => s.openSettings)
   const setPendingSettingsTab = useUIStore((s) => s.setPendingSettingsTab)
   const workspaceView = useUIStore((s) => s.workspaceView)
-  const terminalTabs = tabs.filter((tab) => tab.type === 'terminal')
   const sessionPanelIds = [
     ...(activeTabId && activeTabType === 'session' ? [activeTabId] : []),
     ...recentSessionIds,
@@ -96,32 +94,6 @@ export function ContentRouter() {
           {nonSessionPage}
         </div>
       )}
-
-      {/* Terminal tabs — kept alive via opacity (existing behaviour) */}
-      {terminalTabs.map((tab) => {
-        const active = tab.sessionId === activeTabId
-        const visible = !resolvedWorkspaceView && activeTabType === 'terminal' && active
-        return (
-          <div
-            key={tab.sessionId}
-            aria-hidden={!visible}
-            data-testid={`terminal-tab-panel-${tab.sessionId}`}
-            className={`content-route-panel absolute inset-0 flex min-h-0 flex-col overflow-hidden ${
-              visible
-                ? 'content-route-panel--active visible z-20 opacity-100'
-                : 'content-route-panel--inactive invisible pointer-events-none z-0 opacity-0'
-            }`}
-          >
-            <TerminalSettings
-              active={active}
-              workspace
-              testId={`terminal-host-${tab.sessionId}`}
-              spawnCommand={tab.spawnCommand}
-              onNewTerminal={() => useTabStore.getState().openTerminalTab()}
-            />
-          </div>
-        )
-      })}
     </div>
   )
 }

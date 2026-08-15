@@ -10,8 +10,6 @@
  */
 
 export {
-  DEFAULT_HOST,
-  DEFAULT_PORT,
   parseArgs,
   USAGE,
   type RinArgs,

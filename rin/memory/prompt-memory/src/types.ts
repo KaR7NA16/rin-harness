@@ -15,8 +15,6 @@
  * @module @rin/prompt-memory
  */
 
-export const PROMPT_MEMORY_API_VERSION = 'rin.dev/v1' as const
-
 export const SOUL_FILENAME = 'SOUL.md' as const
 export const PROMPT_MEMORY_DIRNAME = 'prompt-memory' as const
 export const BRIEF_FILENAME = 'BRIEF.md' as const

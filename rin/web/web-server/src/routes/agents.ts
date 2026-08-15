@@ -1,8 +1,8 @@
 /**
  * rin web-server — agents routes.
  *
- * Repository-agent listing/creation/update/delete plus projection and AI
- * proposal over ctx.rinAgents. All @rin/agents imports are type-only, so this
+ * Repository-agent update/delete, runtime listing, projection and AI proposal
+ * over ctx.rinAgents. All @rin/agents imports are type-only, so this
  * module stays runtime-dependency-free. Returns null for any pathname it does
  * not claim.
  *
@@ -18,7 +18,6 @@ import {
   errorMessage,
   mountedValue,
   notMounted,
-  queryParam,
   stringField,
 } from '../http.ts'
 import type { RinServiceRefs } from '../routes.ts'
@@ -29,17 +28,13 @@ const AGENT_ACTION_RE = /^\/api\/agents\/([^/]+)\/(update|delete)$/
 /** Dispatch the agents pathnames; null for anything else. */
 export async function handle(
   pathname: string,
-  search: string,
+  _search: string,
   method: string,
   body: unknown,
   services: RinServiceRefs,
   config: Config,
 ): Promise<JsonResponse | null> {
   switch (pathname) {
-    case '/api/agents':
-      return method === 'POST'
-        ? agentsCreateRoute(body, services, config)
-        : agentsListRoute(search, services, config)
     case '/api/agents/runtime':
       return agentsRuntimeRoute(services)
     case '/api/agents/project':
@@ -57,45 +52,11 @@ export async function handle(
   return agentsActionRoute(method, verb, name, body, services, config)
 }
 
-async function agentsListRoute(
-  search: string,
-  services: RinServiceRefs,
-  config: Config,
-): Promise<JsonResponse> {
-  const agents = services.agents()
-  if (agents === undefined) return notMounted()
-  const root = queryParam(search, 'root') ?? config.repositoryRoot
-  try {
-    return mountedValue('agents', await agents.listRepositoryAgents(root))
-  } catch (err) {
-    return error(500, errorMessage(err))
-  }
-}
-
 async function agentsRuntimeRoute(services: RinServiceRefs): Promise<JsonResponse> {
   const agents = services.agents()
   if (agents === undefined) return notMounted()
   try {
     return mountedValue('agents', await agents.listRuntimeAgents())
-  } catch (err) {
-    return error(500, errorMessage(err))
-  }
-}
-
-async function agentsCreateRoute(
-  body: unknown,
-  services: RinServiceRefs,
-  config: Config,
-): Promise<JsonResponse> {
-  const agents = services.agents()
-  if (agents === undefined) return notMounted()
-  const fields = asRecord(body)
-  if (fields === undefined) return error(400, 'request body must be a JSON object')
-  const root = stringField(fields, 'root') ?? config.repositoryRoot
-  const parsed = parseRepositoryAgentInput(fields.input)
-  if (!parsed.ok) return error(400, parsed.message)
-  try {
-    return mountedValue('agent', await agents.createRepositoryAgent(root, parsed.input))
   } catch (err) {
     return error(500, errorMessage(err))
   }
@@ -216,19 +177,6 @@ function parseAgentFields(
       ...(resources !== undefined ? { resources } : {}),
     },
   }
-}
-
-/** Validate and coerce a wire payload into a RepositoryAgentInput. */
-function parseRepositoryAgentInput(
-  value: unknown,
-): { ok: true; input: RepositoryAgentInput } | { ok: false; message: string } {
-  const raw = asRecord(value)
-  if (raw === undefined) return { ok: false, message: 'input is required and must be an object' }
-  const name = stringField(raw, 'name')
-  if (name === undefined) return { ok: false, message: 'input.name is required' }
-  const parsed = parseAgentFields(raw)
-  if (!parsed.ok) return parsed
-  return { ok: true, input: { name, ...parsed.fields } }
 }
 
 /** Validate and coerce a wire payload into a RepositoryAgentUpdateInput. */

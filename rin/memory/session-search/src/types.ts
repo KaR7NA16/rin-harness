@@ -16,9 +16,6 @@
 
 import type { DatabaseSync } from 'node:sqlite'
 
-/** API version of this package's contract. */
-export const SESSION_SEARCH_API_VERSION = 'rin.dev/v1' as const
-
 /** SQLite handle owning the derived search index. */
 export type SessionSearchDatabase = DatabaseSync
 

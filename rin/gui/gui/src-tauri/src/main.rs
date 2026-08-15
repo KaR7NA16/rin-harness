@@ -233,12 +233,8 @@ fn setup_system_tray(app: &mut tauri::App) -> tauri::Result<()> {
 /// Build the application and run the event loop.
 pub fn run() {
     let app = tauri::Builder::default()
-        // The shell/process plugins are registered for the frontend-driven spawn
-        // surface and future sidecar management; the host itself is spawned via
-        // std::process::Command in start_host() so its lifetime is owned by one
-        // reap path.
-        .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_process::init())
+        // The host is spawned via std::process::Command in start_host() so its
+        // lifetime is owned by one reap path.
         .manage(HostState::default())
         .manage(AppExitState::default())
         .setup(|app| {

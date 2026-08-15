@@ -19,7 +19,7 @@ import type {
   SandboxProfilePatch,
 } from './types.ts'
 import { FileSandboxStore, defaultSandboxProfilesPath } from './store.ts'
-import { registerShellSeam, shellResolverFor, type ShellConfig } from './seam.ts'
+import { shellResolverFor, type ShellConfig } from './seam.ts'
 
 export type * from './types.ts'
 export {
@@ -58,7 +58,6 @@ export { executeEnvironmentPlan, buildStageExecutor } from './exec.ts'
 export {
   buildShellRunCommand,
   dryRunCommand,
-  registerShellSeam,
   resolveStageRunner,
   shellFromContext,
   shellResolverFor,
@@ -170,5 +169,4 @@ export const Config: z<Config> = z.object({
  */
 export function apply(ctx: Context, config: Config): void {
   ctx.plugin(SandboxStore, config)
-  registerShellSeam(ctx, config)
 }

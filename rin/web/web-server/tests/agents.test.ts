@@ -12,91 +12,10 @@ describe('agents routes', () => {
     expect(await handle('/api/agents/unknown', '', 'GET', undefined, services(), config)).toBeNull()
   })
 
-  test('list unmounted returns notMounted', async () => {
-    const res = await handle('/api/agents', '', 'GET', undefined, services(), config)
-    expect(res).toEqual({ status: 200, body: { mounted: false } })
-  })
-
-  test('list forwards root and returns agents', async () => {
-    let root: unknown
-    const s = services({ async listRepositoryAgents(r: unknown) { root = r; return [{ name: 'a' }] } })
-    const res = await handle('/api/agents', '?root=/r', 'GET', undefined, s, config)
-    expect(res).toEqual({ status: 200, body: { mounted: true, agents: [{ name: 'a' }] } })
-    expect(root).toBe('/r')
-  })
-
-  test('list uses config root when query absent', async () => {
-    let root: unknown
-    const s = services({ async listRepositoryAgents(r: unknown) { root = r; return [] } })
-    await handle('/api/agents', '', 'GET', undefined, s, config)
-    expect(root).toBe('/repo')
-  })
-
   test('runtime list', async () => {
     const s = services({ async listRuntimeAgents() { return [{ id: 'r' }] } })
     const res = await handle('/api/agents/runtime', '', 'GET', undefined, s, config)
     expect(res).toEqual({ status: 200, body: { mounted: true, agents: [{ id: 'r' }] } })
-  })
-
-  test('create requires input object', async () => {
-    const s = services({})
-    expect(await handle('/api/agents', '', 'POST', 'x', s, config)).toEqual({ status: 400, body: { error: 'request body must be a JSON object' } })
-    expect(await handle('/api/agents', '', 'POST', { input: 'x' }, s, config)).toEqual({ status: 400, body: { error: 'input is required and must be an object' } })
-  })
-
-  test('create requires input.name', async () => {
-    const res = await handle('/api/agents', '', 'POST', { input: {} }, services({}), config)
-    expect(res).toEqual({ status: 400, body: { error: 'input.name is required' } })
-  })
-
-  test('create requires description and systemPrompt', async () => {
-    const s = services({})
-    expect(await handle('/api/agents', '', 'POST', { input: { name: 'n' } }, s, config)).toEqual({ status: 400, body: { error: 'description is required' } })
-    expect(await handle('/api/agents', '', 'POST', { input: { name: 'n', description: 'd' } }, s, config)).toEqual({ status: 400, body: { error: 'systemPrompt is required' } })
-  })
-
-  test('create forwards full input', async () => {
-    let captured: unknown
-    const s = services({ async createRepositoryAgent(r: unknown, input: unknown) { captured = { r, input }; return { name: 'n' } } })
-    const res = await handle('/api/agents', '', 'POST', {
-      input: {
-        name: 'n',
-        description: 'd',
-        systemPrompt: 'sp',
-        model: 'm',
-        permissionMode: 'plan',
-        tools: ['t1'],
-        resources: { environmentProfileId: 'e', skillIds: ['s'], workflowIds: ['w'] },
-      },
-    }, s, config)
-    expect(res).toEqual({ status: 200, body: { mounted: true, agent: { name: 'n' } } })
-    expect(captured).toEqual({
-      r: '/repo',
-      input: {
-        name: 'n',
-        description: 'd',
-        systemPrompt: 'sp',
-        model: 'm',
-        permissionMode: 'plan',
-        tools: ['t1'],
-        resources: { environmentProfileId: 'e', skillIds: ['s'], workflowIds: ['w'] },
-      },
-    })
-  })
-
-  test('create invalid permissionMode returns 400', async () => {
-    const res = await handle('/api/agents', '', 'POST', { input: { name: 'n', description: 'd', systemPrompt: 'sp', permissionMode: 'bad' } }, services({}), config)
-    expect(res).toEqual({ status: 400, body: { error: 'permissionMode must be default, acceptEdits, plan, or bypassPermissions' } })
-  })
-
-  test('create invalid tools returns 400', async () => {
-    const res = await handle('/api/agents', '', 'POST', { input: { name: 'n', description: 'd', systemPrompt: 'sp', tools: [1] } }, services({}), config)
-    expect(res).toEqual({ status: 400, body: { error: 'tools must be an array of strings' } })
-  })
-
-  test('create invalid resources returns 400', async () => {
-    const res = await handle('/api/agents', '', 'POST', { input: { name: 'n', description: 'd', systemPrompt: 'sp', resources: { skillIds: 'x' } } }, services({}), config)
-    expect(res).toEqual({ status: 400, body: { error: 'resources must be an object with optional environmentProfileId, skillIds, workflowIds' } })
   })
 
   test('action: update and delete', async () => {
