@@ -2,7 +2,7 @@
  * rin web-server — agents routes.
  *
  * Repository-agent listing/creation/update/delete plus projection and AI
- * proposal over ctx.agents. All @rin/agents imports are type-only, so this
+ * proposal over ctx.rinAgents. All @rin/agents imports are type-only, so this
  * module stays runtime-dependency-free. Returns null for any pathname it does
  * not claim.
  *

@@ -1,7 +1,7 @@
 /**
  * rin agents — Cordis plugin entry.
  *
- * Exposes a ctx.agents service managing two durable stores — repository agent
+ * Exposes a ctx.rinAgents service managing two durable stores — repository agent
  * records (with content revisions) and runtime agent definitions — plus the
  * projection into the dsh agent-presets user root and the AI-proposal helper.
  * The default proposal adapter, when a caller injects none, wraps the dsh llm
@@ -73,7 +73,7 @@ export { buildAgentProposalPrompt, parseAgentProposal, proposeAgent } from './pr
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
-    agents: AgentStore
+    rinAgents: AgentStore
   }
 }
 
@@ -111,7 +111,7 @@ interface LlmSeam {
 /** The agent service exposed on the shared context. */
 export abstract class AgentStore extends Service {
   constructor(ctx: Context) {
-    super(ctx, 'agents')
+    super(ctx, 'rinAgents')
   }
 
   /** The repository root used when a caller names none ('' when unset). */

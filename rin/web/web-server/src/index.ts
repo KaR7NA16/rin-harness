@@ -82,7 +82,7 @@ export class WebServerService extends Service {
       promptMemory: () => ctx.get('promptMemory'),
       evolution: () => ctx.get('evolution'),
       skillMemory: () => ctx.get('skill-memory'),
-      agents: () => ctx.get('agents'),
+      agents: () => ctx.get('rinAgents'),
       notes: () => ctx.get('notes'),
       sandboxes: () => ctx.get('sandboxes'),
       tokenOptimization: () => ctx.get('tokenOptimization'),
