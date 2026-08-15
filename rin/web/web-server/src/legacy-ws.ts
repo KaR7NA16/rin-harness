@@ -139,7 +139,7 @@ async function getOrCreateAgent(
 
 /** Project one dsh session event into legacy server messages on every connected socket. */
 function attachProjection(handle: DshAgentHandleLike): void {
-  const sockets = new Set<WebSocket>()
+  const sockets = legacySocketRegistries.get(handle.agent.id) ?? new Set<WebSocket>()
   const agent = handle.agent
 
   // Register through the shared socket set inside handleSocket. Kept process-global
