@@ -22,6 +22,7 @@ import type {
   NoteGraphNode,
   NoteMeta,
   NoteSearchResult,
+  NoteSnapshotMeta,
   NoteTemplate,
   NoteTodo,
 } from './types.ts'
@@ -45,6 +46,9 @@ let snapshotSequence = 0
 
 /** Match a list-item checkbox: `- [ ]`, `- [x]`, `* [X]`, and `+` variants. */
 const TODO_LINE_RE = /^\s*[-*+]\s*\[([ xX])\]\s+(.*)$/
+
+/** Match a snapshot file name: `<epoch-millis>-<6-digit sequence>.md`. */
+const SNAPSHOT_ID_RE = /^\d+-\d{6}\.md$/
 
 /** The default note vault: `~/.rin/notes`. */
 export function defaultVaultRoot(): string {
@@ -104,6 +108,18 @@ function folderOf(posixPath: string): string {
 /** Whether an error is a missing-file (ENOENT) error. */
 function isMissingPathError(error: unknown): boolean {
   return Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT')
+}
+
+/** Derive a snapshot's ISO-8601 creation time from its file name. */
+function snapshotCreatedAt(name: string): string {
+  return new Date(Number(name.slice(0, name.indexOf('-')))).toISOString()
+}
+
+/** Require a snapshot file name before reading it from the history directory. */
+function assertSnapshotId(snapshotId: string): void {
+  if (!SNAPSHOT_ID_RE.test(snapshotId)) {
+    throw new Error(`rin notes: invalid snapshot id: ${snapshotId}`)
+  }
 }
 
 /** Slugify a title into a filesystem-safe name segment. */
@@ -290,6 +306,58 @@ export class NotesVault {
     const abs = this.resolveSafe(relPath)
     await rm(abs, { force: true })
     await rm(this.historyDirFor(relPath), { recursive: true, force: true })
+  }
+
+  /**
+   * List a note's history snapshots, newest first.
+   * @param relPath - the POSIX vault-relative note path (must end in `.md`).
+   * @returns the snapshot metadata list.
+   */
+  async listSnapshots(relPath: string): Promise<NoteSnapshotMeta[]> {
+    assertMarkdownPath(relPath)
+    this.resolveSafe(relPath)
+    const dir = this.historyDirFor(relPath)
+    let names: string[]
+    try {
+      names = (await readdir(dir)).filter(name => SNAPSHOT_ID_RE.test(name))
+    } catch (error) {
+      if (isMissingPathError(error)) return []
+      throw error
+    }
+    const snapshots = await Promise.all(
+      names.map(async id => ({
+        id,
+        createdAt: snapshotCreatedAt(id),
+        sizeBytes: (await stat(join(dir, id))).size,
+      })),
+    )
+    return snapshots.sort((a, b) => b.id.localeCompare(a.id))
+  }
+
+  /**
+   * Read one history snapshot of a note.
+   * @param relPath - the POSIX vault-relative note path (must end in `.md`).
+   * @param snapshotId - the snapshot file name returned by `listSnapshots`.
+   * @returns the note document as of that snapshot.
+   */
+  async readSnapshot(relPath: string, snapshotId: string): Promise<NoteDocument> {
+    assertMarkdownPath(relPath)
+    assertSnapshotId(snapshotId)
+    this.resolveSafe(relPath)
+    const abs = join(this.historyDirFor(relPath), snapshotId)
+    const content = await readFile(abs, 'utf8')
+    const st = await stat(abs)
+    return {
+      path: relPath,
+      name: noteNameOf(relPath),
+      folder: folderOf(relPath),
+      title: extractTitle(content, noteNameOf(relPath)),
+      sizeBytes: st.size,
+      modifiedAt: snapshotCreatedAt(snapshotId),
+      tags: extractTags(content),
+      links: extractLinks(content),
+      content,
+    }
   }
 
   /**

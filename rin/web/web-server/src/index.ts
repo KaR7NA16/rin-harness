@@ -14,7 +14,12 @@ import z from '@deepseek-ai/schemastery'
 import type { Config as RinWebConfig, SmartPruningRef, TokenOptimizationRef } from './types.ts'
 import { errorMessage } from './http.ts'
 import { createWebServer } from './server.ts'
-import type { DshAgentDefaultModelLike, DshAgentRegistryLike, DshLlmLike, DshSessionPersistenceLike, DshSessionStoreLike, RinServiceRefs } from './routes.ts'
+import type { AgentMigrationService } from '@rin/agent-migration'
+import type { ComputerUseService } from '@rin/computer-use'
+import type { McpStore } from '@rin/mcp'
+import type { TaskStore } from '@rin/tasks'
+import type { TeamStore } from '@rin/teams'
+import type { DshAgentDefaultModelLike, DshAgentRegistryLike, DshCommandsLike, DshCredentialsLike, DshLlmLike, DshSessionPersistenceLike, DshSessionProjectionsLike, DshSessionStoreLike, DshShellLike, DshTokenMeterLike, DshWorkspaceRegistryLike, RinServiceRefs } from './routes.ts'
 
 export type * from './types.ts'
 export { createWebServer } from './server.ts'
@@ -91,6 +96,17 @@ export class WebServerService extends Service {
       dshAgents: () => ctx.get('agents') as unknown as DshAgentRegistryLike | undefined,
       agentDefaultModel: () => ctx.get('agentDefaultModel') as unknown as DshAgentDefaultModelLike | undefined,
       llm: () => ctx.get('llm') as unknown as DshLlmLike | undefined,
+      credentials: () => ctx.get('credentials') as unknown as DshCredentialsLike | undefined,
+      workspaceRegistry: () => ctx.get('workspaceRegistry') as unknown as DshWorkspaceRegistryLike | undefined,
+      commands: () => ctx.get('commands') as unknown as DshCommandsLike | undefined,
+      tokenMeter: () => ctx.get('tokenMeter') as unknown as DshTokenMeterLike | undefined,
+      sessionProjections: () => ctx.get('sessionProjections') as unknown as DshSessionProjectionsLike | undefined,
+      shell: () => ctx.get('shell') as unknown as DshShellLike | undefined,
+      mcp: () => ctx.get('mcp') as unknown as McpStore | undefined,
+      teams: () => ctx.get('teams') as unknown as TeamStore | undefined,
+      tasks: () => ctx.get('tasks') as unknown as TaskStore | undefined,
+      computerUse: () => ctx.get('computerUse') as unknown as ComputerUseService | undefined,
+      agentMigration: () => ctx.get('agentMigration') as unknown as AgentMigrationService | undefined,
     }
     const server = createWebServer(config, services)
     ctx.effect(() => () => server.close(), 'web-server.close')

@@ -43,6 +43,21 @@
     },
     {
       "path": "../../workspace/sandboxes"
+    },
+    {
+      "path": "../../automation/tasks"
+    },
+    {
+      "path": "../../automation/mcp"
+    },
+    {
+      "path": "../../automation/computer-use"
+    },
+    {
+      "path": "../../automation/agent-migration"
+    },
+    {
+      "path": "../../collaboration/teams"
     }
   ]
 }

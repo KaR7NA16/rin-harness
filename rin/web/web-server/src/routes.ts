@@ -18,6 +18,11 @@ import type { SkillMemoryService } from '@rin/skill-memory'
 import type { AgentStore } from '@rin/agents'
 import type { NotesStore } from '@rin/notes'
 import type { SandboxStore } from '@rin/sandboxes'
+import type { TaskStore } from '@rin/tasks'
+import type { McpStore } from '@rin/mcp'
+import type { ComputerUseService } from '@rin/computer-use'
+import type { AgentMigrationService } from '@rin/agent-migration'
+import type { TeamStore } from '@rin/teams'
 import type { Config, JsonResponse, SmartPruningRef, TokenOptimizationRef } from './types.ts'
 import { handle as handleCore } from './routes/core.ts'
 import { handle as handleKnowledge } from './routes/knowledge.ts'
@@ -45,6 +50,8 @@ export interface DshSessionEventLike {
 export interface DshSessionLike {
   readonly id: string
   readonly events: readonly DshSessionEventLike[]
+  readonly header?: { readonly cwd?: string }
+  readonly seq?: number
 }
 
 export interface DshSessionStoreLike {
@@ -88,6 +95,73 @@ export interface DshLlmLike {
   listModels(provider: string): Promise<Array<{ id: string; name: string }>>
 }
 
+/** Minimal structural view of the dsh credential provider. */
+export interface DshCredentialsLike {
+  describe(ref: string): Promise<{ configured: boolean; source?: string; writable: boolean }>
+}
+
+/** Minimal structural view of the dsh workspace registry. */
+export interface DshWorkspaceRegistryLike {
+  list(): Array<{
+    id: string
+    path: string
+    title: string
+    createdAt: string
+    updatedAt: string
+    sessionIds: readonly string[]
+    status(): Promise<string>
+  }>
+}
+
+/** Minimal structural view of the dsh command runtime. */
+export interface DshCommandsLike {
+  list(agent: unknown): ReadonlyArray<{ name: string; description: string; input?: { hint: string } }>
+}
+
+/** Minimal structural view of the dsh token meter. */
+export interface DshTokenMeterLike {
+  measure(session: unknown): {
+    totalTokens: number
+    surfaceTokens: number
+    baseline: {
+      kind: string
+      tokens: number
+      usage?: {
+        inputTokens: number
+        outputTokens: number
+        cacheReadTokens?: number
+        cacheWriteTokens?: number
+      }
+    }
+  }
+}
+
+/** Minimal structural view of the dsh session projection registry. */
+export interface DshSessionProjectionsLike {
+  snapshot(session: unknown): {
+    asOfSeq: number
+    values: {
+      tokenUsage?: {
+        uncachedInputTokens: number
+        outputTokens: number
+        cacheReadTokens: number
+        cacheWriteTokens: number
+      }
+      contextPressure?: {
+        pressureTokens?: number
+        projectedTokens?: number
+        contextWindow?: number
+      }
+    }
+  }
+}
+
+/** Minimal structural view of the dsh shell executor used by the legacy git probes. */
+export interface DshShellLike {
+  resolve(request: { command: string; workdir?: string }): unknown
+  run(spec: unknown): Promise<{ exitCode: number | null; stdout: { text: string } }>
+}
+
 /** Lazily-read optional @rin services, resolved at request time. */
 export interface RinServiceRefs {
   repository(): RepositoryStore | undefined
@@ -107,6 +181,17 @@ export interface RinServiceRefs {
   dshAgents(): DshAgentRegistryLike | undefined
   agentDefaultModel(): DshAgentDefaultModelLike | undefined
   llm(): DshLlmLike | undefined
+  credentials(): DshCredentialsLike | undefined
+  workspaceRegistry(): DshWorkspaceRegistryLike | undefined
+  commands(): DshCommandsLike | undefined
+  tokenMeter(): DshTokenMeterLike | undefined
+  sessionProjections(): DshSessionProjectionsLike | undefined
+  shell(): DshShellLike | undefined
+  mcp(): McpStore | undefined
+  teams(): TeamStore | undefined
+  tasks(): TaskStore | undefined
+  computerUse(): ComputerUseService | undefined
+  agentMigration(): AgentMigrationService | undefined
 }
 
 /**

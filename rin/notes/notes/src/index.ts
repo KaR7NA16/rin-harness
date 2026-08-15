@@ -25,6 +25,7 @@ import type {
   NoteGraph,
   NoteMeta,
   NoteSearchResult,
+  NoteSnapshotMeta,
   NoteTemplate,
   NotesToolOutput,
   NoteTodo,
@@ -77,6 +78,12 @@ export abstract class NotesStore extends Service {
   /** Delete a note and its history snapshots. */
   abstract delete(path: string): Promise<void>
 
+  /** List a note's history snapshots, newest first. */
+  abstract listSnapshots(path: string): Promise<NoteSnapshotMeta[]>
+
+  /** Read one history snapshot of a note by its snapshot id. */
+  abstract readSnapshot(path: string, snapshotId: string): Promise<NoteDocument>
+
   /** Full-text search across names, titles, and bodies. */
   abstract search(query: string): Promise<NoteSearchResult[]>
 
@@ -116,6 +123,14 @@ export class FileNotesStore extends NotesStore {
 
   override delete(path: string) {
     return this.vault.delete(path)
+  }
+
+  override listSnapshots(path: string) {
+    return this.vault.listSnapshots(path)
+  }
+
+  override readSnapshot(path: string, snapshotId: string) {
+    return this.vault.readSnapshot(path, snapshotId)
   }
 
   override search(query: string) {

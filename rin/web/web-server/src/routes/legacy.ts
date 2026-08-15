@@ -11,7 +11,8 @@
 
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
+import { buildPromptMemoryInsights } from '@rin/prompt-memory'
 import type { Config, JsonResponse, ResponseStyle } from '../types.ts'
 import {
   asRecord,
@@ -22,7 +23,7 @@ import {
   queryParam,
   stringField,
 } from '../http.ts'
-import type { RinServiceRefs } from '../routes.ts'
+import type { DshShellLike, RinServiceRefs } from '../routes.ts'
 
 const REPOSITORY_ID = 'builtin'
 const NOTE_PATH_RE = /^\/api\/notes\/note\/(.+)$/
@@ -45,7 +46,7 @@ export async function handle(
 
   // Sessions (legacy desktop REST surface over the mounted dsh session services)
   if (pathname === '/api/sessions') return sessionsListRoute(method, body, services)
-  if (pathname === '/api/sessions/recent-projects') return json(200, { projects: [] })
+  if (pathname === '/api/sessions/recent-projects') return recentProjectsRoute(search, services)
   const sessionMatch = /^\/api\/sessions\/([^/]+)(\/([^/]+))?$/.exec(pathname)
   if (sessionMatch !== null && sessionMatch[1] !== undefined) {
     return sessionsItemRoute(sessionMatch[1], sessionMatch[3], search, method, body, services)
@@ -60,7 +61,8 @@ export async function handle(
   if (pathname === '/api/notes/move') return notesMoveRoute(method, body, services)
   if (pathname === '/api/notes/daily') return notesDailyRoute(method, services)
   if (pathname === '/api/notes/backlinks') return notesBacklinksRoute(search, services)
-  if (pathname === '/api/notes/snapshots') return json(200, { snapshots: [] })
+  if (pathname === '/api/notes/snapshots') return notesSnapshotsRoute(search, services)
+  if (pathname === '/api/notes/snapshot') return notesSnapshotRoute(search, services)
   const notePath = NOTE_PATH_RE.exec(pathname)
   if (notePath !== null && notePath[1] !== undefined) {
     return notesNoteRoute(notePath[1], method, body, services)
@@ -69,7 +71,7 @@ export async function handle(
   // Prompt memory (legacy desktop paths)
   if (pathname === '/api/prompt-memory') return promptMemoryStatusRoute(services)
   if (pathname === '/api/prompt-memory/logs') return promptMemoryLogsRoute(search, services)
-  if (pathname === '/api/prompt-memory/insights') return json(200, { insights: [], stats: { total: 0, user: 0, methods: 0, dimensions: 0, automaticUpdates: 0 } })
+  if (pathname === '/api/prompt-memory/insights') return promptMemoryInsightsRoute(services)
   const promptMemoryFile = /^\/api\/prompt-memory\/(soul|brief|user)$/.exec(pathname)
   if (promptMemoryFile !== null && promptMemoryFile[1] !== undefined) {
     return promptMemoryFileRoute(promptMemoryFile[1], method, body, services)
@@ -113,31 +115,22 @@ export async function handle(
   if (pathname === '/api/effort') return json(200, { level: 'medium', available: ['low', 'medium', 'high'] })
   if (pathname === '/api/providers') return providersRoute(method, body)
   if (pathname === '/api/providers/presets') return json(200, { presets: PROVIDER_PRESETS })
-  if (pathname === '/api/providers/auth-status') return json(200, { hasAuth: false, source: 'none' })
+  if (pathname === '/api/providers/auth-status') return authStatusRoute(services)
   if (pathname === '/api/providers/settings') return json(200, {})
   const providerItem = /^\/api\/providers\/([^/]+)(\/([^/]+))?$/.exec(pathname)
   if (providerItem !== null && providerItem[1] !== undefined) {
     return providerItemRoute(providerItem[1], providerItem[3], method, body)
   }
-  if (pathname === '/api/mcp') return json(200, { servers: [] })
+  if (pathname === '/api/mcp') return mcpListRoute(services)
 
-  // Post-poned old surfaces: return an empty/disabled state so their pages render.
-  if (pathname === '/api/teams') return json(200, { teams: [] })
-  if (pathname === '/api/tasks' || pathname === '/api/tasks/lists') return json(200, { lists: [], tasks: [] })
-  if (pathname === '/api/computer-use/status') {
-    return json(200, {
-      platform: process.platform,
-      supported: false,
-      python: { installed: false, version: null, path: null },
-      venv: { created: false, path: '' },
-      dependencies: { installed: false, requirementsFound: false },
-      permissions: { accessibility: null, screenRecording: null },
-    })
-  }
-  if (pathname === '/api/computer-use/apps' || pathname === '/api/computer-use/authorized-apps') return json(200, { apps: [] })
-  if (pathname === '/api/agent-migration/scan' || pathname === '/api/agent-migration') {
-    return json(200, { scannedAt: new Date().toISOString(), targetAgentId: 'claude-code', agents: [] })
-  }
+  // A-class automation/collaboration surfaces over the new @rin services.
+  if (pathname === '/api/teams') return teamsListRoute(services)
+  if (pathname === '/api/tasks') return tasksRoute(services)
+  if (pathname === '/api/tasks/lists') return taskListsRoute(services)
+  if (pathname === '/api/computer-use/status') return computerUseStatusRoute(services)
+  if (pathname === '/api/computer-use/apps') return computerUseAppsRoute(services)
+  if (pathname === '/api/computer-use/authorized-apps') return computerUseAuthorizedAppsRoute(services)
+  if (pathname === '/api/agent-migration/scan' || pathname === '/api/agent-migration') return agentMigrationRoute(services)
   if (pathname === '/api/status/diagnostics') {
     return json(200, {
       nodeVersion: process.version,
@@ -1026,6 +1019,350 @@ function responseStyleStatus(
 }
 
 
+/* ------------------------- legacy A/B service routes ------------------------ */
+
+async function notesSnapshotsRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const notes = services.notes()
+  if (notes === undefined) return json(200, { snapshots: [] })
+  const path = queryParam(search, 'path')
+  if (path === undefined) return error(400, 'path is required')
+  try {
+    return json(200, { snapshots: await notes.listSnapshots(path) })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function notesSnapshotRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const notes = services.notes()
+  if (notes === undefined) return notMounted()
+  const path = queryParam(search, 'path')
+  const id = queryParam(search, 'id')
+  if (path === undefined || id === undefined) return error(400, 'path and id are required')
+  try {
+    return json(200, await notes.readSnapshot(path, id))
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function promptMemoryInsightsRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const promptMemory = services.promptMemory()
+  if (promptMemory === undefined) {
+    return json(200, { insights: [], stats: { total: 0, user: 0, methods: 0, dimensions: 0, automaticUpdates: 0 } })
+  }
+  try {
+    const [status, logs] = await Promise.all([
+      promptMemory.getStatus(),
+      promptMemory.readReviewLogs(200),
+    ])
+    return json(200, buildPromptMemoryInsights({
+      files: { user: status.files.user, brief: status.files.brief },
+      logs,
+    }))
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function tasksRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const tasks = services.tasks()
+  if (tasks === undefined) return json(200, { lists: [], tasks: [] })
+  try {
+    return json(200, { tasks: await tasks.listTasks() })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function taskListsRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const tasks = services.tasks()
+  if (tasks === undefined) return json(200, { lists: [], tasks: [] })
+  try {
+    return json(200, { lists: await tasks.listTaskLists() })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function teamsListRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const teams = services.teams()
+  if (teams === undefined) return json(200, { teams: [] })
+  try {
+    return json(200, { teams: await teams.list() })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function mcpListRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const mcp = services.mcp()
+  if (mcp === undefined) return json(200, { servers: [] })
+  try {
+    const servers = await mcp.list()
+    return json(200, { servers: servers.map(mcpServerDto) })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+/** The @rin/mcp store fields the route layer projects a desktop DTO from. */
+interface McpServerConfigLike {
+  name: string
+  transport: string
+  command: string
+  args: string[]
+  env: Record<string, string>
+  url?: string
+  headers?: Record<string, string>
+  status: string
+}
+
+function mcpServerDto(server: McpServerConfigLike): Record<string, unknown> {
+  return {
+    name: server.name,
+    scope: 'user',
+    transport: server.transport,
+    command: server.command,
+    args: server.args,
+    env: server.env,
+    ...(server.url !== undefined ? { url: server.url } : {}),
+    ...(server.headers !== undefined ? { headers: server.headers } : {}),
+    status: server.status,
+    enabled: server.status !== 'disabled',
+    statusLabel: mcpStatusLabel(server.status),
+    configLocation: '~/.rin/mcp/servers.json',
+    summary: mcpServerSummary(server),
+    canEdit: true,
+  }
+}
+
+function mcpStatusLabel(status: string): string {
+  switch (status) {
+    case 'connected': return 'Connected'
+    case 'needs-auth': return 'Needs auth'
+    case 'failed': return 'Unavailable'
+    case 'disabled': return 'Disabled'
+    case 'checking': return 'Checking'
+    default: return status
+  }
+}
+
+function mcpServerSummary(server: McpServerConfigLike): string {
+  if (server.transport === 'http' || server.transport === 'sse') {
+    return server.url ?? server.transport
+  }
+  return [server.command, ...server.args].join(' ').trim()
+}
+
+async function computerUseStatusRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const computerUse = services.computerUse()
+  if (computerUse === undefined) {
+    return json(200, {
+      platform: process.platform,
+      supported: false,
+      python: { installed: false, version: null, path: null },
+      venv: { created: false, path: '' },
+      dependencies: { installed: false, requirementsFound: false },
+      permissions: { accessibility: null, screenRecording: null },
+    })
+  }
+  try {
+    return json(200, await computerUse.getStatus())
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function computerUseAppsRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const computerUse = services.computerUse()
+  if (computerUse === undefined) return json(200, { apps: [] })
+  try {
+    return json(200, { apps: await computerUse.listAuthorizedApps() })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function computerUseAuthorizedAppsRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const computerUse = services.computerUse()
+  if (computerUse === undefined) return json(200, { apps: [] })
+  try {
+    const [authorizedApps, grantFlags] = await Promise.all([
+      computerUse.listAuthorizedApps(),
+      computerUse.getGrantFlags(),
+    ])
+    return json(200, { authorizedApps, grantFlags })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function agentMigrationRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const agentMigration = services.agentMigration()
+  if (agentMigration === undefined) {
+    return json(200, { scannedAt: new Date().toISOString(), targetAgentId: 'claude-code', agents: [] })
+  }
+  try {
+    return json(200, await agentMigration.scan())
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+
+/* --------------------------- legacy D-class routes -------------------------- */
+
+const ACTIVE_PROVIDER_REF: Record<string, string> = {
+  'deepseek-official': 'DEEPSEEK_API_KEY',
+}
+
+async function authStatusRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const credentials = services.credentials()
+  const selection = services.agentDefaultModel()?.currentSelection()
+  if (credentials === undefined || selection === undefined) {
+    return json(200, { hasAuth: false, source: 'none' })
+  }
+  const apiKeyEnv = ACTIVE_PROVIDER_REF[selection.provider]
+  if (apiKeyEnv === undefined) {
+    return json(200, { hasAuth: false, source: 'none', activeProvider: selection.provider })
+  }
+  try {
+    const info = await credentials.describe(apiKeyEnv)
+    const source = !info.configured
+      ? 'none'
+      : info.source === 'file'
+        ? 'managed'
+        : 'env'
+    return json(200, { hasAuth: info.configured, source, activeProvider: selection.provider })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function recentProjectsRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const registry = services.workspaceRegistry()
+  if (registry === undefined) return json(200, { projects: [] })
+  const shell = services.shell()
+  const rawLimit = Number(queryParam(search, 'limit') ?? '10')
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 500) : 10
+  try {
+    const projects: Array<Record<string, unknown>> = []
+    for (const workspace of registry.list().slice(0, limit)) {
+      const git = await gitProjectFacts(shell, workspace.path)
+      projects.push({
+        projectPath: workspace.path,
+        realPath: workspace.path,
+        projectName: workspace.title || basename(workspace.path),
+        isGit: git.isGit,
+        repoName: git.repoName,
+        branch: git.branch,
+        modifiedAt: workspace.updatedAt,
+        sessionCount: workspace.sessionIds.length,
+      })
+    }
+    return json(200, { projects })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function gitRun(shell: DshShellLike, workDir: string, command: string): Promise<string | null> {
+  try {
+    const spec = shell.resolve({ command, workdir: workDir })
+    const res = await shell.run(spec)
+    return res.exitCode === 0 ? res.stdout.text.trim() : null
+  } catch {
+    return null
+  }
+}
+
+function parseRepoName(remote: string | null): string | null {
+  if (remote === null || remote === '') return null
+  const match = remote.match(/\/([^/]+?)(?:\.git)?$/) ?? remote.match(/:([^/]+\/[^/]+?)(?:\.git)?$/)
+  const name = match?.[1]
+  return name === undefined || name === '' ? null : name
+}
+
+async function gitProjectFacts(
+  shell: DshShellLike | undefined,
+  workDir: string,
+): Promise<{ isGit: boolean; branch: string | null; repoName: string | null }> {
+  if (shell === undefined) return { isGit: false, branch: null, repoName: null }
+  const branch = await gitRun(shell, workDir, 'git rev-parse --abbrev-ref HEAD')
+  if (branch === null) return { isGit: false, branch: null, repoName: null }
+  const remote = await gitRun(shell, workDir, 'git remote get-url origin')
+  return { isGit: true, branch, repoName: parseRepoName(remote) }
+}
+
+async function gitChangedFileCount(shell: DshShellLike, workDir: string): Promise<number> {
+  const changed = await gitRun(shell, workDir, 'git status --porcelain')
+  return changed === null ? 0 : changed.split('\n').filter(line => line.trim() !== '').length
+}
+
+async function sessionGitInfoRoute(id: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const session = services.sessions()?.get(id)
+  const workDir = session?.header?.cwd ?? ''
+  const shell = services.shell()
+  if (shell === undefined || workDir === '') {
+    return json(200, { branch: null, repoName: null, workDir, changedFiles: 0 })
+  }
+  const git = await gitProjectFacts(shell, workDir)
+  if (!git.isGit) return json(200, { branch: null, repoName: null, workDir, changedFiles: 0 })
+  const changedFiles = await gitChangedFileCount(shell, workDir)
+  return json(200, { branch: git.branch, repoName: git.repoName, workDir, changedFiles })
+}
+
+async function sessionUsageRoute(id: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const session = services.sessions()?.get(id)
+  if (session === undefined) return json(200, { usage: null, context: null })
+
+  const snap = services.sessionProjections()?.snapshot(session)
+  const tokenUsage = snap?.values?.tokenUsage
+  const pressure = snap?.values?.contextPressure
+
+  let usage: Record<string, unknown> | null = null
+  if (tokenUsage !== undefined) {
+    usage = {
+      totalInputTokens: tokenUsage.uncachedInputTokens + tokenUsage.cacheReadTokens + tokenUsage.cacheWriteTokens,
+      totalOutputTokens: tokenUsage.outputTokens,
+      totalCacheReadInputTokens: tokenUsage.cacheReadTokens,
+      totalCacheCreationInputTokens: tokenUsage.cacheWriteTokens,
+    }
+  }
+
+  let context: Record<string, unknown> | null = null
+  if (pressure !== undefined) {
+    const model = services.agentDefaultModel()?.currentSelection().model
+    const meter = services.tokenMeter()
+    const usedTokens = pressure.projectedTokens ?? pressure.pressureTokens
+      ?? (meter !== undefined ? meter.measure(session).totalTokens : undefined)
+    const contextWindow = pressure.contextWindow
+    context = {
+      ...(model !== undefined ? { model } : {}),
+      ...(usedTokens !== undefined ? { usedTokens } : {}),
+      ...(contextWindow !== undefined ? { contextWindow } : {}),
+      ...(usedTokens !== undefined && contextWindow !== undefined && contextWindow > 0
+        ? { percentage: Math.round((usedTokens / contextWindow) * 100) }
+        : {}),
+    }
+  }
+
+  return json(200, { usage, context })
+}
+
+function sessionSlashCommandsRoute(id: string, services: RinServiceRefs): JsonResponse {
+  const agents = services.dshAgents()
+  const commands = services.commands()
+  if (agents === undefined || commands === undefined) return json(200, { commands: [] })
+  const agent = agents.get(id)
+  if (agent === undefined) return json(200, { commands: [] })
+  return json(200, {
+    commands: commands.list(agent as unknown).map(({ name, description }) => ({ name, description })),
+  })
+}
+
+
 /* ------------------------------ sessions -------------------------------- */
 
 async function sessionsListRoute(
@@ -1155,10 +1492,10 @@ async function sessionsItemRoute(
     }
   }
 
-  if (action === 'slash-commands') return json(200, { commands: [] })
-  if (action === 'git-info') return json(200, { branch: null, repoName: null, workDir: '', changedFiles: 0 })
+  if (action === 'slash-commands') return sessionSlashCommandsRoute(id, services)
+  if (action === 'git-info') return sessionGitInfoRoute(id, services)
   if (action === 'inspection') return json(200, { active: false, status: { sessionId: id, workDir: '', permissionMode: 'default' } })
-  if (action === 'usage') return json(200, { usage: null, context: null })
+  if (action === 'usage') return sessionUsageRoute(id, services)
 
   if (action === undefined) {
     if (method === 'DELETE') {

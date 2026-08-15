@@ -103,6 +103,50 @@
   config:
     profilesPath: !!js rinHome('sandbox.yaml')
 
+- id: tasks
+  name: '@rin/tasks'
+  config:
+    tasksRoot: !!js rinHome('tasks')
+
+- id: mcp
+  name: '@rin/mcp'
+  config:
+    storeRoot: !!js rinHome('mcp')
+
+- id: computer-use
+  name: '@rin/computer-use'
+  config:
+    configRoot: !!js rinHome('computer-use')
+
+# homeDir omitted: scanAgentMigration defaults to the OS home (external
+# ~/.claude / ~/.codex agent configs), not RIN_HOME.
+- id: agent-migration
+  name: '@rin/agent-migration'
+
+- id: teams
+  name: '@rin/teams'
+  config:
+    teamsHome: !!js rinHome('teams')
+
+# recent-projects data source (D spec §6): the workspace registry rides the
+# storage hub + json backend. storage-domain routes `backend: json`; workspace
+# injects storageDomain + sessionPersistence (the latter already in dsh-base).
+- id: storage
+  name: '@deepseek-ai/dsh-storage'
+
+- id: storage-json
+  name: '@deepseek-ai/dsh-storage-json'
+  config:
+    root: !!js rinHome('storage')
+
+- id: storage-domain
+  name: '@deepseek-ai/dsh-storage-domain'
+  config:
+    backend: json
+
+- id: workspace
+  name: '@deepseek-ai/dsh-workspace'
+
 - id: web-server
   name: '@rin/web-server'
   config:

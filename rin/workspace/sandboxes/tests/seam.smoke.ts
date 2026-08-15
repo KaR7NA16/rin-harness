@@ -81,12 +81,12 @@ try { resolveStageRunner(undefined, {}) } catch { threw = true }
 if (!threw) throw new Error('an unavailable shell should fail loud')
 resolveStageRunner(undefined, { dryRun: true }) // must not throw
 
-// 6. registerShellSeam asserts the seam at load (fake ctx).
+// 6. registerShellSeam is lazy: it never asserts at load, so a shell provider
+//    mounted later in the composition is honored. Fail-loud is deferred to
+//    resolveStageRunner (covered above).
 registerShellSeam({ get: (name) => (name === 'shell' ? fakeShell : undefined) })
 registerShellSeam({ get: () => undefined }, { dryRun: true })
-let threwLoad = false
-try { registerShellSeam({ get: () => undefined }) } catch { threwLoad = true }
-if (!threwLoad) throw new Error('registerShellSeam should fail loud without a shell')
+registerShellSeam({ get: () => undefined }) // must not throw (lazy)
 
 console.log('SEAM-SMOKE-OK', {
   commands: commands.length,

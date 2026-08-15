@@ -16,6 +16,11 @@
     { "path": "./workspace/sandboxes" },
     { "path": "./notes/notes" },
     { "path": "./bundle/rin" },
-    { "path": "./cli/rin" }
+    { "path": "./cli/rin" },
+    { "path": "./automation/tasks" },
+    { "path": "./automation/mcp" },
+    { "path": "./automation/computer-use" },
+    { "path": "./automation/agent-migration" },
+    { "path": "./collaboration/teams" }
   ]
 }

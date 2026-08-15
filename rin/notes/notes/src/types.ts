@@ -89,6 +89,16 @@ export interface NoteTemplate {
   path: string
 }
 
+/** One history snapshot of a note. */
+export interface NoteSnapshotMeta {
+  /** Snapshot file name: `<epoch-millis>-<6-digit sequence>.md`. */
+  id: string
+  /** ISO-8601 timestamp when the snapshot was taken. */
+  createdAt: string
+  /** Snapshot file size in bytes (UTF-8). */
+  sizeBytes: number
+}
+
 /** Plugin configuration for `@rin/notes`. */
 export interface Config {
   /** Absolute or cwd-relative path to the note vault; defaults to `~/.rin/notes`. */

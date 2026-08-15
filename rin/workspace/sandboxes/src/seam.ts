@@ -136,19 +136,19 @@ export function resolveStageRunner(shell: ShellExecutorLike | undefined, config:
 }
 
 /**
- * Wire the sandboxes execution channel to the dsh shell seam. Asserts at plugin
- * load that the seam is available (or dryRun is set), so a composition without
- * a shell provider and without dryRun fails loud rather than silently skipping
- * execution. The store re-resolves the shell at execution time through
- * shellResolverFor, where availability is enforced again by resolveStageRunner.
+ * Wire the sandboxes execution channel to the dsh shell seam.
  *
- * @param ctx - the plugin context.
+ * The check is fully lazy: no load-time assertion, so a shell provider mounted
+ * later in the composition (e.g. bash-sandbox in the base layer) is honored.
+ * Availability is enforced at execution time by {@link resolveStageRunner},
+ * and the store re-resolves the shell on each run through
+ * {@link shellResolverFor}; dryRun keeps the no-shell planning mode.
+ *
+ * @param ctx - the plugin context (unused at load; retained for the caller seam).
  * @param config - shell-seam configuration.
- * @throws when ctx.shell is unavailable and dryRun is not set.
  */
-export function registerShellSeam(ctx: Context, config: ShellConfig = {}): void {
+export function registerShellSeam(_ctx: Context, config: ShellConfig = {}): void {
   if (config.dryRun === true) return
-  if (shellFromContext(ctx) === undefined) throw new Error(SHELL_UNAVAILABLE)
 }
 
 /** Merge config env over the profile's container env; undefined when empty. */
