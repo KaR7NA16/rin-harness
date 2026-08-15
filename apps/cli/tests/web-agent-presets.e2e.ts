@@ -28,7 +28,6 @@ const BASE_PATCH = join(REPO_ROOT, 'packages/bundle/base/cordis.patch.yml')
 const WEB_PATCH = join(REPO_ROOT, 'packages/bundle/web-app/cordis.patch.yml')
 /** The installation anchor whose dependency surface the preset module fallback mirrors. */
 const INSTALL_ANCHOR = join(REPO_ROOT, 'apps/cli/package.json')
-const EXAMPLES_INSTALL_ANCHOR = join(REPO_ROOT, 'examples/package.json')
 const MINIMAL_PROMPT = 'You are a helpful software engineer assistant.'
 const MINIMAL_BASH_DESCRIPTION = `Run commands in a bash shell
 * When invoking this tool, the contents of the "command" parameter does NOT need to be XML-escaped.
@@ -127,18 +126,6 @@ async function bootWeb(
 
 const toolNames = (ctx: Context, agent?: Agent): string[] =>
   ctx.tools.schemas(agent).map(schema => schema.name).sort()
-
-function enablePresetTool(composition: string, id: string): string {
-  const row = `    - id: ${id}\n`
-  const start = composition.indexOf(row)
-  if (start < 0) throw new Error(`missing preset row ${id}`)
-  const end = composition.indexOf('\n    - id:', start + row.length)
-  const disabled = composition.indexOf('      disabled: true\n', start)
-  if (disabled < 0 || (end >= 0 && disabled > end)) {
-    throw new Error(`preset row ${id} is not disabled`)
-  }
-  return composition.slice(0, disabled) + composition.slice(disabled + '      disabled: true\n'.length)
-}
 
 let ctx: Context
 beforeAll(async () => {
