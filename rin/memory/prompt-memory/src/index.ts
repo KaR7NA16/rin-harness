@@ -3,7 +3,8 @@
  *
  * Exposes a ctx.promptMemory service (file-backed prompt memory) plus the
  * domain model: paths, budgets, insights, review log, config, seed, and store.
- * Projection of prompt memory into the system prompt is the NEXT milestone.
+ * The service is also projected into the system prompt as an ordered section
+ * (SOUL identity + BRIEF/USER memory, budget-bounded) kept in sync per assembly.
  *
  * @module @rin/prompt-memory
  */
@@ -17,6 +18,7 @@ import {
   appendPromptMemoryReviewLogs,
   readPromptMemoryReviewLogs,
 } from './reviewLog.ts'
+import { registerPromptMemorySeam, type PromptMemorySeam } from './seam.ts'
 import { createPromptMemoryStore } from './store.ts'
 import type {
   PromptMemoryAutoReviewLogEntry,
@@ -65,10 +67,22 @@ export {
   getPromptMemoryReviewLogPath,
   readPromptMemoryReviewLogs,
 } from './reviewLog.ts'
+export {
+  PROMPT_MEMORY_SECTION_NAME,
+  PROMPT_MEMORY_SECTION_ORDER,
+  registerPromptMemorySeam,
+  type PromptAssembly,
+  type PromptMemorySeam,
+} from './seam.ts'
+export {
+  buildPromptMemorySectionText,
+  type PromptMemoryProjectionOptions,
+} from './projection.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
     promptMemory: PromptMemoryService
+    systemPrompt: PromptMemorySeam['systemPrompt']
   }
 }
 
@@ -78,6 +92,12 @@ export interface PromptMemoryPluginConfig {
   configRoot: string
   /** The identity written to SOUL.md when it does not already exist. */
   initialSoul: string
+  /** Project prompt memory into the system prompt (default true). */
+  injectPromptMemory?: boolean
+  /** Include the SOUL identity in the projected section (default true). */
+  injectSoul?: boolean
+  /** Include the BRIEF working memory in the projected section (default true). */
+  injectBrief?: boolean
 }
 
 /** The prompt memory service exposed on the shared context. */
@@ -189,17 +209,33 @@ export class FilePromptMemoryService extends PromptMemoryService {
 }
 
 export const name = 'prompt-memory'
-export const inject = []
+export const inject = ['systemPrompt']
 
-/** Install the file-backed prompt memory service into the shared context. */
+/**
+ * Install the file-backed prompt memory service and project it into the
+ * system prompt.
+ * @param ctx - the plugin context (must inject systemPrompt).
+ * @param config - the resolved plugin configuration.
+ */
 export function apply(ctx: Context, config: PromptMemoryPluginConfig): void {
   ctx.plugin(FilePromptMemoryService, config)
+  const resolved = resolvePluginConfig(config)
+  if (!resolved.injectPromptMemory) return
+  registerPromptMemorySeam(ctx as unknown as PromptMemorySeam, {
+    injectSoul: resolved.injectSoul,
+    injectBrief: resolved.injectBrief,
+  }).catch((error: unknown) => {
+    ctx.logger.error('rin prompt-memory: system prompt projection failed: ' + String(error))
+  })
 }
 
 /** Validate the plugin config and resolve the configuration root. */
 function resolvePluginConfig(config: unknown): {
   roots: PromptMemoryRoots
   initialSoul: string
+  injectPromptMemory: boolean
+  injectSoul: boolean
+  injectBrief: boolean
 } {
   if (config === null || typeof config !== 'object') {
     throw new Error(
@@ -215,5 +251,11 @@ function resolvePluginConfig(config: unknown): {
   if (typeof initialSoul !== 'string') {
     throw new Error('rin prompt-memory: config.initialSoul must be a string')
   }
-  return { roots: { configRoot }, initialSoul }
+  return {
+    roots: { configRoot },
+    initialSoul,
+    injectPromptMemory: candidate.injectPromptMemory ?? true,
+    injectSoul: candidate.injectSoul ?? true,
+    injectBrief: candidate.injectBrief ?? true,
+  }
 }

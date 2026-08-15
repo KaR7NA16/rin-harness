@@ -19,6 +19,7 @@ import type {
   SandboxProfilePatch,
 } from './types.ts'
 import { FileSandboxStore, defaultSandboxProfilesPath } from './store.ts'
+import { registerShellSeam, shellResolverFor, type ShellConfig } from './seam.ts'
 
 export type * from './types.ts'
 export {
@@ -54,6 +55,24 @@ export {
   defaultProbeExec,
 } from './providers.ts'
 export { executeEnvironmentPlan, buildStageExecutor } from './exec.ts'
+export {
+  buildShellRunCommand,
+  dryRunCommand,
+  registerShellSeam,
+  resolveStageRunner,
+  shellFromContext,
+  shellResolverFor,
+  SHELL_UNAVAILABLE,
+} from './seam.ts'
+export type {
+  ShellConfig,
+  ShellExecRequest,
+  ShellExecSpec,
+  ShellExecutorLike,
+  ShellOutput,
+  ShellRunResult,
+  ShellSeam,
+} from './seam.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -67,7 +86,11 @@ export class SandboxStore extends Service {
 
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, 'sandboxes')
-    this.store = new FileSandboxStore({ profilesPath: config.profilesPath ?? defaultSandboxProfilesPath() })
+    this.store = new FileSandboxStore({
+      profilesPath: config.profilesPath ?? defaultSandboxProfilesPath(),
+      shell: shellResolverFor(ctx),
+      shellConfig: config,
+    })
   }
 
   /** @returns every sandbox profile. */
@@ -127,13 +150,16 @@ export class SandboxStore extends Service {
 export const name = 'sandboxes'
 export const inject = []
 
-/** Plugin configuration: optional override of the profile-store path. */
-export interface Config {
+/** Plugin configuration: profile-store path plus shell-seam execution options. */
+export interface Config extends ShellConfig {
   profilesPath?: string
 }
 
 export const Config: z<Config> = z.object({
   profilesPath: z.string(),
+  dryRun: z.boolean().default(false),
+  timeoutMs: z.number(),
+  env: z.dict(z.string()),
 })
 
 /**
@@ -144,4 +170,5 @@ export const Config: z<Config> = z.object({
  */
 export function apply(ctx: Context, config: Config): void {
   ctx.plugin(SandboxStore, config)
+  registerShellSeam(ctx, config)
 }

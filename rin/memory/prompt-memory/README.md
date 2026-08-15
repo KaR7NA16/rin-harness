@@ -8,7 +8,8 @@ atomic writes. Memory lives under an injected configuration root: a `SOUL.md`
 identity file at the root and a `prompt-memory/` directory holding `BRIEF.md`,
 `USER.md`, `config.json`, and the `AUTO_REVIEW_LOG.jsonl` audit log. The
 Cordis plugin entry (`index.ts`) exposes `ctx.promptMemory` with a service
-bound to one configuration root.
+bound to one configuration root, and projects the memory into the system
+prompt as an ordered `rin:prompt-memory` section.
 
 ## Service API
 
@@ -28,30 +29,35 @@ import type { Context } from '@deepseek-ai/cordis'
 
 The plugin config requires `configRoot` (the directory memory files are rooted
 under) and `initialSoul` (the identity written to `SOUL.md` when it does not
-yet exist). Both fail loud at load when missing.
+yet exist). Both fail loud at load when missing. Three optional switches control
+the system prompt projection: `injectPromptMemory` (master, default true),
+`injectSoul` (include `SOUL.md`, default true), and `injectBrief` (include
+`BRIEF.md`, default true).
 
 ## Model Experience
 
 ### What the model sees
 
-None directly. This plugin contributes no model-visible prose in its current
-form; it is a host-side service. The budget binders (`boundPromptMemoryPair`)
-and insight projection (`buildPromptMemoryInsights`) are the building blocks a
-later prompt-assembly milestone will surface.
+One ordered `rin:prompt-memory` section, refreshed from the store on every
+prompt assembly. It renders the `SOUL.md` identity, the `BRIEF.md` working
+brief, and the `USER.md` user memory under `# Identity`, `# Working brief`,
+and `# User memory` headings. `SOUL.md` is bounded to its own character
+limit, and `BRIEF.md`/`USER.md` share the combined prompt-memory budget;
+over-limit content is truncated with an explicit `[Truncated …]` notice.
+Empty components are omitted, so an empty store contributes nothing.
 
 ### Token effect
 
-Zero direct token effect.
+Up to `SOUL_CHAR_LIMIT` (3000) plus `PROMPT_MEMORY_TOTAL_CHAR_LIMIT` (3575)
+characters of model-visible prose, depending on the populated files.
 
 ### KV Cache effect
 
-Independent — no interaction with the model prefix.
+Varies with the memory content — the section joins the system prompt prefix,
+so changes to the memory files shift the prefix and its cached state.
 
 ## Known Limitations and Deferred Work
 
-- **No prompt-assembly projection.** Memory is persisted and projected into
-  insights, but it is not yet injected into the system prompt; that is the next
-  milestone.
 - **No automatic model review.** The review log is written and read by callers;
   automatic model-driven review and REPL hooks are deferred.
 - **File-backed only.** Memory is persisted as markdown and JSONL files; there

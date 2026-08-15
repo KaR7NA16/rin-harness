@@ -11,7 +11,7 @@
 
 import type { InstallPlanStage, ResolvedEnvironmentPlan } from '@rin/repository'
 import type { InstallExecutor, InstallRun } from '@rin/environment'
-import type { SandboxProfile, SandboxProvider } from './types.ts'
+import type { SandboxProfile, StageCommandRunner } from './types.ts'
 
 /**
  * Execute a resolved environment plan inside a profile's sandbox.
@@ -26,7 +26,7 @@ import type { SandboxProfile, SandboxProvider } from './types.ts'
  * @param repositoryId - the repository the plan resolves from.
  * @param environmentProfileId - the environment profile the plan resolves.
  * @param plan - the resolved plan (see ctx.environment.plan).
- * @param provider - the provider selected for the profile's type.
+ * @param runner - the stage-command runner selected for the profile's type.
  * @returns the terminal install run with its audit log.
  */
 export async function executeEnvironmentPlan(
@@ -34,7 +34,7 @@ export async function executeEnvironmentPlan(
   repositoryId: string,
   environmentProfileId: string,
   plan: ResolvedEnvironmentPlan,
-  provider: SandboxProvider,
+  runner: StageCommandRunner,
 ): Promise<InstallRun> {
   const { approveInstallRun, createInstallRun, executeInstallRun } = await import('@rin/environment')
   const created = createInstallRun({
@@ -44,23 +44,24 @@ export async function executeEnvironmentPlan(
     plan,
   })
   const approved = created.status === 'resolved' ? approveInstallRun(created) : created
-  return executeInstallRun(approved, buildStageExecutor(provider, profile))
+  return executeInstallRun(approved, buildStageExecutor(runner, profile))
 }
 
 /**
- * Adapt a provider into an InstallExecutor: run every command in a stage in
- * order, combining stdout/stderr and stopping at the first non-zero exit.
+ * Adapt a stage-command runner into an InstallExecutor: run every command in a
+ * stage in order, combining stdout/stderr and stopping at the first non-zero
+ * exit.
  *
- * @param provider - the sandbox provider that runs each command.
+ * @param runner - the runner that executes each command.
  * @param profile - the target profile.
  * @returns the executor handed to @rin/environment's executeInstallRun.
  */
-export function buildStageExecutor(provider: SandboxProvider, profile: SandboxProfile): InstallExecutor {
+export function buildStageExecutor(runner: StageCommandRunner, profile: SandboxProfile): InstallExecutor {
   return async (stage: InstallPlanStage) => {
     let stdout = ''
     let stderr = ''
     for (const command of stage.commands) {
-      const result = await provider.runCommand(profile, command)
+      const result = await runner.runCommand(profile, command)
       stdout = appendOutput(stdout, result.stdout)
       stderr = appendOutput(stderr, result.stderr)
       if (result.code !== 0) {

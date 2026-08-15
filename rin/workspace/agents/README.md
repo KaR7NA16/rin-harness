@@ -21,11 +21,15 @@ records it authors round-trip through the repository reader unchanged.
 ## Service API
 
 The Cordis plugin is named `agents`, injects nothing, and registers a
-`FileAgentStore` on `ctx.agents`. Its config has two keys:
+`FileAgentStore` on `ctx.agents`. Its config has three keys:
 
 - `agentsHome` — runtime-definition root; `~` expands. Default `~/.rin/agents`.
 - `defaultRepositoryRoot` — repository root used when a caller names none;
   empty means pass one explicitly.
+- `autoProject` — listen for the dsh `agent/created` event and project the
+  configured repository's agents into the user preset root whenever their
+  content changed since the last projection. Default `true`; set `false` to
+  keep projection manual-only (`projectRepositoryAgents`).
 
 ```ts
 import type { Context } from '@deepseek-ai/cordis'
@@ -45,6 +49,13 @@ import type { Context } from '@deepseek-ai/cordis'
 // ctx.agents.projectRepositoryAgents(root?, { presetRoot? }) // { ids: string[] }
 // ctx.agents.proposeAgent(instructions, generate?)           // AgentProposal
 ```
+
+With `autoProject` (the default) the plugin registers an `agent/created`
+listener that re-projects only when the repository's agent content changed —
+computed as a `name:revision` fingerprint — so a burst of agent creation does
+not rewrite the preset root. Projection still refuses to overwrite a preset
+whose file differs, so a diverged preset fails loud as a logged error instead
+of blocking the agent that triggered it.
 
 Every repository record carries a `revision`: the first 12 hex digits of its
 file's SHA-256 digest, so a caller can tell whether a record changed without
@@ -97,6 +108,12 @@ persona itself, which is the agent's stable system prompt.
   resolved through `@deepseek-ai/dsh-agent-presets` `writableRoot`; an
   explicit `presetRoot` option bypasses it. Confirm that the assembled
   runtime composes the same user root the dsh agent-presets plugin discovers.
+- **Auto-projection surfaces divergence as an error, not an overwrite.** The
+  `agent/created` trigger re-projects only when repository content changed,
+  but projection never overwrites a differing preset (hand-edit protection),
+  so editing a projected repository agent logs an error on the next agent
+  creation and leaves the preset untouched; reconcile the preset or re-project
+  manually.
 - **`model` and `permissionMode` are comments, not rows.** The shipped
   agent.cordis.yml presets expose no stable agent-plane row for either —
   `model` resolves per session/route (`{{model}}`) and permission mode lives

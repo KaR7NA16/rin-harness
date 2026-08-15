@@ -97,11 +97,15 @@ export interface SandboxStoreDocument {
 /** A promise wrapper over execFile used for capability probing. */
 export type ProbeExec = (file: string, args: string[]) => Promise<string>
 
+/** Runs one stage command inside a sandbox; shared by providers and the shell seam. */
+export interface StageCommandRunner {
+  runCommand(profile: SandboxProfile, command: string): Promise<StageExecutionResult>
+}
+
 /** The sandbox executor contract implemented once per profile type. */
-export interface SandboxProvider {
+export interface SandboxProvider extends StageCommandRunner {
   readonly type: SandboxType
   probeCapabilities(profile: SandboxProfile): Promise<ResolverCapabilities>
-  runCommand(profile: SandboxProfile, command: string): Promise<StageExecutionResult>
 }
 
 /** The three providers, one per profile type. */

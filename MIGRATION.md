@@ -163,7 +163,7 @@ Bash/PowerShell/TerminalCapture→tool-bash/tool-pwsh/tool-terminal；FileRead/W
 
 ### 🟡 dsh 有 seam、改写为 @rin 插件
 
-PromptMemoryTool→@rin/prompt-memory（system-prompt）；SkillMemoryTool→@rin/skill-memory（skill）；SessionSearchTool→@rin/session-search（session-query）；CtxInspectTool/SnipTool/force-snip→@rin/compaction-*（compaction + token-meter）；BriefTool→@rin/brief；ReviewArtifactTool/review/security-review→@rin/review。
+PromptMemoryTool→@rin/prompt-memory（system-prompt）；SkillMemoryTool→@rin/skill-memory（skill）；SessionSearchTool→@rin/session-search（session-query）；CtxInspectTool/SnipTool/force-snip→**dsh 已有 compaction seam**（dsh-compaction/dsh-compaction-basic/tool-result-pruner），@rin/compaction-* 不单独建；BriefTool→@rin/brief、ReviewArtifactTool/review/security-review→@rin/review **后置未排期（未覆盖项，见 §10）**。
 
 token 优化五栈折叠（§5）：cavemanOptimization/ponytailOptimization→@rin/token-optimization 响应风格开关；liteOptimization→@rin/token-optimization prompt 清理开关（deterministic cleaner）；rtkOptimization（终端输出压缩）→@rin/smart-pruning 级别 ≥2 的工具结果裁剪；smartPruningOptimization→@rin/smart-pruning 级别滑块；codeGraphTextBudget/codeGraphPreflight→smart-pruning 级别 3 的上下文预算（codeGraph 本体后置）。
 
@@ -217,7 +217,7 @@ claudeAiLimits, mockRateLimits, rateLimitMessages, rateLimitMocking；grove, Cla
 
 1. **响应风格开关**（@rin/token-optimization `responseStyle`）：`off | caveman | ponytail` 单选——已实现，映射 cavemanOptimization / ponytailOptimization。
 2. **Prompt 清理开关**（@rin/token-optimization `cleanPrompt`）：布尔——已实现，映射 liteOptimization 的 deterministic cleaner。
-3. **智能裁剪级别滑块**（@rin/smart-pruning `level`）：`0（关）| 1（轻度）| 2（中度）| 3（激进）`——已实现级别语义，本轮补充：级别 ≥2 折叠 rtkOptimization（工具/终端输出压缩）；级别 3 折叠 codeGraphTextBudget（上下文预算）。codeGraph 本体（索引器 + 可视化）后置不进此页。
+3. **智能裁剪级别滑块**（@rin/smart-pruning `level`）：`conservative | balanced | aggressive` 三档——已实现工具结果去重 / 替代读折叠 / 超预算截断。注：rtkOptimization（终端 I/O 压缩）与 codeGraphTextBudget（上下文预算）本轮**舍弃**（未折叠进本滑块，dsh 已自带 tool-result pruner 覆盖主体）；codeGraph 本体（索引器 + 可视化）后置。
 
 旧五栈与 codeGraph 不再各自成包成页；其功能经三控件全部保留或显式舍弃（舍弃 = 测试工具与 CC 限流栈）。API 侧 `token-optimization` 路由保留为三控件读写。
 
@@ -228,9 +228,9 @@ claudeAiLimits, mockRateLimits, rateLimitMessages, rateLimitMocking；grove, Cla
 旧项目 notesService 为 Obsidian 风格纯文件存储，功能全量清单（迁移目标）：markdown 文件 + 目录；wikilink（`[[target|alias]]`）+ 标签（frontmatter + 行内）解析；模板（.templates）；历史快照（.history 保留 10 份）；assets 目录；全文搜索（snippet + score）；笔记图谱（nodes/edges）；待办提取（行级 checkbox）；笔记元数据（标题取首个 H1、大小、mtime）。上层：NotesTool（list/search/read）+ notes API + Notes 页 + 9 组件（BacklinksPanel/NoteEditor/NoteGraphView/NoteNameDialog/NotePickerModal/OutlinePanel/QuickSwitcher/SnapshotPanel/TodoPanel）。
 
 rin 侧拆三层：
-- host 插件 @rin/notes：`ctx.notes` 服务（文件存储 + 解析 + 搜索 + 图谱 + 快照，零外部依赖，node: 内置）+ 注册 dsh tool（NotesTool：list/search/read 对齐旧 schema）。
-- web-server 路由：`/api/notes/{list,read,search,graph,todos,snapshots,backup}`。
-- web-ui NotesPage：按 9 组件设计参考重写；**会话备份并入**——`session backup` = 把 dsh 会话导出为一条 markdown 笔记（SessionBackup 页功能保留、独立页取消）。
+- host 插件 @rin/notes：`ctx.notes` 服务（文件存储 + 解析 + 搜索 + 图谱 + 写时快照，零外部依赖，node: 内置）+ 注册 dsh tool（NotesTool：list/search/read 对齐旧 schema）。
+- web-server 路由：`/api/notes/{list,read,search,graph,todos,templates,write,delete,backup}`；snapshots 列举/读取（SnapshotPanel）后置。
+- web-ui NotesPage：按 9 组件设计参考重写（SnapshotPanel 后置）；**会话备份并入**——`session backup` = 把 dsh 会话导出为一条 markdown 笔记（SessionBackup 页功能保留、独立页取消）。
 
 ### 6.2 知识空间（@rin/knowledge 补全）
 
@@ -239,7 +239,7 @@ rin 侧拆三层：
 补全项：
 - **知识检索工具**（旧项目通过 QueryEngine 注入知识查询；rin 侧以 dsh tool 注册为对称实现）：`knowledge_search(query)` / `knowledge_stats()` 挂在 dsh tool seam，agent 可直接检索知识库（当前 index.ts 标注 NEXT milestone）。
 - KnowledgeSpace 页扩展：来源管理 + 文档/分块浏览 + 索引状态。
-- 内置仓库的 knowledge/ 根目录作为默认来源（种子）。
+- 内置仓库的 knowledge/ 根目录作为默认来源（种子）——后置：builtin/knowledge 当前为空占位。
 
 ### 6.3 仓库接入 agent 与 sandbox 配置（@rin/agents + @rin/sandboxes，新 group workspace/）
 
@@ -270,7 +270,8 @@ rin 侧完整链（补齐缺口）：
 - **Phase 5 资产链路（HIGH，本轮新增）**：@rin/agents + @rin/sandboxes + @rin/environment 执行 + builtin 种子资产。依赖 repository/environment 已建；两包可并行（agents 依赖 agent-presets authoring，sandboxes 依赖 environment plan）。
 - **Phase 6 笔记与知识闭环（HIGH，本轮新增）**：@rin/notes（存储 + 工具 + API + 会话备份）+ knowledge 检索工具 + KnowledgeSpace 页补全。两域互不依赖，可并行。
 - **Phase 7 UI 补齐（HIGH）**：web-ui 新增 NotesPage / SandboxesPage / AgentWorkspacePage + TokenOptimizationPage 改三控件。
-- **Phase 8 装配与发布（HIGH，进行中）**：@rin/gui（Tauri 2 桌面壳，内嵌 web-ui）+ @rin/bundle（cordis.yml 装配 dsh-base + @rin 全家）+ @rin/cli（`rin` 启动器：起 host 8320 打印 URL，GUI 壳复用）+ 文档收口（本文档为唯一权威，PHASE4-STANDALONE.md 为 Web API 契约）。选型定稿见 §8 决策 9/10。
+- **Phase 8 装配与发布（HIGH，已完成）**：@rin/gui（Tauri 2 桌面壳，内嵌 web-ui）+ @rin/bundle（cordis.yml 装配 dsh-base + @rin 全家）+ @rin/cli（`rin` 启动器：起 host 8320 打印 URL，GUI 壳复用）+ 文档收口（本文档为唯一权威，PHASE4-STANDALONE.md 为 Web API 契约）。选型定稿见 §8 决策 9/10。
+- **Phase 9 seam 接入（HIGH，已完成）**：8 个缺口经 8 个子代理并行实现 + 主线程收口，全部接入 dsh seam（矩阵与交付摘要见 `rin/SEAM-PROJECTION.md`）：prompt-memory→systemPrompt 段落、session-search→session 事件索引 + `rin_session_search`/`rin_session_stats` 工具、skill-memory→skills provider、agents→`agent/created` 自动投影（指纹去重）、environment+sandboxes→`ctx.shell` 真实执行（dryRun 开关）、smart-pruning→`agent/pre-step` 去重+替代读折叠、evolution→reviewModel 适配器修复 + autoTrigger 开关、repository→`repository_search`/`repository_read` 资产浏览工具。收口：`pnpm install --lockfile-only`（新增 dsh-tools/dsh-skill 依赖）→ `pnpm rin:typecheck` 通过 → 9 个 seam 冒烟 + 5 个回归冒烟全绿。knowledge/notes/token-optimization 此前已接入。
 - 后置（MEDIUM，MVP 验证价值后按需）：team、remote/bridge、im-feishu/telegram、computer-use、agent-migration、codegraph、schedule、doctor。
 - 砍/极后置（LOW/负值）：worktree、editor-notebook、voice、github（空桩）。
 

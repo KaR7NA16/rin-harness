@@ -3,9 +3,11 @@
  *
  * Exposes a ctx['skill-memory'] service that creates file-backed skill memory
  * stores, plus the deterministic domain model: the skill creation gate, the
- * lifecycle policy, storage identities, and the store itself. Runtime command
- * mapping, prompt formatting, fire-and-forget logging, lifecycle scheduling,
- * and model-driven review remain adapters outside this package.
+ * lifecycle policy, storage identities, and the store itself. It also projects
+ * the store into ctx.skills as a provider, so each remembered skill's distilled
+ * SUMMARY.md is loadable as a `skill-memory-*` skill. Runtime command mapping,
+ * prompt formatting, fire-and-forget logging, lifecycle scheduling, and
+ * model-driven review remain adapters outside this package.
  *
  * @module @rin/skill-memory
  */
@@ -13,6 +15,8 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { createSkillMemoryStore } from './store.ts'
 import type { SkillMemoryStore, SkillMemoryStoreOptions } from './store.ts'
+import { registerSkillMemorySeam } from './seam.ts'
+import type { SkillMemorySeamConfig } from './seam.ts'
 import type { SkillMemoryRoots } from './types.ts'
 
 export { SKILL_MEMORY_API_VERSION } from './types.ts'
@@ -69,6 +73,23 @@ export type {
   SkillUsageRecord,
   SkillUsageSidecar,
 } from './store.ts'
+export {
+  registerSkillMemorySeam,
+  SKILL_MEMORY_PROVIDER_NAME,
+  SkillMemoryProvider,
+} from './seam.ts'
+export type { SkillMemorySeamConfig } from './seam.ts'
+export {
+  listSkillMemoryEntries,
+  readSkillMemoryDir,
+  SKILL_MEMORY_DESCRIPTION_MAX,
+  SKILL_MEMORY_GLOBAL_RANK,
+  SKILL_MEMORY_NAME_PREFIX,
+  SKILL_MEMORY_PROJECT_RANK,
+  skillMemoryDescription,
+  skillMemoryDshName,
+} from './catalog.ts'
+export type { SkillMemoryCatalogEntry } from './catalog.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -98,9 +119,17 @@ export class FileSkillMemoryService extends SkillMemoryService {
 }
 
 export const name = 'skill-memory'
-export const inject = []
+export const inject = ['skills']
 
-/** Install the file-backed skill memory service into the shared context. */
-export function apply(ctx: Context): void {
+/** Plugin configuration: optional memory roots and provider name for the skills-seam projection. */
+export interface Config extends SkillMemorySeamConfig {}
+
+/**
+ * Install the file-backed skill memory service and register its skills-seam provider.
+ * @param ctx - the plugin context (must inject `skills`).
+ * @param config - optional seam configuration; omit roots to register an empty provider.
+ */
+export function apply(ctx: Context, config: Config = {}): void {
   ctx.plugin(FileSkillMemoryService)
+  registerSkillMemorySeam(ctx, config)
 }

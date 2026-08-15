@@ -22,6 +22,7 @@ import {
   type SandboxProfileInput,
   type SandboxProfilePatch,
   type SandboxProviders,
+  type StageCommandRunner,
 } from './types.ts'
 import {
   applySandboxProfilePatch,
@@ -31,6 +32,7 @@ import {
 import { parseSandboxStoreDocument, stringifySandboxStoreDocument } from './yaml.ts'
 import { defaultProviders, providerFor } from './providers.ts'
 import { executeEnvironmentPlan } from './exec.ts'
+import { resolveStageRunner, type ShellConfig, type ShellExecutorLike } from './seam.ts'
 
 /** The current (v2) store filename. */
 export const PROFILES_FILENAME = 'sandbox.yaml'
@@ -51,22 +53,31 @@ export function defaultSandboxProfilesPath(home = homedir()): string {
 export interface SandboxStoreOptions {
   profilesPath: string
   providers?: SandboxProviders
+  /** Lazy resolver for the dsh shell seam (see registerShellSeam). */
+  shell?: () => ShellExecutorLike | undefined
+  /** Shell-seam execution options (dryRun, timeout, env). */
+  shellConfig?: ShellConfig
 }
 
 /**
  * File-backed sandbox-profile store. Reads and writes the versioned YAML
- * document, migrating the legacy sandboxes.json on first read, and delegates
- * probing/execution to the per-type providers.
+ * document, migrating the legacy sandboxes.json on first read. Probing
+ * delegates to the per-type providers; execution runs stage commands through
+ * the dsh shell seam when a resolver is supplied, else through the providers.
  */
 export class FileSandboxStore {
   private readonly profilesPath: string
   private readonly providers: SandboxProviders
+  private readonly shell: (() => ShellExecutorLike | undefined) | undefined
+  private readonly shellConfig: ShellConfig | undefined
   private cache: SandboxProfile[] | null = null
 
-  /** @param options - the store path and optional provider overrides. */
+  /** @param options - the store path and optional provider / shell overrides. */
   constructor(options: SandboxStoreOptions) {
     this.profilesPath = options.profilesPath
     this.providers = options.providers ?? defaultProviders()
+    this.shell = options.shell
+    this.shellConfig = options.shellConfig
   }
 
   /** @returns every profile, copied so callers cannot mutate the cache. */
@@ -168,7 +179,10 @@ export class FileSandboxStore {
     environmentProfileId: string,
     plan: ResolvedEnvironmentPlan,
   ): Promise<InstallRun> {
-    return executeEnvironmentPlan(profile, repositoryId, environmentProfileId, plan, providerFor(profile, this.providers))
+    const runner: StageCommandRunner = this.shell !== undefined
+      ? resolveStageRunner(this.shell(), this.shellConfig ?? {})
+      : providerFor(profile, this.providers)
+    return executeEnvironmentPlan(profile, repositoryId, environmentProfileId, plan, runner)
   }
 
   private async load(): Promise<SandboxProfile[]> {

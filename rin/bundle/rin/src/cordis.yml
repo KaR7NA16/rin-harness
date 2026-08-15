@@ -37,6 +37,10 @@
 
 - id: skill-memory
   name: '@rin/skill-memory'
+  config:
+    roots:
+      globalConfigRoot: !!js rinHome('skill-memory')
+      projectConfigRoot: !!js rinHome()
 
 - id: session-search
   name: '@rin/session-search'
@@ -56,8 +60,23 @@
         const provider = llm.listProviders?.()[0]?.id
         if (!provider) throw new Error('rin evolution: no llm provider registered')
         const text = []
-        for await (const chunk of llm.stream({ provider, model, messages: [{ role: 'user', content: prompt }] })) {
-          if ((chunk.type === 'text-delta' || chunk.type === 'text') && typeof chunk.text === 'string') text.push(chunk.text)
+        for await (const chunk of llm.stream({
+          provider,
+          model,
+          messages: [{
+            role: 'user',
+            content: [{ type: 'text', text: prompt }],
+            source: { kind: 'user' },
+            id: crypto.randomUUID(),
+          }],
+        })) {
+          if (chunk.type === 'finish') {
+            const reason = chunk.reason
+            if (reason.kind === 'error' || reason.kind === 'aborted') {
+              throw new Error('rin evolution: review model call failed: ' + (reason.failure ? reason.failure.message : reason.kind))
+            }
+          }
+          if (chunk.type === 'text-delta' && typeof chunk.text === 'string') text.push(chunk.text)
         }
         return text.join('')
       })

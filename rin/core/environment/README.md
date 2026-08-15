@@ -34,8 +34,8 @@ Independent — no interaction with the model prefix.
 ## Known Limitations and Deferred Work
 
 - No bundled executor. exec.ts orchestrates runs but the InstallExecutor must be
-  injected (provided by @rin/sandboxes); real-machine end-to-end execution is
-  pending that seam.
+  injected; @rin/sandboxes supplies it through the dsh `ctx.shell` seam, so a
+  full run awaits the assembled harness on a real machine.
 - One audit-log entry per stage: stage.commands are joined with ' && ' in the
   log; per-command granularity is not recorded.
 - No cross-repository version solving. dependencies are package-id edges within

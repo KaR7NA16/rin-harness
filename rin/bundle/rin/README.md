@@ -55,7 +55,7 @@ pnpm run rin         # 启动 host，WebView/浏览器打开 http://127.0.0.1:83
 
 ## Known Limitations and Deferred Work
 
-- **`@rin/evolution` 的 `reviewModel` 是 boot 时适配器**：`src/index.ts` 导出的 `defaultConfig.evolution.reviewModel` 是 fail-loud 占位（需要 dsh llm seam，只在 boot 上下文存在）；真正可用的默认在 `src/cordis.yml` 的 `!!js` 里，其 llm seam 表面（`stream`/`listProviders`）需真机验证。
+- **`@rin/evolution` 的 `reviewModel` 是 boot 时适配器**：`src/index.ts` 导出的 `defaultConfig.evolution.reviewModel` 是 fail-loud 占位（需要 dsh llm seam，只在 boot 上下文存在）；真正可用的默认在 `src/cordis.yml` 的 `!!js` 里。该适配器已把消息内容构造成 `text` 内容块并检测 provider 错误 finish 分块（`tests/seam.smoke.ts` 用 fake llm 验证），完整真机 boot 仍由 `@rin/cli` 验收。
 - **`cordis.yml` 与 `src/index.ts` 是两份平行来源**：路径与默认值需手工同步；冒烟测试只断言包名列表，不断言两份配置逐字一致。
 - **`baseBundlePatchPath()` 依赖 `@deepseek-ai/dsh-base` 的 `./cordis.patch.yml` 公开导出**：上游移动该导出时需同步更新。
 - **装配尚未真机 boot 验证**：本包只保证元数据与 `cordis.yml` 能被解析；完整 host boot 由 `@rin/cli` 在真机验收。

@@ -15,6 +15,13 @@ without deduplicating. This plugin owns the dedupe + superseded-read policy and
 the three-level budgets; the core module (`core.ts`) is pure and
 deterministic, with no cordis dependency.
 
+The seam module (`seam.ts`) projects that policy into the dsh session surface:
+on each `agent/pre-step` boundary it rewrites older duplicate results and
+superseded reads to a one-line omission marker (single-node surface replaces
+with the dsh shadow-price protocol), leaving over-budget truncation to the
+dsh pruner. The level and enabled flag are read live from the store, so
+`setLevel`/`setEnabled` hot-apply.
+
 ## Service API
 
 The plugin entry (`index.ts`) exposes `ctx.smartPruning` (a
@@ -34,6 +41,15 @@ The standalone core exports the same behavior without cordis:
 ```ts
 import { SmartPruningService, pruneMessagesForAPI, isSmartPruningLevel } from '@rin/smart-pruning'
 ```
+
+## Session seam
+
+The seam (`registerSeam` in `seam.ts`) listens for the dsh `agent/pre-step`
+event and runs one deterministic pass over that agent's session surface.
+Only deduplication and superseded-read folding run there; truncation stays
+with the dsh compaction tool-result pruner, so the two never redo each other.
+The seam is structural (no Cordis import) and optional-shadow-prices each
+replacement through `ctx.tokenMeter` when it is available.
 
 ## Config
 
@@ -76,5 +92,6 @@ prefix-stable until the first rewritten token.
   not persisted; persistence is deferred.
 - **Syntactic.** Deduplication is a content fingerprint and superseded-read
   detection is path-based; it does not interpret semantic equivalence.
-- **Not a dsh seam yet.** Projection into the dsh compaction surface is the
-  next milestone.
+- **Step-boundary trigger.** A result is pruned on the next
+  `agent/pre-step` once it ages out of the level's recent-message window;
+  over-budget truncation is the dsh pruner's job, not this seam's.

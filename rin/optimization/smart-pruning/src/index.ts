@@ -18,6 +18,7 @@ import type {
   SmartPruningStats,
   SmartPruningStatus,
 } from './types.ts'
+import { registerSeam, type SmartPruningSeam } from './seam.ts'
 
 export type * from './types.ts'
 export type { OptimizationMessage } from './core.ts'
@@ -77,7 +78,12 @@ export class SmartPruningStore extends Service {
 export const name = 'smart-pruning'
 export const inject = []
 
-/** Install the smart-pruning service into the shared context. */
-export function apply(ctx: Context): void {
-  ctx.plugin(SmartPruningStore)
+/**
+ * Install the smart-pruning service and its dsh session-surface seam.
+ * @param ctx - the plugin context.
+ * @param config - the resolved plugin configuration.
+ */
+export function apply(ctx: Context, config: SmartPruningConfig = {}): void {
+  ctx.plugin(SmartPruningStore, config)
+  registerSeam(ctx as unknown as SmartPruningSeam)
 }

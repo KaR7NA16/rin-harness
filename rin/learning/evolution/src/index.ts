@@ -12,6 +12,7 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { createEvolution } from './evolution.ts'
 import type { Evolution } from './evolution.ts'
+import { registerSeam, type EvolutionSeam } from './seam.ts'
 import type { EvolutionAdapters, EvolutionRoots, EvolutionReviewModel } from './types.ts'
 
 export * from './types.ts'
@@ -43,6 +44,12 @@ export {
   getSkillLearningRoot,
   getSkillLearningStatePath,
 } from './paths.ts'
+export {
+  EVOLUTION_TRIGGER_EVENT,
+  registerEvolutionTriggers,
+  registerSeam,
+} from './seam.ts'
+export type { EvolutionSeam, EvolutionTriggerConfig } from './seam.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -64,6 +71,13 @@ export interface EvolutionPluginConfig {
   appendNotice?: (text: string) => void
   /** Optional adapter for non-durable debug logging. */
   logDebug?: (message: string) => void
+  /**
+   * Opt-in automatic review trigger. Defaults to off: the review loop is
+   * entered manually through the web-server route. When true,
+   * {@link registerEvolutionTriggers} subscribes to a session lifecycle event;
+   * the session→review mapping is a wiring point only, not yet implemented.
+   */
+  autoTrigger?: boolean
 }
 
 /** The skill self-evolution service exposed on the shared context. */
@@ -127,9 +141,10 @@ export class FileEvolutionService extends EvolutionService {
 export const name = 'evolution'
 export const inject = []
 
-/** Install the file-backed evolution service into the shared context. */
+/** Install the file-backed evolution service and its seam projections. */
 export function apply(ctx: Context, config: EvolutionPluginConfig): void {
   ctx.plugin(FileEvolutionService, config)
+  registerSeam(ctx as unknown as EvolutionSeam, config)
 }
 
 /** Validate the plugin config and split it into roots and adapters. */

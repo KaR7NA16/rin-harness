@@ -32,7 +32,9 @@ import type { Context } from '@deepseek-ai/cordis'
 
 The plugin config requires `globalConfigRoot` and `reviewModel`; the model
 adapter, catalog refresh, and notice callback are injected by the installing
-runtime (see `EvolutionPluginConfig` in `src/index.ts`).
+runtime (see `EvolutionPluginConfig` in `src/index.ts`). The optional
+`autoTrigger` flag (default off) opts into `registerEvolutionTriggers`, a
+session-lifecycle trigger wiring point — see `src/seam.ts`.
 
 ## Cross-@rin wiring
 
@@ -68,3 +70,8 @@ Independent — no interaction with the model prefix.
 - **Interactive skill generation and auto-consolidation are deferred.** The
   reviewer loop here is the automatic path only; the interactive skillify
   interview and the dream consolidation agent are not ported.
+- **No automatic review trigger.** `executeReview` is entered manually (the
+  web-server route reads the overview only). `registerEvolutionTriggers` is an
+  opt-in wiring point that subscribes to a session lifecycle event but has no
+  session→review mapping yet — enabling `autoTrigger` records a debug trace and
+  does not run reviews.

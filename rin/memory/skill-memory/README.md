@@ -11,7 +11,9 @@ ids and on-disk layout from injected config roots; and the store (`store.ts`)
 that owns file locking, atomic writes, usage/stats consistency, summaries, and
 bounded pending/evidence retention. The Cordis plugin entry (`index.ts`)
 exposes the `ctx['skill-memory']` service with a
-`createStore(roots, options)` method.
+`createStore(roots, options)` method, and the seam projection (`seam.ts` +
+`catalog.ts`) registers a `ctx.skills` provider that exposes each remembered
+skill's `SUMMARY.md` as a `skill-memory-*` skill.
 
 ## Service API
 
@@ -27,13 +29,17 @@ import type { Context } from '@deepseek-ai/cordis'
 
 #### What the model sees
 
-None directly. This plugin contributes no model-visible prose; it is a
-host-side service and library. Runtime adapters outside this package own
-prompt formatting, command mapping, and model-driven review.
+Through the skills seam: when config roots are provided, each remembered skill
+with a non-empty, non-archived `SUMMARY.md` is advertised as a
+`skill-memory-<name>` skill in the skill catalog, and loading it returns the
+distilled memory body. Without config roots the provider contributes an empty
+catalog, so the service remains a host-side library.
 
 #### Token effect
 
-Zero direct token effect.
+Bounded by the skill catalog: the provider adds one routing description per
+remembered skill, and a loaded memory injects its `SUMMARY.md` body (capped at
+2,500 characters by the store).
 
 #### KV Cache effect
 

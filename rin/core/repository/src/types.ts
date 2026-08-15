@@ -23,6 +23,7 @@ export interface AssetMetadata {
   id: string
   name: string
   version: string
+  /** POSIX path relative to the repository root, recorded by the reader. */
   source?: string
 }
 
@@ -101,8 +102,16 @@ export interface RepositoryAgentConfiguration {
   systemPrompt: string
   model?: string
   permissionMode?: AgentPermissionMode
+  /** POSIX path relative to the repository root, e.g. `agents/rin-base.agent.yaml`. */
+  source?: string
   tools: string[]
   resources: AgentResourceReferences
+}
+
+/** Plugin configuration for the repository host plugin. */
+export interface RepositoryConfig {
+  /** Absolute or cwd-relative path to the asset repository root. Defaults to the built-in repository. */
+  repositoryRoot?: string
 }
 
 export interface AssetRepository {

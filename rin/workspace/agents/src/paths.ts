@@ -54,3 +54,16 @@ export function resolveDefaultDshHome(env: Record<string, string | undefined> = 
   const selected = fromEnv !== undefined && fromEnv.trim().length > 0 ? fromEnv : join(homedir(), DSH_HOME_DIR_NAME)
   return resolve(expandHome(selected))
 }
+
+/** Directory name for the dsh agent-presets user root under the harness home. */
+export const USER_PRESET_DIRNAME = '.agent-presets'
+
+/**
+ * Resolve the default dsh agent-presets user root, mirroring the
+ * `@deepseek-ai/dsh-agent-presets` plugin's `<dshHome>/.agent-presets`.
+ * @param env - environment mapping used to read DSH_HOME.
+ * @returns the absolute preset root path.
+ */
+export function resolveDefaultPresetRoot(env: Record<string, string | undefined> = process.env): string {
+  return join(resolveDefaultDshHome(env), USER_PRESET_DIRNAME)
+}

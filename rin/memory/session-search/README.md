@@ -43,9 +43,12 @@ package has zero runtime dependencies beyond the `@deepseek-ai/cordis` peer.
 
 ### What the model sees
 
-None directly. This plugin contributes no model-visible prose in its current
-form; it is a host-side service. Later milestones will register tools (e.g.
-`session_search`) whose schemas then join prompt assembly.
+Two model-visible tools join prompt assembly (Phase 9 seam projection):
+`rin_session_search` (cross-workspace full-text over session transcripts and
+project memories, complementary to dsh's event-level `session_search`) and
+`rin_session_stats` (index statistics). The seam also listens for the global
+`session/created` and `session/disposed` events and writes/removes index rows
+for live sessions automatically.
 
 ### Token effect
 
@@ -57,9 +60,10 @@ Independent — no interaction with the model prefix.
 
 ## Known Limitations and Deferred Work
 
-- **Index-only.** The plugin maintains the derived search index and its query
-  surface but does not yet project it into dsh tool seams. Tool registration
-  and prompt assembly are the next milestone.
+- **Index-only at rest.** The plugin projects into dsh tool seams (Phase 9):
+  `rin_session_search` / `rin_session_stats` tools plus automatic indexing on
+  the global `session/created` / `session/disposed` events. The index remains
+  derived data — deleting it never deletes source JSONL, history, or memory.
 - **Runtime injection is the caller's job.** Source discovery (scanning session
   JSONL, history logs, and memory files) and path normalization live outside
   this package; the runtime must call `writeSession`/`writeProjectMemoryFile`

@@ -4,13 +4,15 @@
  * Exposes a ctx.sessionSearch service that owns the derived SQLite full-text
  * search index over historical sessions, transcripts, history logs, and
  * project memories. The package also re-exports the standalone core functions
- * for product-independent use. Projection of this index into dsh tool seams is
- * the NEXT milestone.
+ * for product-independent use and registers the dsh seam projection: session
+ * lifecycle indexing plus the rin_session_search / rin_session_stats tools.
  *
  * @module @rin/session-search
  */
 
 import { Context, Service } from '@deepseek-ai/cordis'
+import { registerSeam } from './seam.ts'
+import type { Config } from './seam.ts'
 import { openSessionSearchDb } from './db.ts'
 import { getSessionSearchDbPath } from './paths.ts'
 import {
@@ -226,9 +228,23 @@ export class FileSessionSearchStore extends SessionSearchStore {
 }
 
 export const name = 'session-search'
-export const inject = []
+export const inject = ['tools']
 
-/** Install the file-backed session-search service into the shared context. */
-export function apply(ctx: Context, roots: SessionSearchRoots): void {
-  ctx.plugin(FileSessionSearchStore, roots)
+/**
+ * Install the file-backed session-search service and register its seam
+ * projection (session lifecycle indexing plus model-visible search tools).
+ * @param ctx - the plugin context (must inject tools).
+ * @param config - the resolved plugin configuration.
+ */
+export function apply(ctx: Context, config: Config): void {
+  ctx.plugin(FileSessionSearchStore, config)
+  registerSeam(ctx, config)
 }
+
+export { registerSeam, type Config } from './seam.ts'
+export { resolveSessionSearchConfig, SessionSearchCore } from './seam-core.ts'
+export type { SessionSearchConfig, SessionSearchConfigInput, SessionSearchSeam, SessionSearchTool } from './seam-core.ts'
+export { projectSessionToTranscript } from './projectSession.ts'
+export type { SeamSession, SeamSessionEvent, SeamSessionHeader } from './projectSession.ts'
+export { searchSessionIndex, sessionIndexStats } from './tools-core.ts'
+export type { SessionSearchStats, SessionSearchStatsResult, SessionSearchToolHit, SessionSearchToolResult } from './tools-core.ts'

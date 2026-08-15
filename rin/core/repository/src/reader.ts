@@ -1,5 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises'
-import { isAbsolute, join, relative, resolve } from 'node:path'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import {
   ASSET_REPOSITORY_API_VERSION,
@@ -49,7 +49,7 @@ export async function readAssetRepository(rootPath: string): Promise<AssetReposi
     .map(entry => join(packagesRoot, entry.name))
     .sort((a, b) => a.localeCompare(b))
   const environmentCatalogs = await Promise.all(catalogPaths.map(async path =>
-    parseEnvironmentCatalog(await readYamlDocument(path), path)))
+    parseEnvironmentCatalog(await readYamlDocument(path), path, repoRelative(root, path))))
 
   const stableIds = new Set<string>()
   const environmentPackages = environmentCatalogs.flatMap(catalog =>
@@ -64,7 +64,7 @@ export async function readAssetRepository(rootPath: string): Promise<AssetReposi
     .map(entry => join(profilesRoot, entry.name))
     .sort((a, b) => a.localeCompare(b))
   const environmentProfiles = await Promise.all(profilePaths.map(async path =>
-    parseEnvironmentProfile(await readYamlDocument(path), path)))
+    parseEnvironmentProfile(await readYamlDocument(path), path, repoRelative(root, path))))
   for (const profile of environmentProfiles) assertUniqueId(stableIds, profile.metadata.id)
 
   const agentsRoot = manifest.spec.roots.agents
@@ -77,7 +77,7 @@ export async function readAssetRepository(rootPath: string): Promise<AssetReposi
       .sort((a, b) => a.localeCompare(b))
     : []
   const agents = await Promise.all(agentPaths.map(async path =>
-    parseRepositoryAgent(await readYamlDocument(path), path)))
+    parseRepositoryAgent(await readYamlDocument(path), path, repoRelative(root, path))))
   for (const agent of agents) assertUniqueId(stableIds, agent.name)
 
   return {
@@ -130,7 +130,7 @@ function parseRepositoryManifest(input: unknown, source: string): AssetRepositor
   }
 }
 
-function parseEnvironmentCatalog(input: unknown, source: string): EnvironmentPackageCatalog {
+function parseEnvironmentCatalog(input: unknown, source: string, sourcePath?: string): EnvironmentPackageCatalog {
   const value = requireRecord(input, source)
   if (value.apiVersion !== ASSET_REPOSITORY_API_VERSION || value.kind !== 'EnvironmentPackageCatalog') {
     throw new Error('rin repository: expected EnvironmentPackageCatalog in ' + source)
@@ -142,7 +142,7 @@ function parseEnvironmentCatalog(input: unknown, source: string): EnvironmentPac
   return {
     apiVersion: ASSET_REPOSITORY_API_VERSION,
     kind: 'EnvironmentPackageCatalog',
-    metadata: parseMetadata(value.metadata, source),
+    metadata: parseMetadata(value.metadata, source, sourcePath),
     spec: {
       ecosystem,
       packages: spec.packages.map((raw, index) => {
@@ -162,7 +162,7 @@ function parseEnvironmentCatalog(input: unknown, source: string): EnvironmentPac
   }
 }
 
-function parseEnvironmentProfile(input: unknown, source: string): EnvironmentProfile {
+function parseEnvironmentProfile(input: unknown, source: string, sourcePath?: string): EnvironmentProfile {
   const value = requireRecord(input, source)
   if (value.apiVersion !== ASSET_REPOSITORY_API_VERSION || value.kind !== 'EnvironmentProfile') {
     throw new Error('rin repository: expected EnvironmentProfile in ' + source)
@@ -175,7 +175,7 @@ function parseEnvironmentProfile(input: unknown, source: string): EnvironmentPro
   return {
     apiVersion: ASSET_REPOSITORY_API_VERSION,
     kind: 'EnvironmentProfile',
-    metadata: parseMetadata(value.metadata, source),
+    metadata: parseMetadata(value.metadata, source, sourcePath),
     spec: {
       packages: spec.packages.map((id, index) => requireText(id, source + ' package reference ' + index)),
       ...(verify ? { verify: {
@@ -199,7 +199,7 @@ function parseEnvironmentProfile(input: unknown, source: string): EnvironmentPro
   }
 }
 
-function parseRepositoryAgent(input: unknown, source: string): RepositoryAgentConfiguration {
+function parseRepositoryAgent(input: unknown, source: string, sourcePath?: string): RepositoryAgentConfiguration {
   const value = requireRecord(input, source)
   if (value.version !== 2 || value.kind !== 'AgentConfiguration') {
     throw new Error('rin repository: expected AgentConfiguration v2 in ' + source)
@@ -221,6 +221,7 @@ function parseRepositoryAgent(input: unknown, source: string): RepositoryAgentCo
     name,
     description,
     systemPrompt: value.systemPrompt.trim(),
+    ...(sourcePath === undefined ? {} : { source: sourcePath }),
     ...(typeof value.model === 'string' && value.model.trim() ? { model: value.model.trim() } : {}),
     ...(isAgentPermissionMode(permissionMode) ? { permissionMode } : {}),
     tools: parseTextList(value.tools, source + ' Agent tools'),
@@ -234,12 +235,13 @@ function parseRepositoryAgent(input: unknown, source: string): RepositoryAgentCo
   }
 }
 
-function parseMetadata(input: unknown, source: string): AssetMetadata {
+function parseMetadata(input: unknown, source: string, sourcePath?: string): AssetMetadata {
   const metadata = requireRecord(input, source + ' metadata')
   return {
     id: requireText(metadata.id, source + ' metadata.id'),
     name: requireText(metadata.name, source + ' metadata.name'),
     version: requireText(metadata.version, source + ' metadata.version'),
+    ...(sourcePath === undefined ? {} : { source: sourcePath }),
   }
 }
 
@@ -253,6 +255,11 @@ function resolveRepositoryChild(root: string, configuredPath: string | undefined
     throw new Error('rin repository: root "' + key + '" escapes the repository')
   }
   return child
+}
+
+/** POSIX-normalized repository-relative path of one file under the root. */
+function repoRelative(root: string, path: string): string {
+  return relative(root, path).split(sep).join('/')
 }
 
 async function readYamlDocument(path: string): Promise<unknown> {

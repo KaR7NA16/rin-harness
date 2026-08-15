@@ -10,7 +10,6 @@
  * @module @rin/agents
  */
 
-import { join } from 'node:path'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { writableRoot, type PresetRoot } from '@deepseek-ai/dsh-agent-presets'
 import {
@@ -29,7 +28,8 @@ import {
 } from './runtime-agents.ts'
 import { projectRepositoryAgents as projectRepositoryAgentsToRoot } from './projection.ts'
 import { proposeAgent as proposeAgentCore } from './proposal.ts'
-import { expandHome, resolveDefaultDshHome } from './paths.ts'
+import { registerAgentsSeam, type AgentsSeam } from './seam.ts'
+import { expandHome, resolveDefaultPresetRoot } from './paths.ts'
 import type {
   AgentGenerate,
   AgentProposal,
@@ -83,13 +83,12 @@ export interface Config {
   agentsHome?: string
   /** Repository root used when a caller names none; empty means "pass one explicitly". */
   defaultRepositoryRoot?: string
+  /** Project repository agents into the preset root on each `agent/created`. Defaults to true. */
+  autoProject?: boolean
 }
 
 /** Default runtime-agent home, expanded against the OS home at use time. */
 export const DEFAULT_AGENTS_HOME = '~/.rin/agents'
-
-/** The dsh agent-presets user-root directory name, under the harness home. */
-const USER_PRESET_DIRNAME = '.agent-presets'
 
 /** Resolved configuration with defaults applied. */
 interface ResolvedConfig {
@@ -209,7 +208,7 @@ export class FileAgentStore extends AgentStore {
 
   /** Resolve the user preset root, honouring an explicit root over the default. */
   private resolvePresetRoot(explicit: string | undefined): string {
-    const path = explicit ?? join(resolveDefaultDshHome(), USER_PRESET_DIRNAME)
+    const path = explicit ?? resolveDefaultPresetRoot()
     const roots: PresetRoot[] = [{ path, trust: 'user' }]
     return writableRoot(roots)
   }
@@ -242,9 +241,10 @@ export class FileAgentStore extends AgentStore {
 export const name = 'agents'
 export const inject = []
 
-/** Install the file-backed agent service into the shared context. */
+/** Install the file-backed agent service and register the auto-projection seam. */
 export function apply(ctx: Context, config: Config = {}): void {
   ctx.plugin(FileAgentStore, resolveConfig(config))
+  registerAgentsSeam(ctx as unknown as AgentsSeam, config)
 }
 
 /** Apply defaults to the plugin configuration. */
