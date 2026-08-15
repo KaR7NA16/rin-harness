@@ -121,6 +121,44 @@ export async function handle(
   }
   if (pathname === '/api/mcp') return json(200, { servers: [] })
 
+  // Post-poned old surfaces: return an empty/disabled state so their pages render.
+  if (pathname === '/api/teams') return json(200, { teams: [] })
+  if (pathname === '/api/tasks' || pathname === '/api/tasks/lists') return json(200, { lists: [], tasks: [] })
+  if (pathname === '/api/computer-use/status') {
+    return json(200, {
+      platform: process.platform,
+      supported: false,
+      python: { installed: false, version: null, path: null },
+      venv: { created: false, path: '' },
+      dependencies: { installed: false, requirementsFound: false },
+      permissions: { accessibility: null, screenRecording: null },
+    })
+  }
+  if (pathname === '/api/computer-use/apps' || pathname === '/api/computer-use/authorized-apps') return json(200, { apps: [] })
+  if (pathname === '/api/agent-migration/scan' || pathname === '/api/agent-migration') {
+    return json(200, { scannedAt: new Date().toISOString(), targetAgentId: 'claude-code', agents: [] })
+  }
+  if (pathname === '/api/status/diagnostics') {
+    return json(200, {
+      nodeVersion: process.version,
+      bunVersion: null,
+      platform: process.platform,
+      arch: process.arch,
+      configDir: process.env.RIN_HOME ?? join(homedir(), '.rin'),
+      memory: { rss: 0, heapUsed: 0, heapTotal: 0 },
+    })
+  }
+  if (pathname === '/api/status/user') {
+    return json(200, {
+      configDir: process.env.RIN_HOME ?? join(homedir(), '.rin'),
+      projects: [],
+      username: 'rin',
+      displayName: 'rin',
+      hostname: 'localhost',
+      homeDir: homedir(),
+    })
+  }
+
   return null
 }
 
