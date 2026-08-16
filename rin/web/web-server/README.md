@@ -136,10 +136,41 @@ Static: GET / serves static/index.html; GET /<path> serves files under the stati
 root with path-traversal protection; anything else is 404. The static/ directory
 is owned by the frontend package.
 
+## Terminal WebSocket
+
+Endpoint: `/ws/terminal/<terminalId>` where terminalId is the frontend tab's
+session id (e.g. `__terminal__1`). JSON text frames both ways; one connection
+owns one spawned session and the session dies with the connection.
+
+Client → server:
+
+- `{"type":"spawn","argv"?:string[],"cwd"?:string,"cols"?:number,"rows"?:number}`
+  — sent first, once. argv defaults to the login shell (`$SHELL`, fallback
+  `/bin/bash`); cwd defaults to `process.cwd()`; geometry defaults to 80×24.
+- `{"type":"input","text":string}` — raw text to the PTY (no implicit newline).
+- `{"type":"signal","signal":"SIGINT"|"SIGTERM"|"SIGKILL"|"SIGTSTP"|"SIGHUP"}`
+  — signals the foreground process group.
+- `{"type":"close"}` — terminates the session.
+- `{"type":"ping"}` — health.
+
+Server → client:
+
+- `{"type":"ready","terminalId":string,"pid":number}` — spawn succeeded.
+- `{"type":"data","text":string}` — PTY output delta.
+- `{"type":"exit","exitCode":number|null,"signal":string|null}` — PTY exited.
+- `{"type":"error","message":string,"code":string}` — code is
+  SPAWN_FAILED | SUBPROCESS_UNAVAILABLE | NOT_SPAWNED | INTERNAL.
+- `{"type":"pong"}`.
+
+Sessions are spawned through the dsh subprocess provider
+(`ctx.subprocess`); when that service is absent, spawn reports
+SUBPROCESS_UNAVAILABLE. The server close path terminates every live session, so
+no PTY outlives the web-server.
+
 ## Request guards
 
-The server applies layered request guards at the single HTTP entry point (and
-the legacy WebSocket upgrade), regardless of `authToken`:
+The server applies layered request guards at the single HTTP entry point and at
+every WebSocket upgrade (legacy and terminal), regardless of `authToken`:
 
 - **Host**: the `Host` header must name a loopback host (`127.0.0.1`,
   `localhost`, or `::1`) on the bound port (or with no port); anything else →
@@ -168,3 +199,12 @@ static frontend: no UI change is required.
   STATS.json/SUMMARY.md directly, because the store's read methods are per-skill
   (ref-scoped) and expose no global enumeration. Its layout helpers are inlined
   here to keep the server core zero-runtime-dep.
+- Terminal sessions are POSIX-only: the login-shell default ($SHELL /
+  /bin/bash) is a POSIX concept, so spawn fails loud with SPAWN_FAILED on
+  win32. Explicit argv does not bypass this guard in v1.
+- Terminal resize is NOT implemented: SubprocessTerminalHandle has no resize
+  method, so every session spawns at a fixed 80x24 and the client's cols/rows
+  only set the initial geometry. A future seam with resize support is required
+  before geometry changes can work.
+- A terminal session is v1-ephemeral: it dies when its socket closes or the
+  server closes, and there is no resume protocol; a reconnect must spawn fresh.

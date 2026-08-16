@@ -960,6 +960,8 @@ export const ja = {
   'settings.terminal.status.error': 'エラー',
   'settings.terminal.status.unavailable': '利用不可',
   'terminal.newTab': '新しいターミナル',
+  'terminal.connectionFailed': 'ターミナルに接続できません。',
+  'terminal.connectionLost': '接続が失われました。',
   'settings.providers.title': 'プロバイダー',
   'settings.providers.description': 'モデルアクセス用の API プロバイダーを管理します。',
   'settings.providers.addProvider': 'プロバイダーを追加',

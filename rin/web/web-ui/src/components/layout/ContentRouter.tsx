@@ -10,6 +10,7 @@ import { Sandboxes } from '../../pages/Sandboxes'
 import { Monitor } from '../../pages/Monitor'
 import { RepositoryWorkspace } from '../../pages/RepositoryWorkspace'
 import { AgentWorkspace } from '../../pages/AgentWorkspace'
+import { Terminal } from '../../pages/Terminal'
 
 const WARM_SESSION_PANEL_COUNT = 2
 
@@ -84,6 +85,16 @@ export function ContentRouter() {
           </div>
         )
       })}
+
+      {/* Terminal tabs are first-class tabs, not workspace views */}
+      {activeTabType === 'terminal' && activeTabId && (
+        <div
+          key={activeTabId}
+          className="content-route-panel content-route-panel--active absolute inset-0 z-10 flex min-h-0 flex-col overflow-hidden"
+        >
+          <Terminal terminalId={activeTabId} spawnCommand={activeTab?.spawnCommand} />
+        </div>
+      )}
 
       {/* Non-session pages sit above session panels */}
       {nonSessionPage && (

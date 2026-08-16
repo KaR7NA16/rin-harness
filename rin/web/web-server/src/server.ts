@@ -19,6 +19,7 @@ import { routeApi } from './routes.ts'
 import type { RinServiceRefs } from './routes.ts'
 import { readStaticFile } from './static.ts'
 import { attachLegacyWebSocket } from './legacy-ws.ts'
+import { attachTerminalWebSocket, type TerminalBridge } from './terminal-ws.ts'
 import type { StaticFile } from './static.ts'
 
 /** Default static frontend root: the package's static/ directory. */
@@ -33,7 +34,10 @@ const MAX_IMPORT_BODY_BYTES = 64 * 1024 * 1024
 export interface RinWebServer {
   /** Start listening; resolves with the bound address once the socket is open. */
   listen(port: number, host: string): Promise<AddressInfo>
-  /** Stop the server; resolves once the socket is closed. */
+  /**
+   * Stop the server: first terminate every live terminal session (the terminal
+   * route dies with this server), then close the socket; resolves once closed.
+   */
   close(): Promise<void>
 }
 
@@ -57,6 +61,7 @@ export function createWebServer(config: Config, services: RinServiceRefs): RinWe
       respondError(res, 500, errorMessage(err))
     })
   })
+  const terminals: TerminalBridge = attachTerminalWebSocket(server, services, config, () => boundPort)
   attachLegacyWebSocket(server, services, config, () => boundPort)
 
   return {
@@ -76,9 +81,12 @@ export function createWebServer(config: Config, services: RinServiceRefs): RinWe
       })
     },
     close(): Promise<void> {
-      return new Promise<void>((resolveClose) => {
-        server.close(() => resolveClose())
-      })
+      return (async () => {
+        await terminals.dispose()
+        await new Promise<void>((resolveClose) => {
+          server.close(() => resolveClose())
+        })
+      })()
     },
   }
 }

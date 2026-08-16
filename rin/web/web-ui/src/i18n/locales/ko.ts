@@ -959,6 +959,8 @@ export const ko = {
   'settings.terminal.status.error': '오류',
   'settings.terminal.status.unavailable': '사용 불가',
   'terminal.newTab': '새 터미널',
+  'terminal.connectionFailed': '터미널에 연결할 수 없습니다.',
+  'terminal.connectionLost': '연결이 끊어졌습니다.',
   'settings.providers.title': '프로바이더',
   'settings.providers.description': '모델 액세스를 위한 API 프로바이더를 관리합니다.',
   'settings.providers.addProvider': '프로바이더 추가',

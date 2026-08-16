@@ -160,6 +160,8 @@ export const en = {
   'settings.terminal.status.error': 'Error',
   'settings.terminal.status.unavailable': 'Unavailable',
   'terminal.newTab': 'New Terminal',
+  'terminal.connectionFailed': 'Unable to connect to the terminal.',
+  'terminal.connectionLost': 'Connection lost.',
 
   // Settings > Providers
   'settings.providers.title': 'Providers',

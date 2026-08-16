@@ -20,6 +20,16 @@ vi.mock('../../features/scheduledTasks', () => ({
   ScheduledTasks: () => <div data-testid="scheduled-tasks" />,
 }))
 
+vi.mock('../../pages/Terminal', () => ({
+  Terminal: ({ terminalId, spawnCommand }: { terminalId: string; spawnCommand?: string[] }) => (
+    <div
+      data-testid="terminal-page"
+      data-terminal-id={terminalId}
+      data-spawn-command={spawnCommand?.join(' ')}
+    />
+  ),
+}))
+
 vi.mock('../../pages/Settings', () => ({
   Settings: () => <div data-testid="settings-page" />,
   ProviderSettings: () => <div data-testid="settings-page" />,
@@ -82,6 +92,55 @@ describe('ContentRouter content routing', () => {
     expect(sessionOne).toHaveAttribute('aria-hidden', 'true')
     expect(sessionTwo).not.toHaveClass('invisible')
     expect(sessionTwo).not.toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('renders the Terminal page for a terminal tab with its spawn command', () => {
+    useTabStore.setState({
+      tabs: [{
+        sessionId: '__terminal__1',
+        title: 'Terminal 1',
+        type: 'terminal',
+        status: 'idle',
+        spawnCommand: ['bash', '-l'],
+      }],
+      activeTabId: '__terminal__1',
+      recentSessionIds: [],
+    })
+
+    render(<ContentRouter />)
+
+    const terminal = screen.getByTestId('terminal-page')
+    expect(terminal).toBeInTheDocument()
+    expect(terminal).toHaveAttribute('data-terminal-id', '__terminal__1')
+    expect(terminal).toHaveAttribute('data-spawn-command', 'bash -l')
+  })
+
+  it('renders the Terminal page without a spawn command when the tab has none', () => {
+    useTabStore.setState({
+      tabs: [{ sessionId: '__terminal__1', title: 'Terminal 1', type: 'terminal', status: 'idle' }],
+      activeTabId: '__terminal__1',
+      recentSessionIds: [],
+    })
+
+    render(<ContentRouter />)
+
+    const terminal = screen.getByTestId('terminal-page')
+    expect(terminal).toHaveAttribute('data-terminal-id', '__terminal__1')
+    expect(terminal).not.toHaveAttribute('data-spawn-command')
+  })
+
+  it('treats a terminal tab as a tab rather than a workspace view', () => {
+    useTabStore.setState({
+      tabs: [{ sessionId: '__terminal__1', title: 'Terminal 1', type: 'terminal', status: 'idle' }],
+      activeTabId: '__terminal__1',
+      recentSessionIds: [],
+    })
+
+    render(<ContentRouter />)
+
+    expect(screen.getByTestId('terminal-page')).toBeInTheDocument()
+    expect(screen.queryByTestId('empty-session')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('scheduled-tasks')).not.toBeInTheDocument()
   })
 
   it('redirects a legacy backup tab into the settings backup page', () => {

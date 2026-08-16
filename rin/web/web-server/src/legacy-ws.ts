@@ -16,6 +16,7 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import type { Config } from './types.ts'
 import { extractBearerToken, isAllowedHostHeader } from './http.ts'
 import type { DshAgentHandleLike, RinServiceRefs } from './routes.ts'
+import { isTerminalWsPathname } from './terminal-ws.ts'
 
 const WS_PATH_RE = /^\/ws\/([^/]+)$/
 
@@ -45,6 +46,9 @@ export function attachLegacyWebSocket(
     const url = new URL(req.url ?? '/', 'http://localhost')
     const match = WS_PATH_RE.exec(url.pathname)
     if (match === null) {
+      // Terminal routes belong to the terminal bridge; anything else is a
+      // garbage upgrade that must not hang the socket.
+      if (isTerminalWsPathname(url.pathname)) return
       socket.destroy()
       return
     }

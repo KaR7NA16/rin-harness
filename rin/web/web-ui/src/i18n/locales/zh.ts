@@ -158,6 +158,8 @@ export const zh: Record<TranslationKey, string> = {
   'settings.terminal.status.error': '错误',
   'settings.terminal.status.unavailable': '不可用',
   'terminal.newTab': '新建终端',
+  'terminal.connectionFailed': '无法连接到终端。',
+  'terminal.connectionLost': '连接已断开。',
 
   // Settings > Providers
   'settings.providers.title': '大模型',
