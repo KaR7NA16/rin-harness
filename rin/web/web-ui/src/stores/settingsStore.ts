@@ -7,7 +7,6 @@ import { readStoredValue, writeStoredValue } from '../lib/storage'
 import { useUIStore } from './uiStore'
 
 const LOCALE_STORAGE_KEY = 'rin-locale'
-const LEGACY_LOCALE_STORAGE_KEY = 'cybercode-locale'
 
 const LANGUAGE_BY_LOCALE: Record<Locale, string> = {
   en: 'English',
@@ -27,7 +26,7 @@ function syncPromptMemoryLanguage(language: string): Promise<void> {
 }
 
 function getStoredLocale(): Locale {
-  const stored = readStoredValue(LOCALE_STORAGE_KEY, LEGACY_LOCALE_STORAGE_KEY)
+  const stored = readStoredValue(LOCALE_STORAGE_KEY)
   return isLocale(stored) ? stored : 'zh'
 }
 

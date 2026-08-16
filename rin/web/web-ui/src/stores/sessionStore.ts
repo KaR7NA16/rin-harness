@@ -7,9 +7,7 @@ import { getDefaultSessionTitle } from '../utils/sessionTitle'
 import { readStoredJson, writeStoredJson } from '../lib/storage'
 
 const HIDDEN_SIDEBAR_PROJECTS_KEY = 'rin.sidebar.hiddenProjects.v1'
-const LEGACY_HIDDEN_SIDEBAR_PROJECTS_KEY = 'cybercode.sidebar.hiddenProjects.v1'
 const PROJECT_DISPLAY_NAMES_KEY = 'rin.sidebar.projectDisplayNames.v1'
-const LEGACY_PROJECT_DISPLAY_NAMES_KEY = 'cybercode.sidebar.projectDisplayNames.v1'
 
 type SessionFilterScope = 'all' | 'project' | 'temporary'
 
@@ -19,7 +17,7 @@ function matchesSessionLocator(session: SessionListItem, id: string, projectPath
 }
 
 function readHiddenProjectPaths(): string[] {
-  const parsed = readStoredJson<unknown>(HIDDEN_SIDEBAR_PROJECTS_KEY, LEGACY_HIDDEN_SIDEBAR_PROJECTS_KEY, [])
+  const parsed = readStoredJson<unknown>(HIDDEN_SIDEBAR_PROJECTS_KEY, [])
   if (!Array.isArray(parsed)) return []
   return [...new Set(parsed.filter((item): item is string => typeof item === 'string' && item.length > 0))]
 }
@@ -29,7 +27,7 @@ function writeHiddenProjectPaths(projectPaths: string[]) {
 }
 
 function readProjectDisplayNames(): Record<string, string> {
-  const parsed = readStoredJson<unknown>(PROJECT_DISPLAY_NAMES_KEY, LEGACY_PROJECT_DISPLAY_NAMES_KEY, {})
+  const parsed = readStoredJson<unknown>(PROJECT_DISPLAY_NAMES_KEY, {})
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
   return Object.fromEntries(
     Object.entries(parsed)

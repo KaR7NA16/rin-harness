@@ -18,7 +18,6 @@ import { readStoredJson, writeStoredJson } from '../../lib/storage'
 
 const isTauri = typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)
 const COLLAPSED_PROJECTS_KEY = 'rin.sidebar.collapsedProjects.v1'
-const LEGACY_COLLAPSED_PROJECTS_KEY = 'cybercode.sidebar.collapsedProjects.v1'
 const TEMPORARY_GROUP_KEY = '__temporary__'
 const BACKGROUND_HISTORY_PREFETCH_COUNT = 8
 const HOVER_PREFETCH_DELAY_MS = 175
@@ -49,7 +48,7 @@ function isTemporarySession(session: SessionListItem) {
 }
 
 function readCollapsedGroupKeys(): string[] {
-  const parsed = readStoredJson<unknown>(COLLAPSED_PROJECTS_KEY, LEGACY_COLLAPSED_PROJECTS_KEY, [])
+  const parsed = readStoredJson<unknown>(COLLAPSED_PROJECTS_KEY, [])
   return Array.isArray(parsed)
     ? parsed.filter((item): item is string => typeof item === 'string' && item.length > 0)
     : []

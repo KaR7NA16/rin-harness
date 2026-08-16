@@ -1,17 +1,15 @@
 /**
  * localStorage helpers shared by web-ui stores.
  *
- * rin migrated from an earlier product whose persisted keys used the
- * `cybercode*` prefix. Reads consult the new rin key first and then the
- * legacy key so one-time migration is automatic; writes always use the new
- * key and never resurrect the legacy namespace.
+ * All persisted state uses the `rin` namespace. There is no legacy-key
+ * fallback: rin-harness is the new base and does not migrate old browser data.
  */
 
-/** Read one string value, preferring `key` and falling back to `legacyKey`. */
-export function readStoredValue(key: string, legacyKey?: string): string | null {
+/** Read one string value. */
+export function readStoredValue(key: string): string | null {
   if (typeof window === 'undefined') return null
   try {
-    return window.localStorage.getItem(key) ?? (legacyKey ? window.localStorage.getItem(legacyKey) : null)
+    return window.localStorage.getItem(key)
   } catch {
     return null
   }
@@ -37,12 +35,9 @@ export function removeStoredValue(key: string): void {
   }
 }
 
-/**
- * Read and parse JSON, preferring `key` and falling back to `legacyKey`.
- * Returns `fallback` when both keys are absent or unparseable.
- */
-export function readStoredJson<T>(key: string, legacyKey: string | undefined, fallback: T): T {
-  const raw = readStoredValue(key, legacyKey)
+/** Read and parse JSON; returns `fallback` when absent or unparseable. */
+export function readStoredJson<T>(key: string, fallback: T): T {
+  const raw = readStoredValue(key)
   if (raw === null) return fallback
   try {
     return JSON.parse(raw) as T

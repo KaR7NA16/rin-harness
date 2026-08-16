@@ -3,7 +3,6 @@ import type { RuntimeSelection } from '../types/runtime'
 import { readStoredJson, writeStoredJson } from '../lib/storage'
 
 const STORAGE_KEY = 'rin-session-runtime'
-const LEGACY_STORAGE_KEY = 'cybercode-session-runtime'
 
 export const DRAFT_RUNTIME_SELECTION_KEY = '__draft__'
 
@@ -15,7 +14,7 @@ type SessionRuntimeStore = {
 }
 
 function loadSelections(): Record<string, RuntimeSelection> {
-  const parsed = readStoredJson<Record<string, RuntimeSelection>>(STORAGE_KEY, LEGACY_STORAGE_KEY, {})
+  const parsed = readStoredJson<Record<string, RuntimeSelection>>(STORAGE_KEY, {})
   return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
 }
 

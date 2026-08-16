@@ -8,7 +8,7 @@
     <title>rin</title>
     <script>
       try {
-        const theme = (localStorage.getItem('rin-theme') ?? localStorage.getItem('cybercode-theme')) === 'dark' ? 'dark' : 'light'
+        const theme = localStorage.getItem('rin-theme') === 'dark' ? 'dark' : 'light'
         document.documentElement.dataset.theme = theme
         document.documentElement.style.colorScheme = theme
       } catch {

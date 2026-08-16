@@ -6,34 +6,28 @@ import {
   writeStoredValue,
 } from '../storage'
 
-describe('storage migration helpers', () => {
+describe('rin storage helpers', () => {
   beforeEach(() => {
     window.localStorage.clear()
   })
 
-  it('prefers the rin key over the legacy key', () => {
-    window.localStorage.setItem('cybercode-theme', 'dark')
-    window.localStorage.setItem('rin-theme', 'light')
-    expect(readStoredValue('rin-theme', 'cybercode-theme')).toBe('light')
-  })
-
-  it('falls back to the legacy key when the rin key is absent', () => {
-    window.localStorage.setItem('cybercode-locale', 'ja')
-    expect(readStoredValue('rin-locale', 'cybercode-locale')).toBe('ja')
-  })
-
-  it('parses JSON with the same migration order and returns fallback on corruption', () => {
-    window.localStorage.setItem('cybercode-open-tabs', JSON.stringify({ openTabs: ['legacy'] }))
-    expect(readStoredJson('rin-open-tabs', 'cybercode-open-tabs', [])).toEqual({ openTabs: ['legacy'] })
-
-    window.localStorage.setItem('rin-open-tabs', '{bad json')
-    expect(readStoredJson('rin-open-tabs', 'cybercode-open-tabs', [])).toEqual([])
-  })
-
-  it('writes and removes only the new key', () => {
+  it('reads and writes string values', () => {
+    expect(readStoredValue('rin-theme')).toBeNull()
     writeStoredValue('rin-theme', 'dark')
-    expect(window.localStorage.getItem('rin-theme')).toBe('dark')
+    expect(readStoredValue('rin-theme')).toBe('dark')
+  })
+
+  it('parses JSON and returns fallback for absent or corrupted values', () => {
+    expect(readStoredJson('rin-open-tabs', [])).toEqual([])
+    window.localStorage.setItem('rin-open-tabs', JSON.stringify({ openTabs: ['a'] }))
+    expect(readStoredJson('rin-open-tabs', [])).toEqual({ openTabs: ['a'] })
+    window.localStorage.setItem('rin-open-tabs', '{bad json')
+    expect(readStoredJson('rin-open-tabs', [])).toEqual([])
+  })
+
+  it('removes only the requested key', () => {
+    writeStoredValue('rin-theme', 'dark')
     removeStoredValue('rin-theme')
-    expect(window.localStorage.getItem('rin-theme')).toBeNull()
+    expect(readStoredValue('rin-theme')).toBeNull()
   })
 })

@@ -6,7 +6,6 @@ import { getDefaultSessionTitle, getSessionDisplayTitle, getSessionTitleText } f
 import { readStoredValue, writeStoredValue, removeStoredValue } from '../lib/storage'
 
 const TAB_STORAGE_KEY = 'rin-open-tabs'
-const LEGACY_TAB_STORAGE_KEY = 'cybercode-open-tabs'
 
 export const TERMINAL_TAB_PREFIX = '__terminal__'
 
@@ -312,7 +311,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
 
   restoreTabs: async () => {
     try {
-      const raw = readStoredValue(TAB_STORAGE_KEY, LEGACY_TAB_STORAGE_KEY)
+      const raw = readStoredValue(TAB_STORAGE_KEY)
       if (!raw) return
 
       const parsed = JSON.parse(raw) as Partial<TabPersistence> & {

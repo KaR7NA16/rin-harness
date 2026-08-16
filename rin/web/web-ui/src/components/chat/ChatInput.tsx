@@ -78,14 +78,12 @@ function isTauriRuntime() {
 }
 
 const COMPOSER_DRAFT_KEY_PREFIX = 'rin-composer-draft:'
-const LEGACY_COMPOSER_DRAFT_KEY_PREFIX = 'cybercode-composer-draft:'
 const COMPOSER_DRAFT_SAVE_DELAY_MS = 500
 
 function readComposerDraft(sessionId: string): string {
   const key = `${COMPOSER_DRAFT_KEY_PREFIX}${sessionId}`
-  const legacyKey = `${LEGACY_COMPOSER_DRAFT_KEY_PREFIX}${sessionId}`
   try {
-    return window.localStorage.getItem(key) ?? window.localStorage.getItem(legacyKey) ?? ''
+    return window.localStorage.getItem(key) ?? ''
   } catch {
     return ''
   }

@@ -3,10 +3,9 @@ import type { ThemeMode } from '../types/settings'
 import { readStoredValue, writeStoredValue } from '../lib/storage'
 
 const THEME_STORAGE_KEY = 'rin-theme'
-const LEGACY_THEME_STORAGE_KEY = 'cybercode-theme'
 
 function getStoredTheme(): ThemeMode {
-  const stored = readStoredValue(THEME_STORAGE_KEY, LEGACY_THEME_STORAGE_KEY)
+  const stored = readStoredValue(THEME_STORAGE_KEY)
   return stored === 'light' || stored === 'dark' ? stored : 'light'
 }
 
@@ -69,10 +68,9 @@ type ActiveView = 'code' | 'scheduled' | 'terminal' | 'history' | 'settings'
 export type SidebarGrouping = 'project' | 'time'
 
 const SIDEBAR_GROUPING_STORAGE_KEY = 'rin-sidebar-grouping'
-const LEGACY_SIDEBAR_GROUPING_STORAGE_KEY = 'cybercode-sidebar-grouping'
 
 function getStoredSidebarGrouping(): SidebarGrouping {
-  const stored = readStoredValue(SIDEBAR_GROUPING_STORAGE_KEY, LEGACY_SIDEBAR_GROUPING_STORAGE_KEY)
+  const stored = readStoredValue(SIDEBAR_GROUPING_STORAGE_KEY)
   return stored === 'time' || stored === 'project' ? stored : 'project'
 }
 
