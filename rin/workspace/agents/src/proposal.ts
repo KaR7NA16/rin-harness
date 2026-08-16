@@ -29,7 +29,7 @@ export function buildAgentProposalPrompt(instructions: string): string {
     '- systemPrompt: the complete first-person system prompt the agent runs under.',
     '- tools: an array of tool ids the agent may call (e.g. ["bash", "fs"]); omit unknown tools.',
     '- model: optional model id, only when the request names one.',
-    '- permissionMode: one of "default", "acceptEdits", "plan", "bypassPermissions", only when the request asks for one.',
+    '- permissionMode: one of "read-only", "workspace-write", "danger-full-access", only when the request asks for one.',
     '',
     'Infer everything not stated. Keep the systemPrompt self-contained and imperative.',
     '',
@@ -51,7 +51,7 @@ export function buildAgentProposalPrompt(instructions: string): string {
 export function parseAgentProposal(raw: unknown): AgentProposal {
   const value = extractProposalRecord(raw)
   if (value.permissionMode !== undefined && !isAgentPermissionMode(value.permissionMode)) {
-    throw new Error('rin agents: proposal permissionMode must be one of default, acceptEdits, plan, bypassPermissions')
+    throw new Error('rin agents: proposal permissionMode must be one of read-only, workspace-write, danger-full-access')
   }
   return {
     name: assertAgentName(value.name, 'proposal name'),

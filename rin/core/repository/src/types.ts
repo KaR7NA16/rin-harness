@@ -86,7 +86,7 @@ export interface EnvironmentProfile {
   }
 }
 
-export type AgentPermissionMode = 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions'
+export type AgentPermissionMode = 'read-only' | 'workspace-write' | 'danger-full-access'
 
 export interface AgentResourceReferences {
   environmentProfileId?: string

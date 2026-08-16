@@ -280,7 +280,7 @@ function parseTextList(value: unknown, label: string): string[] {
 }
 
 function isAgentPermissionMode(value: unknown): value is NonNullable<RepositoryAgentConfiguration['permissionMode']> {
-  return value === 'default' || value === 'acceptEdits' || value === 'plan' || value === 'bypassPermissions'
+  return value === 'read-only' || value === 'workspace-write' || value === 'danger-full-access'
 }
 
 function isEcosystem(value: unknown): value is RepositoryPackageEcosystem {

@@ -191,7 +191,7 @@ function parseRepositoryAgentUpdateInput(
 }
 
 function parsePermissionMode(value: unknown): AgentPermissionMode | undefined {
-  return value === 'default' || value === 'acceptEdits' || value === 'plan' || value === 'bypassPermissions'
+  return value === 'read-only' || value === 'workspace-write' || value === 'danger-full-access'
     ? value
     : undefined
 }

@@ -10,7 +10,7 @@ import type { AgentPermissionMode } from '@rin/repository'
 export const AGENT_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]*$/
 
 /** Permission modes the repository schema accepts. */
-const PERMISSION_MODES = new Set<AgentPermissionMode>(['default', 'acceptEdits', 'plan', 'bypassPermissions'])
+const PERMISSION_MODES = new Set<AgentPermissionMode>(['read-only', 'workspace-write', 'danger-full-access'])
 
 /**
  * Validate an agent name.
