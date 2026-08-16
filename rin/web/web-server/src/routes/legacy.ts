@@ -205,11 +205,7 @@ export async function handle(
   if (pathname === '/api/plugins') return pluginsListRoute(method, services)
   if (pathname === '/api/plugins/detail') return pluginsDetailRoute(search, services)
   if (pathname === '/api/plugins/enable' || pathname === '/api/plugins/disable') return pluginsSetEnabledRoute(pathname, method, body, services)
-  if (pathname === '/api/plugins/update' || pathname === '/api/plugins/uninstall' || pathname === '/api/plugins/reload') {
-    return notImplemented(method, 'plugin update/uninstall/reload is not implemented on this host')
-  }
   if (pathname === '/api/filesystem/browse') return filesystemBrowseRoute(search, services)
-  if (pathname.startsWith('/api/rin-oauth')) return notImplemented(method, 'rin OAuth pairing is not implemented on this host')
   if (pathname === '/api/sessions/export' || pathname === '/api/sessions/import'
     || pathname === '/api/sessions/project-folders') {
     return notImplemented(method, 'session export/import (raw binary) is not implemented on this host yet')
@@ -217,10 +213,6 @@ export async function handle(
 
   if (pathname === '/api/notes/assets') {
     return notImplemented(method, 'note asset upload is not implemented on this host')
-  }
-  if (pathname.endsWith('/manifest') || pathname.endsWith('/install-plan')
-    || pathname.endsWith('/environment-profiles') || pathname.endsWith('/resolve-environment')) {
-    return notImplemented(method, 'repository manifest/install management is not implemented on this host')
   }
   return null
 }
@@ -1138,8 +1130,6 @@ async function repositoriesItemRoute(
   const action = segments[1]
 
   if (action === 'resolve-environment') return resolveEnvironmentRoute(body, services, config)
-  if (action === 'install-plan') return error(501, 'repository install plan is not implemented on this host')
-  if (action === 'manifest') return error(501, 'repository manifest update is not implemented on this host')
 
   const repository = services.repository()
   if (repository === undefined) return notMounted()

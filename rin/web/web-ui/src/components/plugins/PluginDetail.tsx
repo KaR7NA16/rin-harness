@@ -4,7 +4,6 @@ import { useSessionStore } from '../../stores/sessionStore'
 import { useTranslation } from '../../i18n'
 import { useUIStore } from '../../stores/uiStore'
 import { Button } from '../shared/Button'
-import { ConfirmDialog } from '../shared/ConfirmDialog'
 import type { PluginCapabilityKey } from '../../types/plugin'
 import { useSkillStore } from '../../stores/skillStore'
 import { useAgentStore } from '../../stores/agentStore'
@@ -23,9 +22,6 @@ export function PluginDetail() {
     clearSelection,
     enablePlugin,
     disablePlugin,
-    updatePlugin,
-    uninstallPlugin,
-    reloadPlugins,
   } = usePluginStore()
   const sessions = useSessionStore((s) => s.sessions)
   const activeSessionId = useSessionStore((s) => s.activeSessionId)
@@ -37,7 +33,6 @@ export function PluginDetail() {
   const selectServer = useMcpStore((s) => s.selectServer)
   const t = useTranslation()
   const [actionKey, setActionKey] = useState<string | null>(null)
-  const [showUninstallDialog, setShowUninstallDialog] = useState(false)
 
   const activeSession = sessions.find((session) => session.id === activeSessionId)
   const currentWorkDir = activeSession?.workDir || undefined
@@ -69,28 +64,6 @@ export function PluginDetail() {
     try {
       const message = await fn()
       addToast({ type: 'success', message })
-    } catch (err) {
-      addToast({
-        type: 'error',
-        message: err instanceof Error ? err.message : String(err),
-      })
-    } finally {
-      setActionKey(null)
-    }
-  }
-
-  const handleReload = async () => {
-    setActionKey('reload')
-    try {
-      const summary = await reloadPlugins(currentWorkDir)
-      addToast({
-        type: summary.errors > 0 ? 'warning' : 'success',
-        message: t('settings.plugins.reloadToast', {
-          enabled: String(summary.enabled),
-          skills: String(summary.skills),
-          errors: String(summary.errors),
-        }),
-      })
     } catch (err) {
       addToast({
         type: 'error',
@@ -261,38 +234,6 @@ export function PluginDetail() {
             )
           )}
 
-          {canMutate && (
-            <Button
-              variant="secondary"
-              size="sm"
-              loading={isApplying && actionKey === 'update'}
-              onClick={() => void runAction('update', () => updatePlugin(selectedPlugin.id, selectedPlugin.scope, currentWorkDir))}
-            >
-              {t('settings.plugins.update')}
-            </Button>
-          )}
-
-          <Button
-            variant="secondary"
-            size="sm"
-            loading={isApplying && actionKey === 'reload'}
-            onClick={() => void handleReload()}
-          >
-            {t('settings.plugins.apply')}
-          </Button>
-
-          {canMutate && (
-            <Button
-              variant="danger"
-              size="sm"
-              loading={isApplying && actionKey === 'uninstall'}
-              onClick={() => {
-                setShowUninstallDialog(true)
-              }}
-            >
-              {t('settings.plugins.uninstall')}
-            </Button>
-          )}
         </div>
 
         {!canMutate && (
@@ -302,10 +243,6 @@ export function PluginDetail() {
               : t('settings.plugins.builtinHint')}
           </p>
         )}
-
-        <p className="mt-3 text-[12px] text-[var(--color-text-tertiary)]">
-          {t('settings.plugins.applyHint')}
-        </p>
       </section>
 
       {selectedPlugin.errors.length > 0 && (
@@ -478,23 +415,6 @@ export function PluginDetail() {
         </div>
       </section>
 
-      <ConfirmDialog
-        open={showUninstallDialog}
-        onClose={() => {
-          if (isApplying && actionKey === 'uninstall') return
-          setShowUninstallDialog(false)
-        }}
-        onConfirm={async () => {
-          setShowUninstallDialog(false)
-          await runAction('uninstall', () => uninstallPlugin(selectedPlugin.id, selectedPlugin.scope, false, currentWorkDir))
-        }}
-        title={t('settings.plugins.uninstall')}
-        body={t('settings.plugins.confirmUninstall', { name: selectedPlugin.name })}
-        confirmLabel={t('settings.plugins.uninstall')}
-        cancelLabel={t('common.cancel')}
-        confirmVariant="danger"
-        loading={isApplying && actionKey === 'uninstall'}
-      />
     </div>
   )
 }

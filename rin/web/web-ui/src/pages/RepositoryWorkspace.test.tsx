@@ -10,9 +10,7 @@ vi.mock('../api/repositories', () => ({
     list: vi.fn(),
     connect: vi.fn(),
     create: vi.fn(),
-    updateManifest: vi.fn(),
     disconnect: vi.fn(),
-    installPlan: vi.fn(),
   },
 }))
 

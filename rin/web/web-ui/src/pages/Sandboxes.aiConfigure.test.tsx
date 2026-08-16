@@ -7,7 +7,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { Sandboxes } from './Sandboxes'
 
 vi.mock('../api/repositories', () => ({
-  repositoriesApi: { list: vi.fn(), installPlan: vi.fn(), environmentProfiles: vi.fn() },
+  repositoriesApi: { list: vi.fn(), environmentProfiles: vi.fn() },
 }))
 
 vi.mock('../api/sandboxes', () => ({

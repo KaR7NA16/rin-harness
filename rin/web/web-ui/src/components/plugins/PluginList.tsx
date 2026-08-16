@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react'
 import { usePluginStore } from '../../stores/pluginStore'
 import { useSessionStore } from '../../stores/sessionStore'
 import { useTranslation } from '../../i18n'
-import { useUIStore } from '../../stores/uiStore'
 import { Button } from '../shared/Button'
 import type { PluginSummary } from '../../types/plugin'
 import { Icon } from '../shared/Icon'
@@ -15,17 +14,13 @@ export function PluginList() {
     plugins,
     marketplaces,
     summary,
-    lastReloadSummary,
     isLoading,
-    isApplying,
     error,
     fetchPlugins,
     fetchPluginDetail,
-    reloadPlugins,
   } = usePluginStore()
   const sessions = useSessionStore((s) => s.sessions)
   const activeSessionId = useSessionStore((s) => s.activeSessionId)
-  const addToast = useUIStore((s) => s.addToast)
   const t = useTranslation()
   const activeSession = sessions.find((session) => session.id === activeSessionId)
   const currentWorkDir = activeSession?.workDir || undefined
@@ -53,25 +48,6 @@ export function PluginList() {
 
     return buckets
   }, [plugins])
-
-  const handleReload = async () => {
-    try {
-      const reloadSummary = await reloadPlugins(currentWorkDir)
-      addToast({
-        type: reloadSummary.errors > 0 ? 'warning' : 'success',
-        message: t('settings.plugins.reloadToast', {
-          enabled: String(reloadSummary.enabled),
-          skills: String(reloadSummary.skills),
-          errors: String(reloadSummary.errors),
-        }),
-      })
-    } catch (err) {
-      addToast({
-        type: 'error',
-        message: err instanceof Error ? err.message : String(err),
-      })
-    }
-  }
 
   if (isLoading) {
     return (
@@ -120,14 +96,6 @@ export function PluginList() {
               <Icon name="refresh" size={16} />
               {t('settings.plugins.refresh')}
             </Button>
-            <Button
-              size="sm"
-              onClick={handleReload}
-              loading={isApplying}
-            >
-              <Icon name="sync" size={16} />
-              {t('settings.plugins.apply')}
-            </Button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-px bg-[var(--color-border-separator)] sm:grid-cols-4">
@@ -152,15 +120,6 @@ export function PluginList() {
             icon="storefront"
           />
         </div>
-        {lastReloadSummary && (
-          <p className="border-t border-[var(--color-border-separator)] px-[20px] py-[10px] text-[11px] text-[var(--color-text-tertiary)]">
-            {t('settings.plugins.lastReload', {
-              enabled: String(lastReloadSummary.enabled),
-              skills: String(lastReloadSummary.skills),
-              errors: String(lastReloadSummary.errors),
-            })}
-          </p>
-        )}
       </section>
 
       {marketplaces.length > 0 && (

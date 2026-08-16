@@ -38,7 +38,6 @@ import { usePluginStore } from '../stores/pluginStore'
 import { PluginList } from '../components/plugins/PluginList'
 import { PluginDetail } from '../components/plugins/PluginDetail'
 import { useUIStore, type SettingsTab } from '../stores/uiStore'
-import { ClaudeOfficialLogin } from '../components/settings/ClaudeOfficialLogin'
 import { SettingsPage, SettingsSection, SettingsRow, SegmentedControl, Switch } from '../components/settings/SettingsLayout'
 import { SettingsNavigation, SettingsOverview, type SettingsNavSection } from '../components/settings/SettingsHub'
 import type { SettingsSearchEntry } from '../components/settings/settingsRegistry'
@@ -422,11 +421,6 @@ export function ProviderSettings() {
         </Button>
       ) : null}
     >
-      {isOfficialActive && (
-        <div className="border-t border-[var(--color-border-separator)] px-[20px] pb-[16px] pt-[12px]">
-          <ClaudeOfficialLogin />
-        </div>
-      )}
     </ProviderCatalogItem>
   )
 

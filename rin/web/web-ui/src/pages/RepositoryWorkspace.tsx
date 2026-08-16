@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Bot,
-  Box,
   Check,
   Database,
   FileOutput,
@@ -12,11 +11,10 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
-  Trash2,
   Wrench,
   Workflow,
 } from 'lucide-react'
-import { repositoriesApi, type RepositoryConnection, type RepositoryInstallPlan, type RepositoryPackage, type RepositoryPackageEcosystem } from '../api/repositories'
+import { repositoriesApi, type RepositoryConnection, type RepositoryPackage, type RepositoryPackageEcosystem } from '../api/repositories'
 import { Button } from '../components/shared/Button'
 import { Input } from '../components/shared/Input'
 import { Modal } from '../components/shared/Modal'
@@ -31,7 +29,6 @@ type EnvironmentEcosystem = 'python' | 'r' | 'system' | 'node' | 'latex'
 
 const CATEGORY_IDS: CategoryId[] = ['environment', 'tools', 'knowledge', 'outputs', 'skills', 'workflows', 'agents']
 const ENVIRONMENT_ECOSYSTEMS: EnvironmentEcosystem[] = ['python', 'r', 'system', 'node', 'latex']
-const EMPTY_DRAFT = { name: '', version: '', description: '', ecosystem: 'python' as RepositoryPackageEcosystem }
 
 function categoryIcon(id: string) {
   if (id === 'environment') return Package
@@ -62,9 +59,6 @@ export function RepositoryWorkspace() {
   const [parentDir, setParentDir] = useState('')
   const [repositoryName, setRepositoryName] = useState('')
   const [saving, setSaving] = useState(false)
-  const [packageDraft, setPackageDraft] = useState(EMPTY_DRAFT)
-  const [showPackageForm, setShowPackageForm] = useState(false)
-  const [plan, setPlan] = useState<RepositoryInstallPlan | null>(null)
 
   const selected = useMemo(
     () => repositories.find(repository => repository.id === selectedId) ?? repositories[0] ?? null,
@@ -95,51 +89,6 @@ export function RepositoryWorkspace() {
   useEffect(() => {
     void refresh()
   }, [refresh])
-
-  const updateSelected = useCallback(async (nextManifest: RepositoryConnection['manifest']) => {
-    if (!selected) return
-    setSaving(true)
-    try {
-      const next = await repositoriesApi.updateManifest(selected.id, nextManifest)
-      setRepositories(current => replaceRepository(current, next))
-      addToast({ type: 'success', message: t('repository.saved') })
-    } catch (error) {
-      addToast({ type: 'error', message: error instanceof Error ? error.message : String(error) })
-    } finally {
-      setSaving(false)
-    }
-  }, [addToast, selected, t])
-
-  const addPackage = useCallback(async () => {
-    if (!selected || !packageDraft.name.trim()) return
-    const environment = selected.manifest.categories.find(category => category.id === 'environment')
-    if (!environment) return
-    const packageRecord: RepositoryPackage = {
-      id: `${packageDraft.ecosystem}-${packageDraft.name.trim()}-${Date.now()}`,
-      name: packageDraft.name.trim(),
-      ecosystem: packageDraft.ecosystem,
-      ...(packageDraft.version.trim() ? { version: packageDraft.version.trim() } : {}),
-      ...(packageDraft.description.trim() ? { description: packageDraft.description.trim() } : {}),
-    }
-    await updateSelected({
-      ...selected.manifest,
-      categories: selected.manifest.categories.map(category => category.id === 'environment'
-        ? { ...category, packages: [...category.packages, packageRecord] }
-        : category),
-    })
-    setPackageDraft(EMPTY_DRAFT)
-    setShowPackageForm(false)
-  }, [packageDraft, selected, updateSelected])
-
-  const removePackage = useCallback(async (packageId: string) => {
-    if (!selected) return
-    await updateSelected({
-      ...selected.manifest,
-      categories: selected.manifest.categories.map(category => category.id === 'environment'
-        ? { ...category, packages: category.packages.filter(pkg => pkg.id !== packageId) }
-        : category),
-    })
-  }, [selected, updateSelected])
 
   const openConnectionDialog = (mode: ConnectionDialogMode) => {
     setDialogMode(mode)
@@ -173,15 +122,6 @@ export function RepositoryWorkspace() {
       addToast({ type: 'error', message: error instanceof Error ? error.message : String(error) })
     } finally {
       setSaving(false)
-    }
-  }
-
-  const showInstallPlan = async () => {
-    if (!selected) return
-    try {
-      setPlan(await repositoriesApi.installPlan(selected.id))
-    } catch (error) {
-      addToast({ type: 'error', message: error instanceof Error ? error.message : String(error) })
     }
   }
 
@@ -287,18 +227,6 @@ export function RepositoryWorkspace() {
                   </div>
                   {categoryId === 'environment' && <p className="mt-1 text-[12px] text-[var(--color-text-tertiary)]">{t('repository.environmentDetail')}</p>}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {categoryId === 'environment' && (
-                    <>
-                      <Button size="sm" variant="secondary" onClick={() => setShowPackageForm(value => !value)}>
-                        <Plus size={14} className="mr-1" />{t('repository.addPackage')}
-                      </Button>
-                      <Button size="sm" variant="secondary" onClick={() => void showInstallPlan()}>
-                        <Box size={14} className="mr-1" />{t('repository.installPlan')}
-                      </Button>
-                    </>
-                  )}
-                </div>
               </div>
 
               {categoryId === 'environment' ? (
@@ -311,30 +239,10 @@ export function RepositoryWorkspace() {
                     ))}
                   </div>
 
-                  {showPackageForm && (
-                    <div className="mt-4 rounded-[12px] border border-[var(--color-border-focus)] bg-[var(--color-surface-container-low)] p-3">
-                      <div className="grid gap-2 md:grid-cols-[1.1fr_0.75fr_1.2fr_auto] md:items-end">
-                        <Input label={t('repository.packageName')} value={packageDraft.name} onChange={event => setPackageDraft({ ...packageDraft, name: event.target.value })} placeholder="numpy" />
-                        <Input label={t('repository.version')} value={packageDraft.version} onChange={event => setPackageDraft({ ...packageDraft, version: event.target.value })} placeholder="2.0.0" />
-                        <Input label={t('repository.description')} value={packageDraft.description} onChange={event => setPackageDraft({ ...packageDraft, description: event.target.value })} placeholder="Scientific computing" />
-                        <div className="flex gap-1">
-                          <select value={packageDraft.ecosystem} onChange={event => setPackageDraft({ ...packageDraft, ecosystem: event.target.value as RepositoryPackageEcosystem })} className="h-[40px] rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-[12px] text-[var(--color-text-primary)]">
-                            <option value="python">Python</option>
-                            <option value="r">R</option>
-                            <option value="system">{t('repository.system')}</option>
-                            <option value="node">Node.js</option>
-                            <option value="latex">LaTeX</option>
-                          </select>
-                          <Button size="sm" onClick={() => void addPackage()} disabled={!packageDraft.name.trim()}>{t('repository.save')}</Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   <div className="mt-4 flex flex-col gap-2">
                     {visiblePackages.length === 0 ? (
                       <div className="rounded-[12px] border border-dashed border-[var(--color-border)] px-4 py-12 text-center text-[12px] text-[var(--color-text-tertiary)]">{t('repository.noPackages')}</div>
-                    ) : visiblePackages.map(pkg => <PackageRow key={pkg.id} packageItem={pkg} onRemove={() => void removePackage(pkg.id)} />)}
+                    ) : visiblePackages.map(pkg => <PackageRow key={pkg.id} packageItem={pkg} />)}
                   </div>
                 </>
               ) : categoryId === 'agents' ? (
@@ -385,19 +293,6 @@ export function RepositoryWorkspace() {
           </div>
         </div>
       </Modal>
-
-      <Modal open={plan !== null} onClose={() => setPlan(null)} title={t('repository.installPlan')} width={620}>
-        {plan && (
-          <div className="flex flex-col gap-3">
-            <div className="rounded-[10px] bg-[var(--color-surface-container-low)] p-3 text-[12px] text-[var(--color-text-secondary)]">
-              {plan.packageCount} packages · <code className="font-mono">{plan.repositoryPath}</code>
-            </div>
-            <div className="flex flex-col gap-2">
-              {plan.commands.length === 0 ? <p className="text-[12px] text-[var(--color-text-tertiary)]">{t('repository.noPackages')}</p> : plan.commands.map(command => <code key={command} className="break-all rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-container-low)] px-3 py-2 text-[11px] text-[var(--color-text-secondary)]">{command}</code>)}
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   )
 }
@@ -426,7 +321,7 @@ function storageModeLabel(t: ReturnType<typeof useTranslation>, mode: Repository
   return t('repository.storageConnected')
 }
 
-function PackageRow({ packageItem, onRemove }: { packageItem: RepositoryPackage; onRemove: () => void }) {
+function PackageRow({ packageItem }: { packageItem: RepositoryPackage }) {
   return (
     <div className="flex items-center gap-3 rounded-[11px] border border-[var(--color-border)] bg-[var(--color-surface-container-low)] px-3 py-3">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[var(--color-surface)] text-[10px] font-bold text-[var(--color-signal)]">{packageBadge(packageItem.ecosystem)}</span>
@@ -437,7 +332,6 @@ function PackageRow({ packageItem, onRemove }: { packageItem: RepositoryPackage;
         </div>
         {packageItem.description && <div className="mt-1 truncate text-[11px] text-[var(--color-text-tertiary)]">{packageItem.description}</div>}
       </div>
-      <button type="button" aria-label={`Remove ${packageItem.name}`} onClick={onRemove} className="rounded-full p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-error)]"><Trash2 size={14} /></button>
     </div>
   )
 }

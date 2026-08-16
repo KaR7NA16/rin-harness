@@ -1,5 +1,5 @@
 import type { RepositoryAgentInput } from '../api/agents'
-import type { RepositoryConnection, RepositoryInstallPlan } from '../api/repositories'
+import type { RepositoryConnection } from '../api/repositories'
 import type { SandboxProfile } from '../api/sandboxes'
 
 export function buildAgentConfigurationPrompt({ repository, draft }: {
@@ -17,21 +17,14 @@ export function buildAgentConfigurationPrompt({ repository, draft }: {
   ].join('\n\n')
 }
 
-export function buildSandboxConfigurationPrompt({ profile, repository, installPlan }: {
+export function buildSandboxConfigurationPrompt({ profile, repository }: {
   profile: SandboxProfile
   repository: RepositoryConnection
-  installPlan: RepositoryInstallPlan
 }) {
-  const commands = installPlan.commands.length > 0
-    ? installPlan.commands.map(command => `- ${command}`).join('\n')
-    : '- No install commands were generated.'
-
   return [
     'Configure the selected sandbox using its linked repository.',
     `Sandbox: ${profile.name} (id: ${profile.id}, type: ${profile.type})`,
     `Repository: ${repository.name} (${repository.rootPath})`,
-    `Manifest: ${installPlan.manifestPath}`,
-    `Install plan: ${installPlan.packageCount} package(s)\n${commands}`,
     'Inspect the current sandbox profile and runtime state first. Explain the exact plan and wait for explicit confirmation before running any command.',
     'Never install packages on the host. Execute installation only inside this selected sandbox profile.',
     'Do not pull or build a large image, replace the base image, or start an expensive environment build without separate explicit approval.',

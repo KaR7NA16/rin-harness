@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RepositoryAgentInput } from '../api/agents'
-import type { RepositoryConnection, RepositoryInstallPlan } from '../api/repositories'
+import type { RepositoryConnection } from '../api/repositories'
 import type { SandboxProfile } from '../api/sandboxes'
 import { buildAgentConfigurationPrompt, buildSandboxConfigurationPrompt } from './aiConfigurationPrompts'
 
@@ -49,21 +49,11 @@ describe('AI configuration prompts', () => {
       createdAt: '2026-08-13T00:00:00.000Z',
       updatedAt: '2026-08-13T00:00:00.000Z',
     }
-    const installPlan: RepositoryInstallPlan = {
-      repositoryId: repository.id,
-      repositoryPath: repository.rootPath,
-      manifestPath: 'E:/research-repo/repository.yaml',
-      packageCount: 2,
-      commands: ['python -m pip install numpy', 'Rscript install.R'],
-    }
-
-    const prompt = buildSandboxConfigurationPrompt({ profile, repository, installPlan })
+    const prompt = buildSandboxConfigurationPrompt({ profile, repository })
 
     expect(prompt).toContain('sandbox-1')
     expect(prompt).toContain('Scientific sandbox')
     expect(prompt).toContain('E:/research-repo')
-    expect(prompt).toContain('2')
-    expect(prompt).toContain('python -m pip install numpy')
     expect(prompt).toMatch(/host|宿主机/i)
     expect(prompt).toMatch(/confirm|确认/i)
     expect(prompt).toMatch(/large image|大型镜像/i)

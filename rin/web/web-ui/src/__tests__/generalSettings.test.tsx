@@ -48,10 +48,6 @@ vi.mock('../api/providers', () => ({
   },
 }))
 
-vi.mock('../components/settings/ClaudeOfficialLogin', () => ({
-  ClaudeOfficialLogin: () => <div data-testid="claude-official-login" />,
-}))
-
 vi.mock('../pages/AdapterSettings', () => ({
   AdapterSettings: () => <div>Adapter Settings Mock</div>,
 }))
@@ -207,26 +203,6 @@ describe('Settings > Providers tab', () => {
     ]
     providerStoreState.activeId = null
     providerStoreState.hasLoadedProviders = true
-  })
-
-  it('does not query official OAuth status before providers finish loading', () => {
-    providerStoreState.providers = []
-    providerStoreState.activeId = null
-    providerStoreState.hasLoadedProviders = false
-
-    render(<ProviderSettings />)
-
-    expect(screen.queryByTestId('claude-official-login')).not.toBeInTheDocument()
-  })
-
-  it('shows official OAuth status only after official provider is confirmed active', () => {
-    providerStoreState.providers = []
-    providerStoreState.activeId = null
-    providerStoreState.hasLoadedProviders = true
-
-    render(<ProviderSettings />)
-
-    expect(screen.getByTestId('claude-official-login')).toBeInTheDocument()
   })
 
   it('requires confirmation before deleting a provider', async () => {

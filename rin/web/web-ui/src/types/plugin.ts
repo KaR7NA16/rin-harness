@@ -88,14 +88,3 @@ export type PluginListResponse = {
     marketplaceCount: number
   }
 }
-
-export type PluginReloadSummary = {
-  enabled: number
-  disabled: number
-  skills: number
-  agents: number
-  hooks: number
-  mcpServers: number
-  lspServers: number
-  errors: number
-}

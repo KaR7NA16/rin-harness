@@ -38,14 +38,6 @@ export type RepositoryConnection = {
   updatedAt: string
 }
 
-export type RepositoryInstallPlan = {
-  repositoryId: string
-  repositoryPath: string
-  manifestPath: string
-  commands: string[]
-  packageCount: number
-}
-
 export type EnvironmentProfile = {
   apiVersion: 'rin.dev/v1'
   kind: 'EnvironmentProfile'
@@ -77,12 +69,8 @@ export const repositoriesApi = {
     api.post<RepositoryConnection>('/api/repositories/connect', { path, ...(name?.trim() ? { name: name.trim() } : {}) }),
   create: (parentDir: string, name: string) =>
     api.post<RepositoryConnection>('/api/repositories/create', { parentDir, name }),
-  updateManifest: (id: string, manifest: RepositoryManifest) =>
-    api.put<RepositoryConnection>(`/api/repositories/${encodeURIComponent(id)}/manifest`, manifest),
   disconnect: (id: string) =>
     api.delete<{ disconnected: boolean }>(`/api/repositories/${encodeURIComponent(id)}`),
-  installPlan: (id: string) =>
-    api.get<RepositoryInstallPlan>(`/api/repositories/${encodeURIComponent(id)}/install-plan`),
   environmentProfiles: (id: string) =>
     api.get<{ repositoryId: string; profiles: EnvironmentProfile[] }>(`/api/repositories/${encodeURIComponent(id)}/environment-profiles`),
   resolveEnvironment: (id: string, profileId: string, capabilities: ResolverCapabilities) =>

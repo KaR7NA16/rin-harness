@@ -123,10 +123,10 @@ describe('legacy: repositories', () => {
     expect(res).toEqual({ status: 200, body: { repositoryId: 'r1', profiles: [{ id: 'e1' }] } })
   })
 
-  test('manifest returns 501', async () => {
+  test('manifest returns unknown action', async () => {
     const s = makeServices({ repository: () => ({}) })
     const res = await handle('/api/repositories/r1/manifest', '', 'GET', undefined, s, config)
-    expect(res).toEqual({ status: 501, body: { error: 'repository manifest update is not implemented on this host' } })
+    expect(res).toEqual({ status: 404, body: { error: 'unknown repository action' } })
   })
 
   test('resolve-environment plans', async () => {

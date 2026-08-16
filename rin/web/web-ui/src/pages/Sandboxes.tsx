@@ -302,11 +302,8 @@ export function Sandboxes() {
     }
     setBusy(profile.id)
     try {
-      const [installPlan, created] = await Promise.all([
-        repositoriesApi.installPlan(repository.id),
-        sessionsApi.create({ workDir: repository.rootPath }),
-      ])
-      const prompt = buildSandboxConfigurationPrompt({ profile, repository, installPlan })
+      const created = await sessionsApi.create({ workDir: repository.rootPath })
+      const prompt = buildSandboxConfigurationPrompt({ profile, repository })
       useTabStore.getState().openTab(created.sessionId, `${profile.name} · Sandbox`, 'session', repository.rootPath)
       await useChatStore.getState().ensureSessionReady(created.sessionId, repository.rootPath)
       useChatStore.getState().queueComposerPrefill(created.sessionId, { text: prompt })

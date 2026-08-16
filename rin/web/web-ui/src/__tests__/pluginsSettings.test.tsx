@@ -157,27 +157,14 @@ describe('Settings > Plugins tab', () => {
       marketplaces: [],
       summary: { total: 0, enabled: 0, errorCount: 0, marketplaceCount: 0 },
       selectedPlugin: null,
-      lastReloadSummary: null,
       isLoading: false,
       isDetailLoading: false,
       isApplying: false,
       error: null,
       fetchPlugins: noop,
       fetchPluginDetail: noop,
-      reloadPlugins: vi.fn().mockResolvedValue({
-        enabled: 1,
-        disabled: 0,
-        skills: 2,
-        agents: 1,
-        hooks: 0,
-        mcpServers: 1,
-        lspServers: 0,
-        errors: 0,
-      }),
       enablePlugin: vi.fn().mockResolvedValue('enabled'),
       disablePlugin: vi.fn().mockResolvedValue('disabled'),
-      updatePlugin: vi.fn().mockResolvedValue('updated'),
-      uninstallPlugin: vi.fn().mockResolvedValue('uninstalled'),
       clearSelection: vi.fn(),
     })
   })
@@ -329,8 +316,6 @@ describe('Settings > Plugins tab', () => {
     expect(screen.getByText('echo preparing plugin runtime')).toBeInTheDocument()
     expect(screen.getByText('Create a pull request from the current branch.')).toBeInTheDocument()
     expect(screen.getByText('https://api.github.com/mcp')).toBeInTheDocument()
-    expect(screen.getByText('Apply changes')).toBeInTheDocument()
-    expect(screen.getByText('Uninstall')).toBeInTheDocument()
   })
 
   it('keeps plugin detail hook order stable while the selected plugin reloads', () => {
