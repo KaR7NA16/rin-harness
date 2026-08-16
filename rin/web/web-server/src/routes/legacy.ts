@@ -74,6 +74,8 @@ export async function handle(
   if (pathname === '/api/notes/graph') return notesGraphRoute(services)
   if (pathname === '/api/notes/todos') return notesTodosRoute(services)
   if (pathname === '/api/notes/templates') return notesTemplatesRoute(services)
+  if (pathname === '/api/notes/from-template') return notesFromTemplateRoute(method, body, services)
+  if (pathname === '/api/notes/export') return notesExportRoute(search, services)
   if (pathname === '/api/notes/move') return notesMoveRoute(method, body, services)
   if (pathname === '/api/notes/daily') return notesDailyRoute(method, services)
   if (pathname === '/api/notes/backlinks') return notesBacklinksRoute(search, services)
@@ -201,8 +203,8 @@ export async function handle(
   if (pathname === '/api/agent-migration/migrate' || pathname.startsWith('/api/agent-migration/items/')) {
     return notImplemented(method, 'agent migration execution is not implemented on this host (only scan is available)')
   }
-  if (pathname === '/api/notes/from-template' || pathname === '/api/notes/assets' || pathname === '/api/notes/export') {
-    return notImplemented(method, 'note templates/assets/export are not implemented on this host')
+  if (pathname === '/api/notes/assets') {
+    return notImplemented(method, 'note asset upload is not implemented on this host')
   }
   if (pathname === '/api/repositories/create' || pathname.endsWith('/manifest')
     || pathname.endsWith('/install-plan') || pathname.endsWith('/environment-profiles')
@@ -1180,6 +1182,40 @@ async function notesTemplatesRoute(services: RinServiceRefs): Promise<JsonRespon
   if (notes === undefined) return notMounted()
   try {
     return json(200, { templates: await notes.templates() })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function notesFromTemplateRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const notes = services.notes()
+  if (notes === undefined) return notMounted()
+  const fields = asRecord(body)
+  const path = fields === undefined ? undefined : stringField(fields, 'path')
+  const template = fields === undefined ? undefined : stringField(fields, 'template')
+  if (path === undefined || template === undefined) return error(400, 'path and template are required')
+  try {
+    const templates = await notes.templates()
+    const found = templates.find(item => item.name === template || item.path === template)
+    if (found === undefined) return error(404, 'template not found')
+    const doc = await notes.read(found.path)
+    return json(200, await notes.write(path, doc.content))
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function notesExportRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const notes = services.notes()
+  if (notes === undefined) return notMounted()
+  const path = queryParam(search, 'path')
+  if (path === undefined) return error(400, 'path is required; pass ?path=')
+  try {
+    const doc = await notes.read(path)
+    const title = doc.title ?? doc.name ?? path
+    const body = doc.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    return json(200, { html: `<h1>${title}</h1>\n<pre>${body}</pre>`, title })
   } catch (err) {
     return error(500, errorMessage(err))
   }
