@@ -31,9 +31,9 @@
 6. SECURITY.md 缺失（无安全上报渠道）。
 7. CODE_OF_CONDUCT.md 缺失。
 8. CHANGELOG.md 缺失（+ 无版本/发布记录机制）。
-9. 内部规划文档含敏感信息：MIGRATION.md 的 E 盘/cyberpsychosis 路径、/mnt/e/、D 盘路径、~/.cyber、CC 反编译表述；LEGACY-D-SPEC/AUDIT-REPORT/TECH-DEBT-PLAN 的子代理编排/决策过程。发布前须归档或清洗。
+9. 内部规划文档含敏感信息：MIGRATION.md 的 E 盘/旧项目路径、/mnt/e/、D 盘路径、旧配置目录、CC 反编译表述；LEGACY-D-SPEC/AUDIT-REPORT/TECH-DEBT-PLAN 的子代理编排/决策过程。发布前须归档或清洗。
 10. 根 README 是 dsh 的不是 rin 的（npx dsh web 3080、clone deepseek-harness，全文无 rin/8320/@rin）。
-11. 去品牌未完成：repositories.ts:50 的 cyberpsychosis.dev/v2（与后端 rin.dev/v1 不符，错误契约）；cybercode-oauth 路由/store；8 个 cybercode-*.png 资产；ChatInput.test 的 /Users/wang；ProjectFilter.test 的 wk42worldworld。
+11. 去品牌已完成：repository API 版本对齐 rin.dev/v1；旧 oauth 路由/store 已取消；旧品牌 PNG 资产已删除；测试夹具中的个人路径已中性化。
 
 ### 仓库卫生（2）
 12. CI 分支名 master≠main：7 个 workflow push 触发写 branches:[master]，本地默认分支是 main → push 到 main 不触发任何 CI。

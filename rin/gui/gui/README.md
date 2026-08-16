@@ -86,10 +86,10 @@ rin/gui/gui/
 │   └── binaries/                 #   发布态 sidecar：rin-sidecar[.exe]（构建产物，gitignore）
 ├── assets/                       # 品牌/字体/图标静态资产（二进制，主线程 Copy-Item）
 │   ├── app-icon.svg              #   海豹 app 图标（主视觉）
-│   ├── fonts/                    #   7 款字体（Archivo/Geist/JetBrains Mono/Material Symbols/codicon）
+│   ├── fonts/                    #   5 款字体（Geist/JetBrains Mono/codicon）
 │   ├── provider-icons/           #   deepseek/ollama/… 及 styled/ 变体
 │   ├── icons/                    #   github 等第三方图标
-│   └── brand/                    #   wordmark（旧 cyberpsychosis → 需改名 rin，见资产清单）
+│   └── brand/                    #   wordmark（已清理，见资产清单）
 ├── docs/
 │   ├── asset-migration.md        # 品牌资产迁移清单（源路径 → 目标路径，供主线程 Copy-Item）
 │   └── verification.md           # 真机验证清单

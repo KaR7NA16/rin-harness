@@ -2,7 +2,7 @@
 
 Host performance snapshot service (ctx.monitor) and the model-facing
 `monitor_snapshot` tool. Ported from the web-server's in-package monitor
-module (cyberpsychosis MonitorTool lineage): it reads real Linux sources only
+module (legacy desktop MonitorTool lineage): it reads real Linux sources only
 (node: builtins; no stubs or fakes) — /proc/stat (CPU jiffies, sampled twice
 for a real percent over time), /proc/meminfo, /proc/loadavg, /proc/uptime, a
 spawned `df -P -k /`, a scan of /proc/<pid> for the top processes by RSS, and
@@ -34,6 +34,6 @@ available the containers array is empty. Nothing is fabricated.
 - The CPU percent needs two /proc/stat samples, so the first snapshot after
   service start reports 0.0% (neutral) until a real delta exists; an
   unreadable sample resets the cache.
-- The cyberpsychosis MonitorTool's historical per-session metric history and
+- The legacy desktop MonitorTool's historical per-session metric history and
   trend charting are not ported; the tool and route return point-in-time
   snapshots only.

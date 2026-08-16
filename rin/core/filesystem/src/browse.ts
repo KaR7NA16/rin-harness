@@ -4,7 +4,7 @@
  * Lists a directory (directories first, then files when requested), filtering
  * dot-entries, with an optional filename search. Every resolved path must stay
  * under the host home or the system temp directory (and /private/tmp on macOS),
- * mirroring cyberpsychosis's filesystem containment. Cordis-free: node: builtins
+ * mirroring the legacy desktop filesystem containment. Cordis-free: node: builtins
  * only.
  *
  * @module @rin/filesystem

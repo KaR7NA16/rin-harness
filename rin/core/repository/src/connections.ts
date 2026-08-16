@@ -2,7 +2,7 @@
  * rin repository — connection registry.
  *
  * File-backed registry of connected asset repositories (id/name/rootPath),
- * ported from cyberpsychosis repositoryService connection management and
+ * ported from the legacy desktop repositoryService connection management and
  * re-encoded as JSON (the legacy store was YAML). Hydration reads each root via
  * {@link readAssetRepository}; the write-side manifest helpers (updateManifest /
  * install-plan environment provisioning) are not ported here. Cordis-free.

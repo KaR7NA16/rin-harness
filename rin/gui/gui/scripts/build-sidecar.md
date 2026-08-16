@@ -35,7 +35,7 @@ rin 的 sidecar 复用同一思路：**一份依赖 manifest（@rin/bundle + dsh
 单文件 exe → 放进 src-tauri/binaries/ → 随 bundle 分发**。差异只是入口从 JSON-RPC stdio server
 换成「起 @rin/web-server 的 host」——即复用 `@rin/cli` 的 boot 逻辑。
 
-### 2. 旧项目：sidecars/cyberpsychosis-sidecar.ts（模式参考，重写不搬）
+### 2. 旧项目：sidecars/legacy-desktop-sidecar.ts（模式参考，重写不搬）
 
 旧桌面的 sidecar 是「合并模式」单二进制：第一个 positional 参数选 mode，并有**父进程看门狗**
 （父 pid 消失即自退，防孤儿）。rin 沿用两个思想：

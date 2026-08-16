@@ -1,7 +1,7 @@
 /**
  * rin web-server — provider connectivity probe and model discovery.
  *
- * Faithful port of cyberpsychosis's `providerModelDiscovery` and
+ * Faithful port of the legacy desktop `providerModelDiscovery` and
  * `providerService.testConnectivity` (direct upstream call only — the
  * Anthropic↔OpenAI proxy-transform pipeline and image probe are out of scope
  * and reported as not-tested). Self-contained: only `node:` builtins plus the

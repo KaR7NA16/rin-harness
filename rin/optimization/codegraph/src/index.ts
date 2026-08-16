@@ -5,7 +5,7 @@
  * code graph. The indexer is in-process web-tree-sitter (pure WASM); the
  * service owns the lifecycle (enable/disable/rebuild + lazy auto-index) and
  * derives ranked visualization, architecture summary, and aggregate stats,
- * ported from cyberpsychosis.
+ * ported from the legacy desktop codegraph service.
  *
  * @module @rin/codegraph
  */

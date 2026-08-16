@@ -2,7 +2,7 @@
 
 Gzip session export/import and rolling backups over the dsh session home, exposed as ctx.sessionBackup.
 
-Ported from cyberpsychosis sessionBackupService, re-encoded as gzip of raw session files (sessions may be zstd-compressed) instead of fflate zip of parsed JSONL.
+Ported from the legacy desktop sessionBackupService, re-encoded as gzip of raw session files (sessions may be zstd-compressed) instead of fflate zip of parsed JSONL.
 
 ## API
 

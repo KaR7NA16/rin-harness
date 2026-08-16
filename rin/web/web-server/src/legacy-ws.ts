@@ -1,5 +1,5 @@
 /**
- * rin web-server — cyberpsychosis-desktop legacy WebSocket chat bridge.
+ * rin web-server — legacy desktop WebSocket chat bridge.
  *
  * The migrated desktop frontend opens `/ws/<sessionId>` and speaks the old
  * client-message/server-message protocol. This module drives the dsh Agent for

@@ -4,7 +4,7 @@
  * Lists plugins installed under a root directory; each plugin is a directory
  * holding a plugin.md with YAML frontmatter (name/description/version/author)
  * followed by capability sections (Commands/Agents/Skills/Hooks/McpServers/LspServers).
- * Simplified port of cyberpsychosis plugin listing; the marketplace/install/
+ * Simplified port of the legacy desktop plugin listing; the marketplace/install/
  * version/reconcile subsystem is not ported. Cordis-free.
  *
  * @module @rin/plugins

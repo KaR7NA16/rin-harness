@@ -2,7 +2,7 @@
 
 Path-contained directory browsing exposed as ctx.filesystem.
 
-Ported from cyberpsychosis filesystem browse; every path resolves under the host home or system temp.
+Ported from the legacy desktop filesystem browse; every path resolves under the host home or system temp.
 
 ## API
 

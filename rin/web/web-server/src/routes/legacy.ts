@@ -1,7 +1,7 @@
 /**
- * rin web-server — cyberpsychosis-desktop legacy route compatibility.
+ * rin web-server — legacy desktop route compatibility.
  *
- * The migrated desktop frontend expects the old cyberpsychosis REST paths.
+ * The migrated desktop frontend expects the old desktop REST paths.
  * This module maps those paths onto the @rin services already mounted by the
  * host, so the desktop UI can read and write real rin data without changing
  * the frontend's api/ modules. Returns null for any pathname it does not claim.

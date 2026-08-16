@@ -1,7 +1,7 @@
 /**
  * rin codegraph — graph analysis and visualization.
  *
- * Ported from cyberpsychosis codeGraphAnalysis: reads the SQLite graph
+ * Ported from the legacy desktop codeGraphAnalysis: reads the SQLite graph
  * (nodes/edges) and derives communities (Louvain), hub/bridge roles, and a
  * formatted architecture summary. The bun:sqlite access is replaced by the
  * node:sqlite-backed read handle in db.ts.

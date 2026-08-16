@@ -5,7 +5,7 @@ Per-project SQLite code graph with a web-tree-sitter indexer, exposed as ctx.cod
 Builds <project>/.codegraph/codegraph.db (nodes/edges/files) by parsing source files with
 web-tree-sitter (pure WASM grammars bundled in grammars/), then derives ranked visualization,
 Louvain communities, hub/bridge roles, and a model-facing architecture summary. The analysis
-layer is ported from cyberpsychosis codeGraphAnalysis (bun:sqlite → node:sqlite); the indexer
+layer is ported from the legacy desktop codeGraphAnalysis (bun:sqlite → node:sqlite); the indexer
 replaces the legacy native @colbymchenry/codegraph binary.
 
 ## API
@@ -22,5 +22,5 @@ replaces the legacy native @colbymchenry/codegraph binary.
   not the full cross-language query set of the legacy native binary.
 - No file watcher: the graph is a point-in-time snapshot rebuilt on demand via enable/rebuild,
   not incrementally synced as files change.
-- The cybercode_codegraph MCP server injection and its per-session patch path are Claude-specific
+- The legacy codegraph MCP server injection and its per-session patch path are Claude-specific
   and are not ported to this host.

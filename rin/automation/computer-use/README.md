@@ -47,7 +47,7 @@ venv — runs the permission preflight through the migrated helper script.
   `{ success, steps, status }`; `getRuntimeStatus()` is a read-only snapshot
   (`python`, `venv`, `dependencies`, `preflight` fields).
 - The python helper scripts and requirements files ship as package assets under
-  `runtime/` (migrated from the legacy cyberpsychosis project) and are copied
+  `runtime/` (migrated from the legacy desktop project) and are copied
   into the runtime root on install.
 - `createRuntimeModule({ configRoot })` binds both operations to one root;
   `FileComputerUseService` exposes them on `ctx.computerUse`.

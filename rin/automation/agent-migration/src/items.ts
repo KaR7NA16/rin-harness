@@ -4,7 +4,7 @@
  * Discovers migratable items (agent skills and instruction files) under an
  * external agent's config root, previews a text file prefix, and migrates
  * skills into the rin skill-memory root and instructions into a rules root.
- * Simplified port of cyberpsychosis agentMigration (skills + instructions only;
+ * Simplified port of the legacy desktop agent migration (skills + instructions only;
  * the per-agent format adapters, content transforms, and project discovery are
  * not ported). Cordis-free: node: builtins only.
  *

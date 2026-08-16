@@ -2,7 +2,7 @@
  * rin computer use — runtime setup: python detection, venv creation, dependency
  * installation with a sha256 stamp, and macOS/Windows permission preflight.
  *
- * This module is a node:child_process rewrite of the legacy cyberpsychosis
+ * This module is a node:child_process rewrite of the legacy desktop
  * setup (server/api/computer-use-python.ts plus the setup half of
  * computer-use.ts). It keeps the same step flow — python check, runtime-file
  * extraction, venv creation, pip bootstrap, requirements install, permission
@@ -580,7 +580,7 @@ export async function getRuntimeStatus(
  * Install the computer-use runtime: detect python, extract the requirements
  * and helper assets, create the venv, bootstrap pip, install dependencies
  * (guarded by a sha256 stamp), and run the permission preflight. Steps mirror
- * the legacy cyberpsychosis flow; the preflight outcome is reported through
+ * the legacy desktop flow; the preflight outcome is reported through
  * the returned status and never fails the install.
  * @param roots - the configuration root.
  * @param options - runtime setup options.

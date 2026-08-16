@@ -3,7 +3,7 @@
  *
  * File-backed JSON store for pending agent-change proposals: prepare (record a
  * generated candidate), approve (write the agent + mark approved), reject, get,
- * and list. Ported from cyberpsychosis agentProposalService, re-encoded as JSON
+ * and list. Ported from the legacy desktop agentProposalService, re-encoded as JSON
  * (the legacy store was YAML). Cordis-free: node: builtins only.
  *
  * @module @rin/agents

@@ -2,7 +2,7 @@
 
 Provider connectivity test and model-list discovery exposed as ctx.providerProbe.
 
-Ported from cyberpsychosis providerModelDiscovery and providerService.testConnectivity.
+Ported from the legacy desktop providerModelDiscovery and providerService.testConnectivity.
 The probe is a direct upstream HTTP call (no Anthropic-to-OpenAI proxy-transform pipeline),
 so it stays cordis-free (global fetch + AbortSignal only).
 

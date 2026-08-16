@@ -1,6 +1,6 @@
 # @rin/computer-use runtime assets
 
-Migrated from the legacy cyberpsychosis project
+Migrated from the legacy desktop project
 (`src/server/api/computer-use-python.ts` + `server/api/computer-use.ts` used them
 via Bun text imports) so the node-based `src/runtime.ts` can copy them into the
 runtime root at install time:

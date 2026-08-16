@@ -1,6 +1,6 @@
 {
   "name": "@rin/web-ui",
-  "description": "rin web-ui: the cyberpsychosis-desktop UI migrated as rin's single frontend for 8320 and @rin/gui",
+  "description": "rin web-ui: rin's single frontend for 8320 and @rin/gui",
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
