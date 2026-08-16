@@ -55,6 +55,30 @@ export async function startHost(args: RinArgs): Promise<RinHost> {
   const overrides = [{
     id: 'web-server',
     config: { ...defaultConfig['web-server'], port, host },
+  }, {
+    // dsh-base mounts session-query-sqlite with path ':memory:' and openAt 'never'
+    // (content search disabled; exact reads stay live). rin enables full-text
+    // search lazily over a durable index under the rin home, so the first model
+    // search opens the SQLite file and later searches reuse it.
+    id: 'session-query-sqlite',
+    config: {
+      path: rinHome('sessions/search.sqlite'),
+      openAt: 'first-search',
+    },
+  }, {
+    // Enable Code Mode alongside native tools: 'both' exposes the run_code
+    // transport plus the generated SDK prompt while keeping every native tool
+    // callable. The bundle's code-runtime row registers the ctx.codeRuntime
+    // this mode requires; without it dsh-tools fails prompt assembly loudly.
+    id: 'tools',
+    config: { mode: 'both' },
+  }, {
+    // dsh-base mounts tool-bash, a non-persistent `bash` tool; the bundle's
+    // tool-bash-persistent row registers the same `bash` name over the
+    // terminal chain. Disable the base row so the duplicate registration never
+    // happens (dsh-tools rejects a second global `bash` at load).
+    id: 'tool-bash',
+    disabled: true,
   }]
 
   const ctx = await boot(

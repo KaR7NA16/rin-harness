@@ -55,11 +55,24 @@ describe('startHost assembly', () => {
     const bootCall = appBoot.boot.mock.calls[0]
     expect(bootCall?.[0]).toBe('rin')
     expect(bootCall?.[1]).toBe(configPath())
-    const patches = bootCall?.[2] as Array<{ id?: string; config?: Record<string, unknown> }>
-    expect(patches).toHaveLength(2)
+    const patches = bootCall?.[2] as Array<{ id?: string; config?: Record<string, unknown>; disabled?: boolean }>
+    // The mocked dsh-base layer contributes one row; the launcher adds four overrides.
+    expect(patches).toHaveLength(5)
     expect(patches?.find(patch => patch.id === 'web-server')).toEqual({
       id: 'web-server',
       config: { ...defaultConfig['web-server'], port: defaultConfig['web-server'].port, host: defaultConfig['web-server'].host },
+    })
+    expect(patches?.find(patch => patch.id === 'session-query-sqlite')).toEqual({
+      id: 'session-query-sqlite',
+      config: { path: rinHome('sessions/search.sqlite'), openAt: 'first-search' },
+    })
+    expect(patches?.find(patch => patch.id === 'tools')).toEqual({
+      id: 'tools',
+      config: { mode: 'both' },
+    })
+    expect(patches?.find(patch => patch.id === 'tool-bash')).toEqual({
+      id: 'tool-bash',
+      disabled: true,
     })
 
     const provide = vi.fn()
