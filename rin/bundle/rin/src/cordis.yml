@@ -23,6 +23,9 @@
 - id: filesystem
   name: '@rin/filesystem'
 
+- id: session-backup
+  name: '@rin/session-backup'
+
 - id: knowledge
   name: '@rin/knowledge'
   config:

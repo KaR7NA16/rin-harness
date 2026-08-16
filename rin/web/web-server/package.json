@@ -49,6 +49,7 @@
     "@rin/prompt-memory": "workspace:^",
     "@rin/repository": "workspace:^",
     "@rin/sandboxes": "workspace:^",
+    "@rin/session-backup": "workspace:^",
     "@rin/session-search": "workspace:^",
     "@rin/skill-memory": "workspace:^",
     "@rin/tasks": "workspace:^",

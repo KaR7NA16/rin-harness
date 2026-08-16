@@ -24,6 +24,9 @@
       "path": "../../core/filesystem"
     },
     {
+      "path": "../../core/session-backup"
+    },
+    {
       "path": "../../memory/knowledge"
     },
     {

@@ -18,6 +18,7 @@ import type { AgentMigrationService } from '@rin/agent-migration'
 import type { ComputerUseService } from '@rin/computer-use'
 import type { FilesystemService } from '@rin/filesystem'
 import type { McpStore } from '@rin/mcp'
+import type { SessionBackupService } from '@rin/session-backup'
 import type { ProviderProbeService } from '@rin/provider-probe'
 import type { TaskStore } from '@rin/tasks'
 import type { TeamStore } from '@rin/teams'
@@ -91,6 +92,7 @@ export class WebServerService extends Service {
       repository: () => ctx.get('repository'),
       environment: () => ctx.get('environment'),
       filesystem: () => ctx.get('filesystem') as unknown as FilesystemService | undefined,
+      sessionBackup: () => ctx.get('sessionBackup') as unknown as SessionBackupService | undefined,
       smartPruning: () => ctx.get('smartPruning'),
       knowledge: () => ctx.get('knowledge'),
       sessionSearch: () => ctx.get('sessionSearch'),

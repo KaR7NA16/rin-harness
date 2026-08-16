@@ -38,6 +38,7 @@ export const RIN_HOST_PLUGINS = [
   '@rin/repository',
   '@rin/environment',
   '@rin/filesystem',
+  '@rin/session-backup',
   '@rin/knowledge',
   '@rin/prompt-memory',
   '@rin/skill-memory',

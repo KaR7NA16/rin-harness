@@ -59,6 +59,10 @@ export async function handle(
   // Sessions (legacy desktop REST surface over the mounted dsh session services)
   if (pathname === '/api/sessions') return sessionsListRoute(method, body, services)
   if (pathname === '/api/sessions/recent-projects') return recentProjectsRoute(search, services)
+  if (pathname === '/api/sessions/backup') return sessionBackupRoute(method, services)
+  if (pathname === '/api/sessions/backups') return sessionBackupsRoute(method, services)
+  if (pathname === '/api/sessions/backup/restore') return sessionBackupRestoreRoute(method, body, services)
+  if (pathname === '/api/sessions/backup-settings') return sessionBackupSettingsRoute(method, body, services)
   const sessionMatch = /^\/api\/sessions\/([^/]+)(\/([^/]+))?$/.exec(pathname)
   if (sessionMatch !== null && sessionMatch[1] !== undefined) {
     return sessionsItemRoute(sessionMatch[1], sessionMatch[3], search, method, body, services)
@@ -190,11 +194,9 @@ export async function handle(
   if (pathname.startsWith('/api/plugins')) return notImplemented(method, 'plugin lifecycle management is not implemented on this host')
   if (pathname === '/api/filesystem/browse') return filesystemBrowseRoute(search, services)
   if (pathname.startsWith('/api/rin-oauth')) return notImplemented(method, 'rin OAuth pairing is not implemented on this host')
-  if (pathname === '/api/sessions/backup' || pathname === '/api/sessions/backups'
-    || pathname === '/api/sessions/backup/restore' || pathname === '/api/sessions/backup-settings'
-    || pathname === '/api/sessions/export' || pathname === '/api/sessions/import'
+  if (pathname === '/api/sessions/export' || pathname === '/api/sessions/import'
     || pathname === '/api/sessions/project-folders') {
-    return notImplemented(method, 'session backup/export/import is not implemented on this host')
+    return notImplemented(method, 'session export/import (raw binary) is not implemented on this host yet')
   }
   if (pathname === '/api/agent-migration/migrate' || pathname.startsWith('/api/agent-migration/items/')) {
     return notImplemented(method, 'agent migration execution is not implemented on this host (only scan is available)')
@@ -842,6 +844,64 @@ async function filesystemBrowseRoute(search: string, services: RinServiceRefs): 
     if (message.includes('Not a directory')) return error(400, message)
     return error(500, message)
   }
+}
+
+async function sessionBackupRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const backup = services.sessionBackup()
+  if (backup === undefined) return notMounted()
+  if (method !== 'POST') return error(405, 'method not allowed')
+  try {
+    return json(200, { ok: true, backup: await backup.runBackup() })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function sessionBackupsRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const backup = services.sessionBackup()
+  if (backup === undefined) return notMounted()
+  if (method !== 'GET') return error(405, 'method not allowed')
+  try {
+    return json(200, { backups: await backup.listBackups() })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function sessionBackupRestoreRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  const backup = services.sessionBackup()
+  if (backup === undefined) return notMounted()
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const fields = asRecord(body)
+  const name = fields === undefined ? undefined : stringField(fields, 'name')
+  if (name === undefined) return error(400, 'name is required')
+  try {
+    return json(200, await backup.restoreBackup(name))
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
+}
+
+async function sessionBackupSettingsRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  const backup = services.sessionBackup()
+  if (backup === undefined) return notMounted()
+  if (method === 'GET') {
+    try {
+      return json(200, { settings: await backup.getSettings() })
+    } catch (err) {
+      return error(500, errorMessage(err))
+    }
+  }
+  if (method === 'PUT') {
+    const fields = asRecord(body)
+    const settings = fields === undefined ? undefined : asRecord(fields['settings'])
+    try {
+      return json(200, { settings: await backup.updateSettings(settings ?? {}) })
+    } catch (err) {
+      return error(500, errorMessage(err))
+    }
+  }
+  return error(405, 'method not allowed')
 }
 
 function statusRoute(): JsonResponse {
