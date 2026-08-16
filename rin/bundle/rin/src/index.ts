@@ -49,6 +49,7 @@ export const RIN_HOST_PLUGINS = [
   '@rin/sandboxes',
   '@rin/tasks',
   '@rin/mcp',
+  '@rin/provider-probe',
   '@rin/computer-use',
   '@rin/agent-migration',
   '@rin/teams',

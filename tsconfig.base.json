@@ -45,6 +45,7 @@
     "@rin/cli": ["./rin/cli/rin/src"],
       "@rin/tasks": ["./rin/automation/tasks/src"],
       "@rin/mcp": ["./rin/automation/mcp/src"],
+      "@rin/provider-probe": ["./rin/automation/provider-probe/src"],
       "@rin/computer-use": ["./rin/automation/computer-use/src"],
       "@rin/agent-migration": ["./rin/automation/agent-migration/src"],
       "@rin/teams": ["./rin/collaboration/teams/src"],

@@ -42,6 +42,7 @@ function makeServices(overrides: Record<string, () => unknown> = {}) {
     sessionProjections: () => undefined,
     shell: () => undefined,
     mcp: () => undefined,
+    providerProbe: () => undefined,
     teams: () => undefined,
     tasks: () => undefined,
     computerUse: () => undefined,
@@ -854,7 +855,8 @@ describe('legacy: settings/models/providers', () => {
   test('provider item activate/test/PUT/DELETE', async () => {
     await writeFile(join(rinHome, 'providers.json'), JSON.stringify({ activeId: null, providers: [{ id: 'p1', name: 'P1', apiKey: 'secret123' }] }))
     expect(await handle('/api/providers/p1/activate', '', 'POST', undefined, makeServices(), config)).toEqual({ status: 200, body: { ok: true } })
-    const test = await handle('/api/providers/p1/test', '', 'GET', undefined, makeServices(), config)
+    const probe = makeServices({ providerProbe: () => ({ test: async () => ({ connectivity: { success: false, latencyMs: 0 } }) }) })
+    const test = await handle('/api/providers/p1/test', '', 'POST', undefined, probe, config)
     expect(test?.body.result.connectivity.success).toBe(false)
     const upd = await handle('/api/providers/p1', '', 'PUT', { name: 'P2' }, makeServices(), config)
     expect(upd?.body.provider.name).toBe('P2')

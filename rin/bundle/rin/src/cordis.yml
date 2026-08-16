@@ -113,6 +113,9 @@
   config:
     storeRoot: !!js rinHome('mcp')
 
+- id: provider-probe
+  name: '@rin/provider-probe'
+
 - id: computer-use
   name: '@rin/computer-use'
   config:

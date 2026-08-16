@@ -17,6 +17,7 @@ import { createWebServer } from './server.ts'
 import type { AgentMigrationService } from '@rin/agent-migration'
 import type { ComputerUseService } from '@rin/computer-use'
 import type { McpStore } from '@rin/mcp'
+import type { ProviderProbeService } from '@rin/provider-probe'
 import type { TaskStore } from '@rin/tasks'
 import type { TeamStore } from '@rin/teams'
 import type { DshAgentDefaultModelLike, DshAgentRegistryLike, DshCommandsLike, DshCredentialsLike, DshLlmLike, DshSessionPersistenceLike, DshSessionProjectionsLike, DshSessionStoreLike, DshShellLike, DshTokenMeterLike, DshWorkspaceRegistryLike, RinServiceRefs } from './routes.ts'
@@ -110,6 +111,7 @@ export class WebServerService extends Service {
       sessionProjections: () => ctx.get('sessionProjections') as unknown as DshSessionProjectionsLike | undefined,
       shell: () => ctx.get('shell') as unknown as DshShellLike | undefined,
       mcp: () => ctx.get('mcp') as unknown as McpStore | undefined,
+      providerProbe: () => ctx.get('providerProbe') as unknown as ProviderProbeService | undefined,
       teams: () => ctx.get('teams') as unknown as TeamStore | undefined,
       tasks: () => ctx.get('tasks') as unknown as TaskStore | undefined,
       computerUse: () => ctx.get('computerUse') as unknown as ComputerUseService | undefined,

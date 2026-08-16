@@ -14,6 +14,7 @@ import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promise
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { buildPromptMemoryInsights } from '@rin/prompt-memory'
+import type { DiscoveryInput, ProviderTestInput } from '@rin/provider-probe'
 import type { Config, JsonResponse, ResponseStyle } from '../types.ts'
 import {
   asRecord,
@@ -132,11 +133,11 @@ export async function handle(
   if (pathname === '/api/providers/auth-status') return authStatusRoute(services)
   if (pathname === '/api/providers/settings') return providersSettingsRoute(method, body)
   if (pathname === '/api/providers/official') return providersOfficialRoute(method, body)
-  if (pathname === '/api/providers/test') return providersTestRoute(method, body)
-  if (pathname === '/api/providers/models/discover') return providersDiscoverRoute(method, body)
+  if (pathname === '/api/providers/test') return providersTestRoute(method, body, services)
+  if (pathname === '/api/providers/models/discover') return providersDiscoverRoute(method, body, services)
   const providerItem = /^\/api\/providers\/([^/]+)(\/([^/]+))?$/.exec(pathname)
   if (providerItem !== null && providerItem[1] !== undefined) {
-    return providerItemRoute(providerItem[1], providerItem[3], method, body)
+    return providerItemRoute(providerItem[1], providerItem[3], method, body, services)
   }
   if (pathname === '/api/mcp') return mcpListRoute(method, body, services)
   const mcpItem = /^\/api\/mcp\/([^/]+)(\/([^/]+))?$/.exec(pathname)
@@ -517,20 +518,62 @@ async function providersOfficialRoute(method: string, body: unknown): Promise<Js
   }
 }
 
-async function providersTestRoute(method: string, body: unknown): Promise<JsonResponse> {
-  void body
+async function providersTestRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
   if (method !== 'POST') return error(405, 'method not allowed')
-  return json(200, {
-    result: {
-      connectivity: { success: false, latencyMs: 0, error: 'provider connectivity test is not implemented on this host yet' },
-    },
-  })
+  const probe = services.providerProbe()
+  if (probe === undefined) return notMounted()
+  const fields = asRecord(body)
+  if (fields === undefined) return error(400, 'request body must be a JSON object')
+  const baseUrl = stringField(fields, 'baseUrl')
+  const modelId = stringField(fields, 'modelId')
+  if (baseUrl === undefined || modelId === undefined) return error(400, 'baseUrl and modelId are required')
+  const apiFormat = fields['apiFormat'] === 'openai_chat' || fields['apiFormat'] === 'openai_responses'
+    ? fields['apiFormat']
+    : 'anthropic'
+  try {
+    const input: ProviderTestInput = {
+      baseUrl,
+      apiKey: stringField(fields, 'apiKey') ?? '',
+      modelId,
+      apiFormat,
+    }
+    const models = fields['models'] === undefined ? undefined : providerModelsFromRecord(asRecord(fields['models']))
+    if (models !== undefined) input.models = models
+    const presetId = fields['presetId'] === undefined ? undefined : stringField(fields, 'presetId')
+    if (presetId !== undefined) input.presetId = presetId
+    return json(200, { result: await probe.test(input) })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
 }
 
-async function providersDiscoverRoute(method: string, body: unknown): Promise<JsonResponse> {
-  void body
+async function providersDiscoverRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
   if (method !== 'POST') return error(405, 'method not allowed')
-  return error(501, 'provider model discovery is not implemented on this host yet')
+  const probe = services.providerProbe()
+  if (probe === undefined) return notMounted()
+  const fields = asRecord(body)
+  if (fields === undefined) return error(400, 'request body must be a JSON object')
+  const baseUrl = stringField(fields, 'baseUrl')
+  if (baseUrl === undefined) return error(400, 'baseUrl is required')
+  try {
+    const input: DiscoveryInput = {
+      baseUrl,
+      apiFormat: fields['apiFormat'] === 'openai_chat' || fields['apiFormat'] === 'openai_responses' ? fields['apiFormat'] : 'anthropic',
+    }
+    const apiKey = fields['apiKey'] === undefined ? undefined : stringField(fields, 'apiKey')
+    if (apiKey !== undefined) input.apiKey = apiKey
+    const presetId = fields['presetId'] === undefined ? undefined : stringField(fields, 'presetId')
+    if (presetId !== undefined) input.presetId = presetId
+    return json(200, { result: await probe.discover(input) })
+  } catch (err) {
+    return error(502, errorMessage(err))
+  }
+}
+
+/** Project a saved provider's models record into the probe's ModelMapping. */
+function providerModelsFromRecord(value: Record<string, unknown> | undefined): { main: string; haiku: string; sonnet: string; opus: string } {
+  const pick = (key: string): string => (typeof value?.[key] === 'string' ? value[key] as string : '')
+  return { main: pick('main'), haiku: pick('haiku'), sonnet: pick('sonnet'), opus: pick('opus') }
 }
 
 async function providersRoute(method: string, body: unknown): Promise<JsonResponse> {
@@ -575,6 +618,7 @@ async function providerItemRoute(
   action: string | undefined,
   method: string,
   body: unknown,
+  services: RinServiceRefs,
 ): Promise<JsonResponse> {
   let id: string
   try {
@@ -594,7 +638,26 @@ async function providerItemRoute(
       return json(200, { ok: true })
     }
     if (action === 'test') {
-      return json(200, { result: { connectivity: { success: false, latencyMs: 0, error: 'provider test is not wired yet' } } })
+      if (method !== 'POST') return error(405, 'method not allowed')
+      const current = store.providers[index]!
+      const overrides = asRecord(body)
+      const baseUrl = (overrides === undefined ? undefined : stringField(overrides, 'baseUrl'))
+        ?? stringField(current, 'baseUrl') ?? ''
+      const models = providerModelsFromRecord(asRecord(current['models']))
+      const modelId = (overrides === undefined ? undefined : stringField(overrides, 'modelId')) ?? models.main
+      const apiFormat = (overrides?.['apiFormat'] as string | undefined)
+        ?? (typeof current['apiFormat'] === 'string' ? current['apiFormat'] as string : 'anthropic')
+      const probe = services.providerProbe()
+      if (probe === undefined) return notMounted()
+      const input: ProviderTestInput = {
+        baseUrl,
+        apiKey: typeof current['apiKey'] === 'string' ? current['apiKey'] : '',
+        modelId,
+        models,
+        apiFormat: apiFormat === 'openai_chat' || apiFormat === 'openai_responses' ? apiFormat : 'anthropic',
+      }
+      if (typeof current['presetId'] === 'string') input.presetId = current['presetId']
+      return json(200, { result: await probe.test(input) })
     }
 
     if (method === 'PUT') {

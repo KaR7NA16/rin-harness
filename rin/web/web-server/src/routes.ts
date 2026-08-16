@@ -20,6 +20,7 @@ import type { NotesStore } from '@rin/notes'
 import type { SandboxStore } from '@rin/sandboxes'
 import type { TaskStore } from '@rin/tasks'
 import type { McpStore } from '@rin/mcp'
+import type { ProviderProbeService } from '@rin/provider-probe'
 import type { ComputerUseService } from '@rin/computer-use'
 import type { AgentMigrationService } from '@rin/agent-migration'
 import type { TeamStore } from '@rin/teams'
@@ -189,6 +190,7 @@ export interface RinServiceRefs {
   sessionProjections(): DshSessionProjectionsLike | undefined
   shell(): DshShellLike | undefined
   mcp(): McpStore | undefined
+  providerProbe(): ProviderProbeService | undefined
   teams(): TeamStore | undefined
   tasks(): TaskStore | undefined
   computerUse(): ComputerUseService | undefined

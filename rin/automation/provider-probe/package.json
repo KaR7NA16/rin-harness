@@ -1,6 +1,6 @@
 {
-  "name": "@rin/web-server",
-  "description": "rin web-server: an independent node:http server exposing the JSON API and serving the static frontend",
+  "name": "@rin/provider-probe",
+  "description": "rin provider-probe: direct-upstream provider connectivity test and model-list discovery exposed as ctx.providerProbe",
   "version": "0.1.0",
   "license": "MIT",
   "type": "module",
@@ -30,31 +30,11 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^"
   },
-  "dependencies": {
-    "ws": "^8.18.0"
-  },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",
-    "@rin/agent-migration": "workspace:^",
-    "@rin/agents": "workspace:^",
-    "@rin/computer-use": "workspace:^",
-    "@rin/environment": "workspace:^",
-    "@rin/evolution": "workspace:^",
-    "@rin/knowledge": "workspace:^",
-    "@rin/mcp": "workspace:^",
-    "@rin/notes": "workspace:^",
-    "@rin/provider-probe": "workspace:^",
-    "@rin/prompt-memory": "workspace:^",
-    "@rin/repository": "workspace:^",
-    "@rin/sandboxes": "workspace:^",
-    "@rin/session-search": "workspace:^",
-    "@rin/skill-memory": "workspace:^",
-    "@rin/tasks": "workspace:^",
-    "@rin/teams": "workspace:^",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.8",
-    "@types/ws": "^8.18.0"
+    "vitest": "^4.1.8"
   },
   "publishConfig": {
     "access": "public"

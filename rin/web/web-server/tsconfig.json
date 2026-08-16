@@ -51,6 +51,9 @@
       "path": "../../automation/mcp"
     },
     {
+      "path": "../../automation/provider-probe"
+    },
+    {
       "path": "../../automation/computer-use"
     },
     {
