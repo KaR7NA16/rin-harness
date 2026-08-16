@@ -25,7 +25,8 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "lib/types/**/*"
+    "lib/types/**/*",
+    "runtime/**/*"
   ],
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^"

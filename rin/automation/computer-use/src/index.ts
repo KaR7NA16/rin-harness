@@ -11,6 +11,7 @@
 
 import { Context, Service } from '@deepseek-ai/cordis'
 import { getDefaultComputerUseRoot } from './paths.ts'
+import { createRuntimeModule } from './runtime.ts'
 import { createComputerUseStore } from './store.ts'
 import type {
   ApprovalResolution,
@@ -21,6 +22,11 @@ import type {
   PendingApproval,
   PermissionRequestInput,
 } from './types.ts'
+import type {
+  RuntimeInstallResult,
+  RuntimeModule,
+  RuntimeStatus,
+} from './runtime.ts'
 
 export type {
   ApprovalResolution,
@@ -40,6 +46,24 @@ export {
   DEFAULT_GRANT_FLAGS,
 } from './types.ts'
 export { getComputerUseStatePath, getDefaultComputerUseRoot } from './paths.ts'
+export {
+  createNodeCommandRunner,
+  createRuntimeModule,
+  detectPythonRuntime,
+  getRuntimeStatus,
+  installRuntime,
+} from './runtime.ts'
+export type {
+  PythonRuntimeResolution,
+  RuntimeCommandResult,
+  RuntimeCommandRunner,
+  RuntimeInstallResult,
+  RuntimeInstallStep,
+  RuntimeModule,
+  RuntimePreflightResult,
+  RuntimeSetupOptions,
+  RuntimeStatus,
+} from './runtime.ts'
 export {
   authorizeApp,
   clearResolvedApprovals,
@@ -113,15 +137,24 @@ export abstract class ComputerUseService extends Service {
   abstract supersedeApproval(requestId: string): Promise<PendingApproval | null>
 
   abstract clearResolvedApprovals(): Promise<void>
+
+  /** Install the computer-use python runtime (venv + dependencies + preflight). */
+  abstract installRuntime(): Promise<RuntimeInstallResult>
+
+  /** Read-only snapshot of the installed computer-use runtime. */
+  abstract getRuntimeStatus(): Promise<RuntimeStatus>
 }
 
 /** File-backed implementation binding every operation to one configuration root. */
 export class FileComputerUseService extends ComputerUseService {
   private readonly store: ReturnType<typeof createComputerUseStore>
+  private readonly runtime: RuntimeModule
 
   constructor(ctx: Context, config: ComputerUsePluginConfig = {}) {
     super(ctx)
-    this.store = createComputerUseStore({ configRoot: resolveConfigRoot(config) })
+    const configRoot = resolveConfigRoot(config)
+    this.store = createComputerUseStore({ configRoot })
+    this.runtime = createRuntimeModule({ configRoot })
   }
 
   override getStatus() {
@@ -182,6 +215,14 @@ export class FileComputerUseService extends ComputerUseService {
 
   override clearResolvedApprovals() {
     return this.store.clearResolvedApprovals()
+  }
+
+  override installRuntime() {
+    return this.runtime.install()
+  }
+
+  override getRuntimeStatus() {
+    return this.runtime.getStatus()
   }
 }
 
