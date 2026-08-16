@@ -95,7 +95,7 @@ export function SessionBackup({ embedded = false }: { embedded?: boolean }) {
     setBusy('export')
     try {
       const blob = await sessionsApi.exportSessions({ includeAgentNotes: true })
-      downloadBlob(blob, `cyberpsychosis-sessions-${new Date().toISOString().slice(0, 10)}.cybersession.zip`)
+      downloadBlob(blob, `rin-sessions-${new Date().toISOString().slice(0, 10)}.rinbackup.gz`)
       addToast({ type: 'success', message: t('backup.exported') })
     } catch (error) {
       addToast({ type: 'error', message: String(error) })
@@ -253,7 +253,7 @@ export function SessionBackup({ embedded = false }: { embedded?: boolean }) {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".cybersession.zip,application/zip"
+            accept=".rinbackup.gz,.gz,application/gzip"
             className="hidden"
             onChange={(e) => void onPickFile(e.target.files?.[0])}
           />

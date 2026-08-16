@@ -42,15 +42,15 @@ describe('SessionBackup', () => {
 
   it('lists backups with name and size', async () => {
     mocked.listBackups.mockResolvedValue({
-      backups: [{ name: 'backup-2026-08-10.cybersession.zip', createdAt: new Date().toISOString(), sizeBytes: 2048 }],
+      backups: [{ name: 'backup-2026-08-10.rinbackup.gz', createdAt: new Date().toISOString(), sizeBytes: 2048 }],
     })
     render(<SessionBackup />)
-    expect(await screen.findByText(/backup-2026-08-10\.cybersession\.zip/)).toBeInTheDocument()
+    expect(await screen.findByText(/backup-2026-08-10\.rinbackup\.gz/)).toBeInTheDocument()
     expect(await screen.findByText(/2\.0 KB/)).toBeInTheDocument()
   })
 
   it('runs a backup on click', async () => {
-    mocked.runBackup.mockResolvedValue({ ok: true, backup: { name: 'backup-run.cybersession.zip', createdAt: '', sizeBytes: 1 } })
+    mocked.runBackup.mockResolvedValue({ ok: true, backup: { name: 'backup-run.rinbackup.gz', createdAt: '', sizeBytes: 1 } })
     render(<SessionBackup />)
     await screen.findByText(/No backups yet/i)
     fireEvent.click(screen.getByText(/Back up now/i))

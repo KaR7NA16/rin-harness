@@ -156,7 +156,7 @@ export const defaultConfig: RinDefaultConfig = {
     staticRoot: webUiDistRoot(),
     knowledgeDbPath: rinHome('knowledge/knowledge.db'),
     skillMemoryRoots: {
-      globalConfigRoot: rinHome('skill-memory'),
+      globalConfigRoot: rinHome(),
       projectConfigRoot: rinHome(),
     },
   },

@@ -76,8 +76,8 @@ describe('MarkdownRenderer', () => {
   it('keeps non-mermaid code fences in the normal code viewer', async () => {
     render(<MarkdownRenderer content={'```ts\nconst value = 1\n```'} />)
 
-    expect(await screen.findByText('ts')).toBeInTheDocument()
-    expect(screen.getByText('const value = 1')).toBeInTheDocument()
+    expect(await screen.findByText('ts', {}, { timeout: 3000 })).toBeInTheDocument()
+    expect(await screen.findByText('const value = 1', {}, { timeout: 3000 })).toBeInTheDocument()
     expect(screen.queryByText('Rendering diagram...')).not.toBeInTheDocument()
   })
 

@@ -52,22 +52,21 @@ Windows Store / UWP 方块（Square*/StoreLogo）与 `ios/`、`android/` 平台�
 | public/app-icon.svg | assets/app-icon.svg | 文本（SVG） | Copy-Item 原样（web-ui favicon/品牌引用） | ✅ |
 | public/app-icon.png | assets/app-icon.png | 二进制 | Copy-Item 原样 | ⬜ |
 
-## 4. 字体 —— assets/fonts/ → assets/fonts/（7 款，✅ 已迁移）
+## 4. 字体 —— assets/fonts/ → assets/fonts/（5 款，✅ 已迁移）
 
-全部**二进制**，Copy-Item 原样：Archivo-Variable.ttf、Geist-Variable.woff2、GeistMono-Variable.woff2、
-jetbrains-mono-latin-ext.woff2、jetbrains-mono-latin.woff2、material-symbols-outlined.woff2、codicon.woff2。
+全部**二进制**，Copy-Item 原样：Geist-Variable.woff2、GeistMono-Variable.woff2、
+jetbrains-mono-latin-ext.woff2、jetbrains-mono-latin.woff2、codicon.woff2。
+Archivo 与 Material Symbols 字体已从 web-ui 移除（无代码引用）。
 
 ## 5. 模型供应商图标 —— assets/provider-icons/ → assets/provider-icons/
 
 | 源 | 目标 | 类型 | 处置 | 状态 |
 |---|---|---|---|---|
-| anthropic.ico | anthropic.ico | 二进制 | Copy-Item 原样 | ✅ |
-| deepseek.ico | deepseek.ico | 二进制 | Copy-Item 原样 | ✅ |
-| kimi.ico | kimi.ico | 二进制 | Copy-Item 原样 | ✅ |
-| lmstudio.ico | lmstudio.ico | 二进制 | Copy-Item 原样 | ✅ |
-| minimax.ico | minimax.ico | 二进制 | Copy-Item 原样 | ✅ |
-| ollama.png | ollama.png | 二进制 | Copy-Item 原样 | ✅ |
-| xiaomimimo.png | xiaomimimo.png | 二进制 | Copy-Item 原样 | ✅ |
+| official/openai-blossom.svg | official/openai-blossom.svg | 文本（SVG） | Copy-Item 原样 | ✅ |
+| official/google-gemini.png | official/google-gemini.png | 二进制 | Copy-Item 原样 | ✅ |
+| styled/rin-*.png | styled/rin-*.png | 二进制 | Copy-Item 原样 | ✅ |
+
+根目录的旧 `.ico` / `.png` 供应商图标已从 web-ui 移除（ProviderLogo 统一使用 `official/` 与 `styled/` 路径）。
 | zhipuglm.png | zhipuglm.png | 二进制 | Copy-Item 原样 | ✅ |
 | official/google-gemini.png | official/google-gemini.png | 二进制 | Copy-Item 原样 | ✅ |
 | official/openai-blossom.svg | official/openai-blossom.svg | 文本（SVG） | Copy-Item 原样 | ✅ |

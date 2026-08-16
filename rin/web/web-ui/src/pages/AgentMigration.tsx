@@ -33,12 +33,11 @@ import { useUIStore } from '../stores/uiStore'
 
 type Filter = 'all' | 'skill' | 'memory' | 'instruction' | 'project'
 
-const DEFAULT_TARGET_AGENT_ID: ExternalAgentId = 'cybercode'
+const DEFAULT_TARGET_AGENT_ID: ExternalAgentId = 'claude-code'
 const ROUTE_FIELD_CLASS = 'mt-[2px] flex h-[40px] w-full min-w-0 items-center gap-[9px] rounded-[8px] border border-[var(--color-border)] bg-[var(--color-background)] px-[10px] text-left'
 const ROUTE_ICON_CLASS = 'flex h-[28px] w-[28px] shrink-0 items-center justify-center overflow-hidden rounded-[6px] bg-[var(--color-surface-container)]'
 
 const AGENT_VISUALS: Record<ExternalAgentId, { src: string; imageClass?: string }> = {
-  cybercode: { src: '/app-icon.png' },
   openclaw: { src: '/agent-icons/openclaw.png', imageClass: 'p-[2px]' },
   'claude-code': { src: '/agent-icons/claude-code.png', imageClass: 'p-[7px]' },
   codex: { src: '/agent-icons/codex.png' },
@@ -349,7 +348,7 @@ export function AgentMigration() {
               <>
                 <AgentHeader
                   agent={activeAgent}
-                  targetName={targetAgent?.name ?? 'Cyberpsychosis'}
+                  targetName={targetAgent?.name ?? 'rin'}
                   recommendedCount={recommendedCount}
                   disabled={loading || Boolean(migrating)}
                   migrating={migrating === 'recommended'}
@@ -391,7 +390,7 @@ export function AgentMigration() {
                       selectableItemIds={selectableItemIds}
                       selected={selectedProjects}
                       migrating={loading ? 'loading' : migrating}
-                      registersProjects={targetAgentId === 'cybercode'}
+                      registersProjects={false}
                       onToggle={toggleProject}
                       onMigrate={project => requestMigration({ projectIds: [project.id] }, `project:${project.id}`)}
                     />

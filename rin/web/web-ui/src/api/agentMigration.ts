@@ -1,7 +1,6 @@
 import { api } from './client'
 
 export type ExternalAgentId =
-  | 'cybercode'
   | 'openclaw'
   | 'claude-code'
   | 'codex'
@@ -88,13 +87,13 @@ export type AgentMigrationResult = {
 }
 
 export const agentMigrationApi = {
-  scan: (targetAgentId: ExternalAgentId = 'cybercode') =>
+  scan: (targetAgentId: ExternalAgentId = 'claude-code') =>
     api.get<AgentMigrationScan>(
       `/api/agent-migration?targetAgentId=${encodeURIComponent(targetAgentId)}`,
       { timeout: 120_000 },
     ),
 
-  preview: (agentId: ExternalAgentId, itemId: string, targetAgentId: ExternalAgentId = 'cybercode') =>
+  preview: (agentId: ExternalAgentId, itemId: string, targetAgentId: ExternalAgentId = 'claude-code') =>
     api.get<{ item: AgentMigrationItem; content: string; truncated: boolean }>(
       `/api/agent-migration/items/${encodeURIComponent(itemId)}?agentId=${encodeURIComponent(agentId)}&targetAgentId=${encodeURIComponent(targetAgentId)}`,
       { timeout: 120_000 },

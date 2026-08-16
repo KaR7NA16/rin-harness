@@ -2437,7 +2437,7 @@ export function SkillSettings() {
             aria-label={t('settings.skills.openConfigPath')}
             title={t('settings.skills.openConfigPath')}
           >
-            <span className="truncate">{config?.displayPath ?? '~/.cyber/skills'}</span>
+            <span className="truncate">{config?.displayPath ?? '~/.rin/skill-memory'}</span>
           </Button>
         </div>
         {skillView === 'installed'

@@ -39,7 +39,6 @@ describe('AgentMigration', () => {
     const { container } = render(<AgentMigration />)
 
     expect((await screen.findAllByText('OpenClaw')).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Cyberpsychosis').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Claude Code').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Codex').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText(/Cursor/).length).toBeGreaterThanOrEqual(1)
@@ -49,9 +48,8 @@ describe('AgentMigration', () => {
     expect(screen.getByText('0 个文件 · 1 个项目')).toBeInTheDocument()
     expect(await screen.findByText('原生格式')).toHaveAttribute(
       'title',
-      'Cyberpsychosis searchable project memory',
+      'rin searchable project memory',
     )
-    expect(container.querySelector('[data-agent-logo="cybercode"]')).toHaveAttribute('src', '/app-icon.png')
     expect(container.querySelector('[data-agent-logo="openclaw"]')).toHaveAttribute('src', '/agent-icons/openclaw.png')
     expect(container.querySelector('[data-agent-logo="claude-code"]')).toHaveAttribute('src', '/agent-icons/claude-code.png')
     expect(container.querySelector('[data-agent-logo="codex"]')).toHaveAttribute('src', '/agent-icons/codex.png')
@@ -64,15 +62,14 @@ describe('AgentMigration', () => {
     render(<AgentMigration />)
 
     const trigger = await screen.findByTestId('target-agent-picker')
-    expect(trigger).toHaveAttribute('data-target-agent', 'cybercode')
-    expect(trigger.querySelector('[data-agent-logo="cybercode"]')).toBeInTheDocument()
+    expect(trigger).toHaveAttribute('data-target-agent', 'claude-code')
+    expect(trigger.querySelector('[data-agent-logo="claude-code"]')).toBeInTheDocument()
     fireEvent.click(trigger)
 
     const listbox = await screen.findByRole('listbox', { name: '被迁移方' })
     const expectedAgents = [
-      ['Cyberpsychosis', 'cybercode'],
-      ['OpenClaw', 'openclaw'],
       ['Claude Code', 'claude-code'],
+      ['OpenClaw', 'openclaw'],
       ['Codex', 'codex'],
       ['Cursor', 'cursor'],
       ['Hermes Agent', 'hermes-agent'],
@@ -82,7 +79,7 @@ describe('AgentMigration', () => {
       const option = within(listbox).getByRole('option', { name: new RegExp(name.replace('/', '\\/')) })
       expect(option.querySelector(`[data-agent-logo="${id}"]`)).toBeInTheDocument()
     }
-    expect(within(listbox).getByRole('option', { name: /Cyberpsychosis/ })).toHaveAttribute('aria-selected', 'true')
+    expect(within(listbox).getByRole('option', { name: /Claude Code/ })).toHaveAttribute('aria-selected', 'true')
     expect(within(listbox).getByRole('option', { name: /OpenClaw/ })).toBeDisabled()
     expect(within(listbox).getByRole('option', { name: /Cursor/ })).toBeDisabled()
     expect(within(listbox).getByText('默认')).toBeInTheDocument()
@@ -101,12 +98,12 @@ describe('AgentMigration', () => {
   it('migrates only recommended global items from the one-click action', async () => {
     render(<AgentMigration />)
 
-    fireEvent.click(await screen.findByRole('button', { name: '迁移推荐项到 Cyberpsychosis（1）' }))
+    fireEvent.click(await screen.findByRole('button', { name: '迁移推荐项到 Claude Code（1）' }))
 
     await waitFor(() => {
       expect(agentMigrationApi.migrate).toHaveBeenCalledWith({
         agentId: 'openclaw',
-        targetAgentId: 'cybercode',
+        targetAgentId: 'claude-code',
         allRecommended: true,
       })
     })
@@ -156,37 +153,20 @@ describe('AgentMigration', () => {
     await waitFor(() => {
       expect(agentMigrationApi.migrate).toHaveBeenCalledWith({
         agentId: 'openclaw',
-        targetAgentId: 'cybercode',
+        targetAgentId: 'claude-code',
         itemIds: ['openclaw-memory'],
       })
     })
   })
 
-  it('registers a recognized project from the projects filter', async () => {
-    vi.mocked(agentMigrationApi.migrate).mockResolvedValue({
-      imported: 0,
-      skipped: 0,
-      failed: 0,
-      registeredProjects: ['/workspace/app'],
-      items: [],
-    })
+  it('does not offer project registration while the backend only migrates item data', async () => {
     render(<AgentMigration />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Codex' }))
     fireEvent.click(screen.getByRole('button', { name: '项目' }))
-    fireEvent.click(screen.getByRole('button', { name: '迁移并登记项目' }))
 
-    await waitFor(() => {
-      expect(agentMigrationApi.migrate).toHaveBeenCalledWith({
-        agentId: 'codex',
-        targetAgentId: 'cybercode',
-        projectIds: ['codex-project'],
-      })
-    })
-    await waitFor(() => {
-      const toasts = useUIStore.getState().toasts
-      expect(toasts[toasts.length - 1]?.message).toContain('已登记 1 个项目。')
-    })
+    expect(screen.getByRole('button', { name: '迁移项目资料' })).toBeDisabled()
+    expect(agentMigrationApi.migrate).not.toHaveBeenCalled()
   })
 
   it('selects another detected destination and sends it with the migration request', async () => {
@@ -210,14 +190,14 @@ describe('AgentMigration', () => {
   it('keeps the automatically selected source when only the destination changes', async () => {
     vi.mocked(agentMigrationApi.scan).mockImplementation(async targetAgentId => {
       const fixture = scanFixture(targetAgentId)
-      const cybercode = fixture.agents.find(agent => agent.id === 'cybercode')!
-      cybercode.items = [{
+      const claude = fixture.agents.find(agent => agent.id === 'claude-code')!
+      claude.items = [{
         ...fixture.agents.find(agent => agent.id === 'openclaw')!.items[0]!,
-        id: 'cybercode-memory',
-        agentId: 'cybercode',
-        sourcePath: '/Users/test/.cyber/prompt-memory/USER.md',
+        id: 'claude-code-memory',
+        agentId: 'claude-code',
+        sourcePath: '/Users/test/.rin/prompt-memory/USER.md',
       }]
-      cybercode.counts.memories = 1
+      claude.counts.memories = 1
       return fixture
     })
     render(<AgentMigration />)
@@ -234,7 +214,8 @@ describe('AgentMigration', () => {
   })
 
   it('hides stale destination formats while rescanning a newly selected target', async () => {
-    const pendingScan = new Promise<AgentMigrationScan>(() => {})
+    let resolvePending!: (scan: AgentMigrationScan) => void
+    const pendingScan = new Promise<AgentMigrationScan>((resolve) => { resolvePending = resolve })
     vi.mocked(agentMigrationApi.scan)
       .mockResolvedValueOnce(scanFixture())
       .mockImplementationOnce(() => pendingScan)
@@ -242,11 +223,14 @@ describe('AgentMigration', () => {
 
     expect(await screen.findByText('原生格式')).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('target-agent-picker'))
-    fireEvent.click(await screen.findByRole('option', { name: /Claude Code/ }))
+    fireEvent.click(await screen.findByRole('option', { name: /Codex/ }))
 
     expect(await screen.findByText('正在检测本地 Agent 数据...')).toBeInTheDocument()
     expect(screen.queryByText('原生格式')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Codex' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'OpenClaw' })).toBeDisabled()
+
+    resolvePending(scanFixture('codex'))
+    expect(await screen.findByText('原生格式')).toBeInTheDocument()
   })
 
   it('shows and disables an incompatible destination type before migration', async () => {
@@ -264,16 +248,16 @@ describe('AgentMigration', () => {
     expect(screen.getByRole('button', { name: '迁移这一项' })).toBeDisabled()
   })
 
-  it('reverses the route so Cyberpsychosis can be the migration source', async () => {
+  it('reverses the route so Claude Code can be the migration source', async () => {
     render(<AgentMigration />)
 
     fireEvent.click(await screen.findByRole('button', { name: '交换迁移方向' }))
 
     await waitFor(() => expect(screen.getByTestId('target-agent-picker')).toHaveAttribute('data-target-agent', 'openclaw'))
-    expect(screen.getByRole('button', { name: 'Cyberpsychosis' })).toHaveClass('bg-[var(--color-surface-selected)]')
+    expect(screen.getByRole('button', { name: 'Claude Code' })).toHaveClass('bg-[var(--color-surface-selected)]')
   })
 
-  it('restores Cyberpsychosis as the default destination when another external source is selected', async () => {
+  it('restores Claude Code as the default destination when another external source is selected', async () => {
     render(<AgentMigration />)
 
     fireEvent.click(await screen.findByTestId('target-agent-picker'))
@@ -282,12 +266,9 @@ describe('AgentMigration', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Codex' }))
 
-    await waitFor(() => expect(screen.getByTestId('target-agent-picker')).toHaveAttribute('data-target-agent', 'cybercode'))
-    expect(agentMigrationApi.scan).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(agentMigrationApi.scan).mock.calls).toEqual([
-      ['cybercode'],
-      ['claude-code'],
-    ])
+    expect(screen.getByTestId('target-agent-picker')).toHaveAttribute('data-target-agent', 'claude-code')
+    expect(agentMigrationApi.scan).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(agentMigrationApi.scan).mock.calls).toEqual([['claude-code']])
     expect(screen.getByRole('heading', { name: 'Codex' })).toBeInTheDocument()
   })
 
@@ -298,10 +279,8 @@ describe('AgentMigration', () => {
     trigger.focus()
     fireEvent.keyDown(trigger, { key: 'ArrowDown' })
     const listbox = await screen.findByRole('listbox', { name: '被迁移方' })
-    await waitFor(() => expect(within(listbox).getByRole('option', { name: /Cyberpsychosis/ })).toHaveFocus())
-
-    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
     await waitFor(() => expect(within(listbox).getByRole('option', { name: /Claude Code/ })).toHaveFocus())
+
     fireEvent.keyDown(document.activeElement!, { key: 'Enter' })
 
     await waitFor(() => expect(screen.getByTestId('target-agent-picker')).toHaveAttribute('data-target-agent', 'claude-code'))
@@ -326,11 +305,11 @@ describe('AgentMigration', () => {
 
     render(<AgentMigration />)
 
-    expect(await screen.findByRole('heading', { name: 'Claude Code' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Codex' })).toBeInTheDocument()
   })
 
   it('rejects a stale scan response for the wrong destination', async () => {
-    vi.mocked(agentMigrationApi.scan).mockResolvedValue(scanFixture('claude-code'))
+    vi.mocked(agentMigrationApi.scan).mockResolvedValue(scanFixture('openclaw'))
 
     render(<AgentMigration />)
 
@@ -380,12 +359,11 @@ describe('AgentMigration', () => {
   })
 })
 
-function scanFixture(targetAgentId: ExternalAgentId = 'cybercode'): AgentMigrationScan {
+function scanFixture(targetAgentId: ExternalAgentId = 'claude-code'): AgentMigrationScan {
   return {
     scannedAt: '2026-07-13T00:00:00.000Z',
     targetAgentId,
     agents: [
-      agent({ id: 'cybercode', name: 'Cyberpsychosis', installed: true }),
       agent({
         id: 'openclaw',
         name: 'OpenClaw',
@@ -397,8 +375,8 @@ function scanFixture(targetAgentId: ExternalAgentId = 'cybercode'): AgentMigrati
           scope: 'global',
           name: 'MEMORY.md',
           sourcePath: '/Users/test/.openclaw/workspace/MEMORY.md',
-          destinationPath: '/Users/test/.cyber/projects/home/memory/imports/openclaw/memory.md',
-          destinationRoot: '/Users/test/.cyber',
+          destinationPath: '/Users/test/.rin/projects/home/memory/imports/openclaw/memory.md',
+          destinationRoot: '/Users/test/.rin',
           projectPath: null,
           sizeBytes: 128,
           modifiedAt: '2026-07-13T00:00:00.000Z',
@@ -407,7 +385,7 @@ function scanFixture(targetAgentId: ExternalAgentId = 'cybercode'): AgentMigrati
           selectable: true,
           destinationState: 'ready',
           adaptation: 'native',
-          destinationFormat: 'Cyberpsychosis searchable project memory',
+          destinationFormat: 'rin searchable project memory',
           writeMode: 'markdown-file',
         }],
       }),

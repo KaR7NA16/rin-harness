@@ -19,7 +19,7 @@ type TestResultResponse = { result: ProviderTestResult }
 type ModelDiscoveryResponse = { result: ProviderModelDiscoveryResult }
 type AuthStatusResponse = {
   hasAuth: boolean
-  source: 'cybercode-provider' | 'original-settings' | 'env' | 'none'
+  source: 'managed' | 'env' | 'none'
   activeProvider?: string
 }
 
