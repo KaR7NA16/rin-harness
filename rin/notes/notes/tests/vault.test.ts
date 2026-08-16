@@ -211,6 +211,17 @@ describe('assets', () => {
     expect(await vault.readAsset(saved.path)).toEqual(asset)
   })
 
+  test('PDF assets keep application/pdf mime and their original bytes', async () => {
+    const { vault } = await createVault()
+    const pdf = Buffer.from('%PDF-1.4 notes-test')
+    const saved = await vault.saveAsset('research/paper.pdf', pdf)
+
+    expect(saved.path).toMatch(/^assets\/\d+-paper\.pdf$/)
+    const asset = await vault.readAsset(saved.path)
+    expect(asset.mimeType).toBe('application/pdf')
+    expect(asset.content.equals(pdf)).toBe(true)
+  })
+
   test('readAsset rejects traversal and non-asset paths', async () => {
     const { vault } = await createVault()
     await vault.write('note.md', '# n')

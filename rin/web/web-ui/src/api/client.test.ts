@@ -66,6 +66,23 @@ describe('desktop API client authentication', () => {
     )
   })
 
+  it('rawPostJson sends a binary body and parses the JSON response', async () => {
+    setBaseUrl('http://127.0.0.1:45678')
+    const pdf = new Blob(['%PDF'], { type: 'application/pdf' })
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      Response.json({ path: 'assets/doc.pdf', url: '/api/notes/assets/assets/doc.pdf' }),
+    )
+
+    await expect(api.rawPostJson('/api/notes/assets/raw?fileName=doc.pdf', pdf)).resolves.toEqual({
+      path: 'assets/doc.pdf',
+      url: '/api/notes/assets/assets/doc.pdf',
+    })
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://127.0.0.1:45678/api/notes/assets/raw?fileName=doc.pdf',
+      expect.objectContaining({ method: 'POST', body: pdf }),
+    )
+  })
+
   it('does not replay mutation requests after a connection error', async () => {
     const refreshConnection = vi.fn().mockResolvedValue({
       url: 'http://127.0.0.1:56789',

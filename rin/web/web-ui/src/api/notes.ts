@@ -80,6 +80,12 @@ export const notesApi = {
   uploadAsset: (fileName: string, base64: string) =>
     api.post<{ path: string }>('/api/notes/assets', { fileName, base64 }),
 
+  uploadAssetFile: (file: Blob, fileName = file instanceof File ? file.name : 'document') =>
+    api.rawPostJson<{ path: string; url: string }>(
+      `/api/notes/assets/raw?fileName=${encodeURIComponent(fileName)}`,
+      file,
+    ),
+
   assetUrl: (path: string) =>
     `/api/notes/assets/${path.split('/').map(encodeURIComponent).join('/')}`,
 

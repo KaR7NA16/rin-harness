@@ -148,6 +148,28 @@ export const api = {
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),
+  /** Binary POST returning the JSON response body. */
+  rawPostJson: async <T>(path: string, body: BodyInit): Promise<T> => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 120_000)
+    try {
+      const res = await fetch(`${baseUrl}${path}`, {
+        method: 'POST',
+        headers: {
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body,
+        signal: controller.signal,
+      })
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => res.text())
+        throw new ApiError(res.status, errorBody)
+      }
+      return res.json() as Promise<T>
+    } finally {
+      clearTimeout(timeout)
+    }
+  },
   /** Binary POST — returns raw ArrayBuffer, for multipart/zip uploads. */
   rawPost: async (path: string, body: BodyInit): Promise<ArrayBuffer> => {
     const controller = new AbortController()

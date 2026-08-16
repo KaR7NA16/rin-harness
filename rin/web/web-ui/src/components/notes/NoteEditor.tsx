@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Download, Eye, PencilLine, Save, SplitSquareHorizontal } from 'lucide-react'
+import { Download, Eye, FileUp, PencilLine, Save, SplitSquareHorizontal } from 'lucide-react'
 import { getBaseUrl } from '../../api/client'
 import { notesApi } from '../../api/notes'
 import { MarkdownRenderer } from '../markdown/MarkdownRenderer'
@@ -12,6 +12,7 @@ import { useChatStore } from '../../stores/chatStore'
 type ViewMode = 'edit' | 'split' | 'preview'
 
 const WIKILINK_RE = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g
+const MAX_PDF_BYTES = 64 * 1024 * 1024
 
 function preprocessContent(content: string): string {
   // wikilink → 可点击锚点 (#note/<target>), 点击时由容器拦截
@@ -19,7 +20,17 @@ function preprocessContent(content: string): string {
     const label = (alias ?? target).trim()
     return `[${label}](#note/${encodeURIComponent(target.trim())})`
   })
-  // 本地资源 → sidecar 绝对 URL (相对路径会落到 webview origin, 取不到)
+  // PDF 资产 → 普通链接，由 MarkdownRenderer 打开内嵌预览
+  out = out.replace(/!\[([^\]]*)\]\(((?:\.\/)?assets\/[^)]+\.pdf)\)/gi, (_m, label: string, assetPath: string) => {
+    const title = (label || 'PDF').trim()
+    const cleanPath = assetPath.replace(/^\.\//, '')
+    return `[${title}](${getBaseUrl()}/api/notes/assets/assets/${cleanPath})`
+  })
+  out = out.replace(/\]\(((?:\.\/)?assets\/[^)]+\.pdf)\)/gi, (_m, assetPath: string) => {
+    const cleanPath = assetPath.replace(/^\.\//, '')
+    return `](${getBaseUrl()}/api/notes/assets/assets/${cleanPath})`
+  })
+  // 其余本地资源 → sidecar 绝对 URL (相对路径会落到 webview origin, 取不到)
   out = out.replace(/]\((?:\.\/)?assets\//g, `](${getBaseUrl()}/api/notes/assets/assets/`)
   return out
 }
@@ -52,6 +63,8 @@ export function NoteEditor({
   const dirty = content !== savedContent
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previewRef = useRef<HTMLDivElement>(null)
+  const editorRef = useRef<HTMLTextAreaElement>(null)
+  const pdfInputRef = useRef<HTMLInputElement>(null)
   const contentRef = useRef(content)
   contentRef.current = content
   const savedContentRef = useRef('')
@@ -182,11 +195,51 @@ export function NoteEditor({
     }
   }, [])
 
-  // 图片粘贴
+  const insertPdfLink = useCallback(async (file: File, textarea?: HTMLTextAreaElement) => {
+    if (file.size > MAX_PDF_BYTES) {
+      addToast({ type: 'error', message: t('notes.pdf.tooLarge') })
+      return
+    }
+    try {
+      const saved = await notesApi.uploadAssetFile(file)
+      const insert = `[${file.name}](${saved.path})`
+      const target = textarea ?? editorRef.current
+      const pos = target?.selectionStart ?? contentRef.current.length
+      const prefix = pos > 0 ? '\n' : ''
+      const next = contentRef.current.slice(0, pos) + prefix + insert + '\n' + contentRef.current.slice(pos)
+      setContent(next)
+      requestAnimationFrame(() => {
+        if (!target) return
+        const cursor = pos + prefix.length + insert.length
+        target.selectionStart = cursor
+        target.selectionEnd = cursor
+        target.focus()
+      })
+    } catch (error) {
+      addToast({ type: 'error', message: String(error) })
+    }
+  }, [addToast, t])
+
+  const onSelectPdf = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    void insertPdfLink(file)
+  }, [insertPdfLink])
+
+  // 图片粘贴 / PDF 文件粘贴
   const onPaste = useCallback(async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const items = e.clipboardData?.items
     if (!items) return
     for (const item of items) {
+      if (item.kind === 'file' && (item.type === 'application/pdf' || item.getAsFile()?.name.toLowerCase().endsWith('.pdf'))) {
+        const file = item.getAsFile()
+        if (!file) continue
+        e.preventDefault()
+        await insertPdfLink(file, e.currentTarget)
+        return
+      }
+
       if (item.type.startsWith('image/')) {
         e.preventDefault()
         const file = item.getAsFile()
@@ -266,6 +319,7 @@ export function NoteEditor({
 
   const editor = (
     <textarea
+      ref={editorRef}
       value={content}
       onChange={e => setContent(e.target.value)}
       onKeyDown={onEditorKeyDown}
@@ -310,6 +364,21 @@ export function NoteEditor({
             </button>
           ))}
         </div>
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          className="hidden"
+          onChange={onSelectPdf}
+        />
+        <button
+          onClick={() => pdfInputRef.current?.click()}
+          title={t('notes.attachPdf')}
+          aria-label={t('notes.attachPdf')}
+          className="rounded-[8px] p-[6px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+        >
+          <FileUp size={15} />
+        </button>
         <button onClick={() => void save(content)} title="Ctrl+S" className="rounded-[8px] p-[6px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]">
           <Save size={15} />
         </button>

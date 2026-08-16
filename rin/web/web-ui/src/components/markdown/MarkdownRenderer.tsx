@@ -1,7 +1,8 @@
-import { lazy, Suspense, useMemo, useCallback, type ReactNode } from 'react'
+import { lazy, Suspense, useMemo, useCallback, useState, type ReactNode } from 'react'
 import DOMPurify from 'dompurify'
 import { Marked, type Tokens } from 'marked'
 import { useTranslation } from '../../i18n'
+import { PdfPreviewModal } from '../shared/PdfPreviewModal'
 
 const CodeViewer = lazy(() => import('../chat/CodeViewer').then((module) => ({ default: module.CodeViewer })))
 const MermaidRenderer = lazy(() => import('../chat/MermaidRenderer').then((module) => ({ default: module.MermaidRenderer })))
@@ -147,7 +148,7 @@ function enhanceTextNode(textNode: Text): void {
 function enhanceMarkdownHtml(html: string): string {
   const cleanHtml = DOMPurify.sanitize(html, {
     ADD_TAGS: ['use'],
-    ADD_ATTR: ['xlink:href'],
+    ADD_ATTR: ['xlink:href', 'data-pdf-open'],
   })
 
   if (typeof document === 'undefined') {
@@ -166,6 +167,11 @@ function enhanceMarkdownHtml(html: string): string {
   })
 
   container.querySelectorAll('a[href]').forEach((link) => {
+    const href = link.getAttribute('href') ?? ''
+    if (/\.pdf(?:\?|#|$)/i.test(href)) {
+      link.setAttribute('data-pdf-open', href)
+      link.classList.add('md-pdf-link')
+    }
     link.setAttribute('target', '_blank')
     link.setAttribute('rel', 'noreferrer noopener')
   })
@@ -262,6 +268,8 @@ function getProseClasses(variant: 'default' | 'document' | 'chat', className?: s
 
 export function MarkdownRenderer({ content, variant = 'default', className }: Props) {
   const t = useTranslation()
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [pdfName, setPdfName] = useState<string | undefined>(undefined)
   const { html, codeBlocks } = useMemo(() => parseMarkdown(content), [content])
   const proseClasses = useMemo(
     () => getProseClasses(variant, className),
@@ -316,6 +324,14 @@ export function MarkdownRenderer({ content, variant = 'default', className }: Pr
       return
     }
 
+    const pdfEl = target?.closest<HTMLElement>('[data-pdf-open]')
+    if (pdfEl) {
+      event.preventDefault()
+      setPdfUrl(pdfEl.getAttribute('data-pdf-open') ?? '')
+      setPdfName(pdfEl.textContent?.trim() || undefined)
+      return
+    }
+
     const pathEl = target?.closest<HTMLElement>('[data-path-open]')
     if (pathEl) {
       const path = pathEl.getAttribute('data-path-open')
@@ -328,19 +344,28 @@ export function MarkdownRenderer({ content, variant = 'default', className }: Pr
     }
   }, [])
 
+  const pdfPreview = pdfUrl !== null ? (
+    <PdfPreviewModal open={pdfUrl !== null} url={pdfUrl} fileName={pdfName} onClose={() => setPdfUrl(null)} />
+  ) : null
+
   if (codeBlocks.length === 0) {
     const cleanHtml = enhanceMarkdownHtml(html)
     return (
-      <div
-        className={proseClasses}
-        dangerouslySetInnerHTML={{ __html: cleanHtml }}
-        onClick={handleClick}
-      />
+      <>
+        {pdfPreview}
+        <div
+          className={proseClasses}
+          dangerouslySetInnerHTML={{ __html: cleanHtml }}
+          onClick={handleClick}
+        />
+      </>
     )
   }
 
   return (
-    <div className={proseClasses} onClick={handleClick}>
+    <>
+      {pdfPreview}
+      <div className={proseClasses} onClick={handleClick}>
       {parts.map((part, i) =>
         part.type === 'html' ? (
           <div key={i} dangerouslySetInnerHTML={{ __html: enhanceMarkdownHtml(part.content) }} />
@@ -365,6 +390,7 @@ export function MarkdownRenderer({ content, variant = 'default', className }: Pr
           </LazyRenderer>
         )
       )}
-    </div>
+      </div>
+    </>
   )
 }

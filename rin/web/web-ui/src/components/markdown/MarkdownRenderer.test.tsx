@@ -92,6 +92,17 @@ describe('MarkdownRenderer', () => {
     expect(screen.getByText('index.html')).toBeInTheDocument()
   })
 
+  it('opens PDF links in the native preview modal', () => {
+    render(<MarkdownRenderer content={'[Paper](assets/paper.pdf)'} />)
+
+    const link = screen.getByRole('link', { name: 'Paper' })
+    expect(link).toHaveAttribute('data-pdf-open', 'assets/paper.pdf')
+    fireEvent.click(link)
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(document.body.querySelector('iframe')).toHaveAttribute('src', 'assets/paper.pdf')
+  })
+
   it('opens markdown links in a new tab safely', () => {
     render(<MarkdownRenderer content={'[OpenAI](https://openai.com)'} />)
 

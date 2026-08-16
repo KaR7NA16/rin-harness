@@ -54,13 +54,14 @@ interface RawResponse {
   status: number
   body: unknown
   text: string
+  headers: NodeJS.Dict<string | string[]>
 }
 
 /** Issue a raw node:http request with full header control (Host included). */
 function rawRequest(
   port: number,
   path: string,
-  opts: { method?: string; headers?: Record<string, string>; body?: string } = {},
+  opts: { method?: string; headers?: Record<string, string>; body?: string | Buffer } = {},
 ): Promise<RawResponse> {
   return new Promise((resolve, reject) => {
     const req = httpRequest(
@@ -78,7 +79,7 @@ function rawRequest(
         res.on('end', () => {
           let body: unknown = text
           try { body = JSON.parse(text) } catch { /* non-JSON body */ }
-          resolve({ status: res.statusCode ?? 0, body, text })
+          resolve({ status: res.statusCode ?? 0, body, text, headers: res.headers })
         })
       },
     )
@@ -119,11 +120,70 @@ function rawUpgrade(
   })
 }
 
-async function startServer(config: Partial<Config> = {}): Promise<{ port: number; close: () => Promise<void> }> {
-  const server = createWebServer({ port: 0, host: '127.0.0.1', ...config }, emptyServices())
+async function startServer(
+  config: Partial<Config> = {},
+  services: RinServiceRefs = emptyServices(),
+): Promise<{ port: number; close: () => Promise<void> }> {
+  const server = createWebServer({ port: 0, host: '127.0.0.1', ...config }, services)
   const address = await server.listen(0, '127.0.0.1')
   return { port: address.port, close: () => server.close() }
 }
+
+describe('web-server note-asset binary routes', () => {
+  test('uploads a PDF as raw bytes and serves it back as application/pdf', async () => {
+    const pdf = Buffer.from('%PDF-1.4 test-document')
+    let savedFileName = ''
+    let savedContent: Buffer | null = null
+    const services: RinServiceRefs = {
+      ...emptyServices(),
+      notes: () => ({
+        saveAsset: async (fileName: string, content: Buffer) => {
+          savedFileName = fileName
+          savedContent = content
+          return { path: 'assets/test-document.pdf', url: '/api/notes/assets/assets/test-document.pdf' }
+        },
+        readAsset: async (path: string) => {
+          expect(path).toBe('assets/test-document.pdf')
+          return { content: pdf, mimeType: 'application/pdf' }
+        },
+      }),
+    }
+    const s = await startServer({}, services)
+    try {
+      const upload = await rawRequest(s.port, '/api/notes/assets/raw?fileName=test-document.pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/pdf' },
+        body: pdf,
+      })
+      expect(upload.status).toBe(200)
+      expect(upload.body).toEqual({ path: 'assets/test-document.pdf', url: '/api/notes/assets/assets/test-document.pdf' })
+      expect(savedFileName).toBe('test-document.pdf')
+      expect(savedContent?.equals(pdf)).toBe(true)
+
+      const download = await rawRequest(s.port, '/api/notes/assets/assets/test-document.pdf')
+      expect(download.status).toBe(200)
+      expect(download.headers['content-type']).toBe('application/pdf')
+      expect(download.headers['content-disposition']).toBe('inline')
+      expect(download.text).toBe('%PDF-1.4 test-document')
+    } finally {
+      await s.close()
+    }
+  })
+
+  test('raw note-asset upload reports 500 when notes is unmounted', async () => {
+    const s = await startServer()
+    try {
+      const upload = await rawRequest(s.port, '/api/notes/assets/raw?fileName=a.pdf', {
+        method: 'POST',
+        body: Buffer.from('%PDF'),
+      })
+      expect(upload.status).toBe(500)
+      expect(upload.body).toEqual({ error: 'notes service is not mounted' })
+    } finally {
+      await s.close()
+    }
+  })
+})
 
 describe('web-server Host/Origin/auth guards', () => {
   test('serves the API and static frontend on a loopback Host (default compatible)', async () => {

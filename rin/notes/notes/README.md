@@ -45,7 +45,9 @@ absolute paths fail loud); a single note body is capped at 4 MiB. Updates
 snapshot the previous content into `.history/<path>/` and keep the latest 10
 snapshots per note. Assets live under `assets/` with sanitized, timestamped
 file names; `saveAsset` returns the vault path (for markdown references) and
-the `/api/notes/assets/...` URL.
+the `/api/notes/assets/...` URL. PDF assets are served inline as
+`application/pdf` so the web-ui can preview them with the native browser
+viewer.
 
 ## Model Experience
 

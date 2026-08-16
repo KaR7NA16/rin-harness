@@ -140,7 +140,7 @@ async function handleRequest(
       const relPath = decodeURIComponent(url.pathname.slice('/api/notes/assets/'.length))
       try {
         const asset = await notes.readAsset(relPath)
-        respondBinary(res, asset.content, asset.mimeType)
+        respondBinary(res, asset.content, asset.mimeType, asset.mimeType === 'application/pdf' ? 'inline' : undefined)
       } catch (err) {
         respondError(res, 404, err instanceof Error ? err.message : String(err))
       }
@@ -189,6 +189,24 @@ async function handleRequest(
       try {
         const buffer = await readRawBody(req)
         respondJson(res, { status: 200, body: await backup.importSessions(buffer) }, false)
+      } catch (err) {
+        const status = err instanceof Error && (err as { statusCode?: unknown }).statusCode === 413 ? 413 : 400
+        respondError(res, status, err instanceof Error ? err.message : String(err))
+      }
+      return
+    }
+    // Raw note-asset upload: keeps PDFs and other binary notes attachments
+    // out of the base64 JSON body cap. The vault sanitizes `fileName`.
+    if (method === 'POST' && url.pathname === '/api/notes/assets/raw') {
+      const notes = services.notes()
+      if (notes === undefined) {
+        respondError(res, 500, 'notes service is not mounted')
+        return
+      }
+      const fileName = url.searchParams.get('fileName') ?? 'document'
+      try {
+        const content = await readRawBody(req)
+        respondJson(res, { status: 200, body: await notes.saveAsset(fileName, content) }, false)
       } catch (err) {
         const status = err instanceof Error && (err as { statusCode?: unknown }).statusCode === 413 ? 413 : 400
         respondError(res, status, err instanceof Error ? err.message : String(err))
@@ -253,10 +271,16 @@ async function readRawBody(req: IncomingMessage): Promise<Buffer> {
 }
 
 /** Respond with a raw binary body. */
-function respondBinary(res: ServerResponse, buffer: Buffer, contentType: string): void {
+function respondBinary(
+  res: ServerResponse,
+  buffer: Buffer,
+  contentType: string,
+  contentDisposition?: 'inline' | 'attachment',
+): void {
   res.writeHead(200, {
     'content-type': contentType,
     'content-length': buffer.length,
+    ...(contentDisposition !== undefined ? { 'content-disposition': contentDisposition } : {}),
   })
   res.end(buffer)
 }

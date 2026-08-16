@@ -93,6 +93,10 @@ The vault root is owned by the @rin/notes Config; routes never pass a path.
 - POST /api/notes/delete → body {"path":string} → {"mounted":true,"deleted":true}.
 - POST /api/notes/backup → body {"title":string,"content":string} →
   {"mounted":true,"note":NoteDocument} (a session exported under backups/).
+- POST /api/notes/assets/raw?fileName=<name> → raw binary body (≤ 64 MiB),
+  stored under `assets/`; returns {"path":string,"url":string}. PDFs are
+  served back as `application/pdf` with `Content-Disposition: inline` for the
+  web-ui's native preview.
 
 ### sandboxes
 
