@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '../../i18n'
 import { settingsApi, type AddPermissionRuleInput, type PermissionRuleEntry } from '../../api/settings'
 import { useUIStore } from '../../stores/uiStore'
@@ -38,18 +38,24 @@ export function PermissionRules({ forceRefresh }: Props) {
   const [behavior, setBehavior] = useState<'allow' | 'deny' | 'ask'>('allow')
   const [source, setSource] = useState<AddPermissionRuleInput['source']>('userSettings')
   const [adding, setAdding] = useState(false)
+  const mountedRef = useRef(true)
 
   const load = async () => {
     setLoading(true)
     try {
       const res = await settingsApi.getPermissionRules()
-      setRules(res.rules)
+      if (mountedRef.current) setRules(res.rules)
     } catch {
-      useUIStore.getState().addToast({ type: 'error', message: t('permission.rules.loadFailed') })
+      if (mountedRef.current) useUIStore.getState().addToast({ type: 'error', message: t('permission.rules.loadFailed') })
     } finally {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
     }
   }
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   useEffect(() => {
     void load()
