@@ -36,6 +36,7 @@
       "@rin/session-search": ["./rin/memory/session-search/src"],
       "@rin/evolution": ["./rin/learning/evolution/src"],
       "@rin/token-optimization": ["./rin/optimization/token-optimization/src"],
+    "@rin/codegraph": ["./rin/optimization/codegraph/src"],
       "@rin/smart-pruning": ["./rin/optimization/smart-pruning/src"],
       "@rin/web-server": ["./rin/web/web-server/src"],
     "@rin/agents": ["./rin/workspace/agents/src"],

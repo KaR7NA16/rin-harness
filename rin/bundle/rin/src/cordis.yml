@@ -90,6 +90,9 @@
 - id: token-optimization
   name: '@rin/token-optimization'
 
+- id: codegraph
+  name: '@rin/codegraph'
+
 - id: smart-pruning
   name: '@rin/smart-pruning'
 

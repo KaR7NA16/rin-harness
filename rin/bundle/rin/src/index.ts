@@ -45,6 +45,7 @@ export const RIN_HOST_PLUGINS = [
   '@rin/session-search',
   '@rin/evolution',
   '@rin/token-optimization',
+  '@rin/codegraph',
   '@rin/smart-pruning',
   '@rin/notes',
   '@rin/agents',

@@ -49,6 +49,10 @@ function makeServices(overrides: Record<string, () => unknown> = {}) {
     tasks: () => undefined,
     computerUse: () => undefined,
     agentMigration: () => undefined,
+    filesystem: () => undefined,
+    sessionBackup: () => undefined,
+    plugins: () => undefined,
+    codegraph: () => undefined,
   }
   return { ...base, ...overrides }
 }
@@ -578,11 +582,20 @@ describe('legacy: token optimization', () => {
     expect(await handle('/api/token-optimization/pruning/enable', '', 'POST', undefined, s, config)).toEqual({ status: 200, body: { mounted: false } })
   })
 
-  test('codegraph/rtk returns unavailable', async () => {
-    const s = makeServices({ tokenOptimization: () => token })
-    const body = { enabled: false, available: false, version: null, stats: null, error: null }
-    expect(await handle('/api/token-optimization/codegraph', '', 'GET', undefined, s, config)).toEqual({ status: 200, body })
-    expect(await handle('/api/token-optimization/rtk', '', 'GET', undefined, s, config)).toEqual({ status: 200, body })
+  test('codegraph read requires the codegraph service', async () => {
+    const res = await handle('/api/token-optimization/codegraph', '', 'GET', undefined, makeServices(), config)
+    expect(res).toEqual({ status: 200, body: { mounted: false } })
+  })
+
+  test('codegraph status requires path', async () => {
+    const s = makeServices({ codegraph: () => ({}) })
+    const res = await handle('/api/token-optimization/codegraph', '', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 400, body: { error: 'path is required' } })
+  })
+
+  test('rtk returns unavailable', async () => {
+    const res = await handle('/api/token-optimization/rtk', '', 'GET', undefined, makeServices(), config)
+    expect(res).toEqual({ status: 200, body: { enabled: false, available: false, version: null, stats: null, error: 'codegraph indexer is not available on this host (only graph read is)' } })
   })
 
   test('unknown token endpoint returns 404', async () => {

@@ -38,6 +38,7 @@
     "@deepseek-ai/schemastery": "workspace:^",
     "@rin/agent-migration": "workspace:^",
     "@rin/agents": "workspace:^",
+    "@rin/codegraph": "workspace:^",
     "@rin/computer-use": "workspace:^",
     "@rin/environment": "workspace:^",
     "@rin/evolution": "workspace:^",

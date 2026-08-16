@@ -19,6 +19,7 @@ import type { ComputerUseService } from '@rin/computer-use'
 import type { FilesystemService } from '@rin/filesystem'
 import type { McpStore } from '@rin/mcp'
 import type { SessionBackupService } from '@rin/session-backup'
+import type { CodeGraphService } from '@rin/codegraph'
 import type { PluginService } from '@rin/plugins'
 import type { ProviderProbeService } from '@rin/provider-probe'
 import type { TaskStore } from '@rin/tasks'
@@ -120,6 +121,7 @@ export class WebServerService extends Service {
       mcp: () => ctx.get('mcp') as unknown as McpStore | undefined,
       providerProbe: () => ctx.get('providerProbe') as unknown as ProviderProbeService | undefined,
       plugins: () => ctx.get('plugins') as unknown as PluginService | undefined,
+      codegraph: () => ctx.get('codegraph') as unknown as CodeGraphService | undefined,
       teams: () => ctx.get('teams') as unknown as TeamStore | undefined,
       tasks: () => ctx.get('tasks') as unknown as TaskStore | undefined,
       computerUse: () => ctx.get('computerUse') as unknown as ComputerUseService | undefined,

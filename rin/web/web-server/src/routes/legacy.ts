@@ -105,7 +105,7 @@ export async function handle(
 
   // Token optimization (legacy desktop paths backed by the two @rin knobs)
   if (pathname.startsWith('/api/token-optimization/')) {
-    return tokenOptimizationRoute(pathname, method, body, services)
+    return tokenOptimizationRoute(pathname, search, method, body, services)
   }
 
   // Sandboxes (legacy desktop paths over @rin/sandboxes)
@@ -1481,10 +1481,18 @@ async function skillsListRoute(services: RinServiceRefs, config: Config): Promis
 
 async function tokenOptimizationRoute(
   pathname: string,
+  search: string,
   method: string,
   body: unknown,
   services: RinServiceRefs,
 ): Promise<JsonResponse> {
+  if (pathname === '/api/token-optimization/codegraph/graph') return codegraphGraphRoute(search, services)
+  if (pathname === '/api/token-optimization/codegraph') return codegraphStatusRoute(search, services)
+  if (pathname.includes('/codegraph') || pathname.includes('/rtk')) {
+    // Enable/disable/rebuild require the tree-sitter indexer, which is not yet ported.
+    return json(200, { enabled: false, available: false, version: null, stats: null, error: 'codegraph indexer is not available on this host (only graph read is)' })
+  }
+
   const token = services.tokenOptimization()
   if (token === undefined) return notMounted()
 
@@ -1529,10 +1537,6 @@ async function tokenOptimizationRoute(
     if (level !== 'conservative' && level !== 'balanced' && level !== 'aggressive') return error(400, 'level is required')
     const status = pruning.setLevel(level)
     return json(200, { enabled: status.enabled, level: status.level, mode: status.mode })
-  }
-
-  if (pathname.includes('/codegraph') || pathname.includes('/rtk')) {
-    return json(200, { enabled: false, available: false, version: null, stats: null, error: null })
   }
 
   return error(404, 'unknown token optimization endpoint')
@@ -1948,6 +1952,31 @@ async function agentMigrationPreviewRoute(rawId: string, search: string, service
     return json(200, await agentMigration.preview(agentId, itemId))
   } catch (err) {
     return error(404, errorMessage(err))
+  }
+}
+
+async function codegraphGraphRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const codegraph = services.codegraph()
+  if (codegraph === undefined) return notMounted()
+  const path = queryParam(search, 'path')
+  if (path === undefined) return error(400, 'path is required')
+  const rawLimit = Number(queryParam(search, 'limit') ?? '120')
+  try {
+    return json(200, codegraph.visualization(path, Number.isFinite(rawLimit) ? rawLimit : 120))
+  } catch (err) {
+    return error(404, errorMessage(err))
+  }
+}
+
+async function codegraphStatusRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const codegraph = services.codegraph()
+  if (codegraph === undefined) return notMounted()
+  const path = queryParam(search, 'path')
+  if (path === undefined) return error(400, 'path is required')
+  try {
+    return json(200, codegraph.status(path))
+  } catch (err) {
+    return error(500, errorMessage(err))
   }
 }
 
