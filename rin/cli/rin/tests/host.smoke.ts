@@ -1,9 +1,10 @@
 /**
  * rin launcher — assembly metadata strip-types smoke.
  *
- * Asserts the @rin/bundle roster is complete and correctly scoped: all seventeen
- * @rin host plugins plus the web-server, dsh-base first, and dsh-web-app
- * absent (MIGRATION.md §8 decision 10). Pure data assertions — no Cordis boot.
+ * Asserts the @rin/bundle roster is complete and correctly scoped: all
+ * twenty-two @rin host plugins plus the web-server, dsh-base first, and
+ * dsh-web-app absent (MIGRATION.md §8 decision 10). Pure data assertions — no
+ * Cordis boot.
  *
  * Run from the package directory:
  *   node --experimental-strip-types tests/host.smoke.ts
@@ -19,26 +20,31 @@ import {
   RIN_WEB_SERVER,
 } from '../../../bundle/rin/src/index.ts'
 
-// 1. Exactly seventeen @rin host plugins, web-server separate, eighteen total.
-if (RIN_HOST_PLUGINS.length !== 17) throw new Error('expected 17 @rin host plugins, got ' + RIN_HOST_PLUGINS.length)
+// 1. Exactly twenty-two @rin host plugins, web-server separate, twenty-three total.
+if (RIN_HOST_PLUGINS.length !== 22) throw new Error('expected 22 @rin host plugins, got ' + RIN_HOST_PLUGINS.length)
 if (RIN_WEB_SERVER !== '@rin/web-server') throw new Error('RIN_WEB_SERVER mismatch')
-if (RIN_PLUGINS.length !== 18) throw new Error('expected 18 @rin plugins, got ' + RIN_PLUGINS.length)
+if (RIN_PLUGINS.length !== 23) throw new Error('expected 23 @rin plugins, got ' + RIN_PLUGINS.length)
 
 const expectedHost = [
   '@rin/repository',
   '@rin/environment',
+  '@rin/filesystem',
+  '@rin/session-backup',
   '@rin/knowledge',
   '@rin/prompt-memory',
   '@rin/skill-memory',
   '@rin/session-search',
   '@rin/evolution',
   '@rin/token-optimization',
+  '@rin/codegraph',
   '@rin/smart-pruning',
   '@rin/notes',
   '@rin/agents',
+  '@rin/plugins',
   '@rin/sandboxes',
   '@rin/tasks',
   '@rin/mcp',
+  '@rin/provider-probe',
   '@rin/computer-use',
   '@rin/agent-migration',
   '@rin/teams',
@@ -51,7 +57,7 @@ for (const name of expectedHost) {
 // 2. Assembly order: dsh-base first, no dsh-web-app anywhere.
 if (BASE_BUNDLE !== '@deepseek-ai/dsh-base') throw new Error('BASE_BUNDLE mismatch')
 if (ASSEMBLY_LAYERS[0] !== BASE_BUNDLE) throw new Error('assembly must start with dsh-base')
-if (ASSEMBLY_LAYERS.length !== 19) throw new Error('expected 19 assembly layers, got ' + ASSEMBLY_LAYERS.length)
+if (ASSEMBLY_LAYERS.length !== 24) throw new Error('expected 24 assembly layers, got ' + ASSEMBLY_LAYERS.length)
 if (ASSEMBLY_LAYERS.includes(EXCLUDED_BUNDLE)) throw new Error('assembly must not include ' + EXCLUDED_BUNDLE)
 if (RIN_PLUGINS.includes(EXCLUDED_BUNDLE)) throw new Error('RIN_PLUGINS must not include ' + EXCLUDED_BUNDLE)
 
