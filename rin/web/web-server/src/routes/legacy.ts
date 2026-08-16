@@ -92,7 +92,8 @@ export async function handle(
 
   // Skills (legacy desktop path backed by @rin/skill-memory)
   if (pathname === '/api/skills') return skillsListRoute(services, config)
-  if (pathname === '/api/skills/config') return json(200, { config: { enabled: true } })
+  if (pathname === '/api/skills/config') return skillsConfigRoute(config)
+  if (pathname === '/api/skills/open-config') return notImplemented(method, 'opening the skills config directory is a desktop-only action')
 
   // Token optimization (legacy desktop paths backed by the two @rin knobs)
   if (pathname.startsWith('/api/token-optimization/')) {
@@ -181,6 +182,30 @@ export async function handle(
       homeDir: homedir(),
     })
   }
+
+  // Features the migrated frontend calls that have no @rin backend service yet.
+  // Return an explicit 501 so the UI reports "not available" instead of a bare 404.
+  if (pathname.startsWith('/api/plugins')) return notImplemented(method, 'plugin lifecycle management is not implemented on this host')
+  if (pathname.startsWith('/api/filesystem')) return notImplemented(method, 'filesystem browsing is not implemented on this host')
+  if (pathname.startsWith('/api/rin-oauth')) return notImplemented(method, 'rin OAuth pairing is not implemented on this host')
+  if (pathname === '/api/sessions/backup' || pathname === '/api/sessions/backups'
+    || pathname === '/api/sessions/backup/restore' || pathname === '/api/sessions/backup-settings'
+    || pathname === '/api/sessions/export' || pathname === '/api/sessions/import'
+    || pathname === '/api/sessions/project-folders') {
+    return notImplemented(method, 'session backup/export/import is not implemented on this host')
+  }
+  if (pathname === '/api/agent-migration/migrate' || pathname.startsWith('/api/agent-migration/items/')) {
+    return notImplemented(method, 'agent migration execution is not implemented on this host (only scan is available)')
+  }
+  if (pathname === '/api/notes/from-template' || pathname === '/api/notes/assets' || pathname === '/api/notes/export') {
+    return notImplemented(method, 'note templates/assets/export are not implemented on this host')
+  }
+  if (pathname === '/api/repositories/create' || pathname.endsWith('/manifest')
+    || pathname.endsWith('/install-plan') || pathname.endsWith('/environment-profiles')
+    || pathname.endsWith('/resolve-environment')) {
+    return notImplemented(method, 'repository manifest/install management is not implemented on this host')
+  }
+  if (pathname.includes('/proposals')) return notImplemented(method, 'agent proposal approval is not implemented on this host')
 
   return null
 }
@@ -721,6 +746,18 @@ async function effortRoute(method: string, body: unknown, services: RinServiceRe
     }
   }
   return error(405, 'method not allowed')
+}
+
+function skillsConfigRoute(config: Config): JsonResponse {
+  const roots = config.skillMemoryRoots
+  if (roots === undefined) return json(200, { config: { userSkillsDir: '', displayPath: '' } })
+  const dir = join(roots.globalConfigRoot, 'skill-memory')
+  return json(200, { config: { userSkillsDir: dir, displayPath: dir } })
+}
+
+/** Honest 501 for a frontend feature the @rin backend does not implement yet. */
+function notImplemented(_method: string, message: string): JsonResponse {
+  return error(501, message)
 }
 
 function statusRoute(): JsonResponse {

@@ -512,8 +512,8 @@ describe('legacy: skills', () => {
     expect(await handle('/api/skills', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { skills: [] } })
   })
 
-  test('config returns enabled true', async () => {
-    expect(await handle('/api/skills/config', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 200, body: { config: { enabled: true } } })
+  test('config returns the skills dir', async () => {
+    expect(await handle('/api/skills/config', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 200, body: { config: { userSkillsDir: '', displayPath: '' } } })
   })
 })
 
