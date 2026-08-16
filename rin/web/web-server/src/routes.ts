@@ -99,6 +99,12 @@ export interface DshLlmLike {
   listModels(provider: string): Promise<Array<{ id: string; name: string }>>
 }
 
+/** Minimal structural view of the dsh settings provider. */
+export interface DshSettingsLike {
+  get(ns: string): unknown
+  update(ns: string, patch: object): Promise<void>
+}
+
 /** Minimal structural view of the dsh credential provider. */
 export interface DshCredentialsLike {
   describe(ref: string): Promise<{ configured: boolean; source?: string; writable: boolean }>
@@ -186,6 +192,7 @@ export interface RinServiceRefs {
   sessionPersistence(): DshSessionPersistenceLike | undefined
   dshAgents(): DshAgentRegistryLike | undefined
   agentDefaultModel(): DshAgentDefaultModelLike | undefined
+  settings(): DshSettingsLike | undefined
   llm(): DshLlmLike | undefined
   credentials(): DshCredentialsLike | undefined
   workspaceRegistry(): DshWorkspaceRegistryLike | undefined

@@ -22,7 +22,7 @@ import type { SessionBackupService } from '@rin/session-backup'
 import type { ProviderProbeService } from '@rin/provider-probe'
 import type { TaskStore } from '@rin/tasks'
 import type { TeamStore } from '@rin/teams'
-import type { DshAgentDefaultModelLike, DshAgentRegistryLike, DshCommandsLike, DshCredentialsLike, DshLlmLike, DshSessionPersistenceLike, DshSessionProjectionsLike, DshSessionStoreLike, DshShellLike, DshTokenMeterLike, DshWorkspaceRegistryLike, RinServiceRefs } from './routes.ts'
+import type { DshAgentDefaultModelLike, DshAgentRegistryLike, DshCommandsLike, DshCredentialsLike, DshLlmLike, DshSessionPersistenceLike, DshSessionProjectionsLike, DshSessionStoreLike, DshSettingsLike, DshShellLike, DshTokenMeterLike, DshWorkspaceRegistryLike, RinServiceRefs } from './routes.ts'
 
 export type * from './types.ts'
 export { createWebServer } from './server.ts'
@@ -107,6 +107,7 @@ export class WebServerService extends Service {
       sessionPersistence: () => ctx.get('sessionPersistence') as unknown as DshSessionPersistenceLike | undefined,
       dshAgents: () => ctx.get('agents') as unknown as DshAgentRegistryLike | undefined,
       agentDefaultModel: () => ctx.get('agentDefaultModel') as unknown as DshAgentDefaultModelLike | undefined,
+      settings: () => ctx.get('settings') as unknown as DshSettingsLike | undefined,
       llm: () => ctx.get('llm') as unknown as DshLlmLike | undefined,
       credentials: () => ctx.get('credentials') as unknown as DshCredentialsLike | undefined,
       workspaceRegistry: () => ctx.get('workspaceRegistry') as unknown as DshWorkspaceRegistryLike | undefined,

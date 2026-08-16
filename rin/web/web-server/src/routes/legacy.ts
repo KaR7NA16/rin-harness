@@ -128,7 +128,7 @@ export async function handle(
   // Settings / models / providers minimal compatibility
   if (pathname === '/api/settings/user') return settingsUserRoute(method, body)
   if (pathname === '/api/settings/cli-launcher') return cliLauncherRoute(method)
-  if (pathname === '/api/permissions/mode') return permissionsModeRoute(method, body)
+  if (pathname === '/api/permissions/mode') return permissionsModeRoute(method, body, services)
   if (pathname === '/api/permissions/rules') return permissionsRulesRoute(method, body, search)
   if (pathname === '/api/models') return modelsRoute(services)
   if (pathname === '/api/models/current') return modelsCurrentRoute(method, body, services)
@@ -701,7 +701,6 @@ interface RinSettingsFile {
   currentModelId: string | null
 }
 
-const VALID_PERMISSION_MODES = ['default', 'acceptEdits', 'plan', 'bypassPermissions', 'dontAsk']
 const VALID_EFFORT_LEVELS = ['low', 'medium', 'high', 'max']
 
 function rinConfigDir(): string {
@@ -746,16 +745,37 @@ async function settingsUserRoute(method: string, body: unknown): Promise<JsonRes
   return error(405, 'method not allowed')
 }
 
-async function permissionsModeRoute(method: string, body: unknown): Promise<JsonResponse> {
-  const store = await readSettingsFile()
-  if (method === 'GET') return json(200, { mode: store.permissionMode })
+const PERMISSION_NAMESPACE = 'permission'
+
+/** Map a cyberpsychosis permission mode onto a dsh permission preset. */
+const MODE_TO_PRESET: Record<string, string> = {
+  bypassPermissions: 'danger-full-access',
+  dontAsk: 'danger-full-access',
+  default: 'workspace-write',
+  acceptEdits: 'workspace-write',
+  plan: 'workspace-write',
+}
+
+async function permissionsModeRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  const settings = services.settings()
+  if (method === 'GET') {
+    if (settings === undefined) return json(200, { mode: 'default' })
+    const value = settings.get(PERMISSION_NAMESPACE) as { defaultPreset?: string } | undefined
+    const preset = value?.defaultPreset ?? 'workspace-write'
+    return json(200, { mode: preset === 'danger-full-access' ? 'bypassPermissions' : 'default' })
+  }
   if (method === 'PUT') {
     const fields = asRecord(body)
     const mode = fields === undefined ? 'default' : stringField(fields, 'mode') ?? 'default'
-    if (!VALID_PERMISSION_MODES.includes(mode)) return error(400, 'invalid permission mode')
-    store.permissionMode = mode
-    await writeSettingsFile(store)
-    return json(200, { ok: true, mode })
+    const preset = MODE_TO_PRESET[mode]
+    if (preset === undefined) return error(400, 'invalid permission mode')
+    if (settings === undefined) return error(500, 'settings service is not mounted')
+    try {
+      await settings.update(PERMISSION_NAMESPACE, { defaultPreset: preset })
+      return json(200, { ok: true, mode })
+    } catch (err) {
+      return error(500, errorMessage(err))
+    }
   }
   return error(405, 'method not allowed')
 }

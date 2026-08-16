@@ -34,6 +34,7 @@ function makeServices(overrides: Record<string, () => unknown> = {}) {
     sessionPersistence: () => undefined,
     dshAgents: () => undefined,
     agentDefaultModel: () => undefined,
+    settings: () => undefined,
     llm: () => undefined,
     credentials: () => undefined,
     workspaceRegistry: () => undefined,
@@ -746,10 +747,19 @@ describe('legacy: settings/models/providers', () => {
     expect(await handle('/api/settings/user', '', 'DELETE', undefined, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
   })
 
-  test('permissions mode GET/PUT', async () => {
+  test('permissions mode reads and writes the dsh permission preset', async () => {
+    let saved: object | undefined
+    const s = makeServices({ settings: () => ({
+      get: () => ({ defaultPreset: 'workspace-write' }),
+      update: async (_ns: string, patch: object) => { saved = patch },
+    }) })
+    expect(await handle('/api/permissions/mode', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { mode: 'default' } })
+    expect(await handle('/api/permissions/mode', '', 'PUT', { mode: 'bypassPermissions' }, s, config)).toEqual({ status: 200, body: { ok: true, mode: 'bypassPermissions' } })
+    expect(saved).toEqual({ defaultPreset: 'danger-full-access' })
+  })
+
+  test('permissions mode unmounted defaults to default', async () => {
     expect(await handle('/api/permissions/mode', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 200, body: { mode: 'default' } })
-    expect(await handle('/api/permissions/mode', '', 'PUT', { mode: 'plan' }, makeServices(), config)).toEqual({ status: 200, body: { ok: true, mode: 'plan' } })
-    expect(await handle('/api/permissions/mode', '', 'PUT', undefined, makeServices(), config)).toEqual({ status: 200, body: { ok: true, mode: 'default' } })
   })
 
   test('permissions rules GET/POST/DELETE', async () => {
