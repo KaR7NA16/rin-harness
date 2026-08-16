@@ -10,19 +10,21 @@ MIGRATION.md §1.1，更新迭代契约见 §9。
 
 | group | 语义 | 已建 package |
 |---|---|---|
-| `core/` | 资产主轴：仓库读取 + 环境安装计划（+ 执行，Phase 5） | `repository`（含 `builtin/` 内置仓库）、`environment` |
-| `workspace/` | 仓库 → agent / sandbox 装配（Phase 5，已建） | `agents`、`sandboxes` |
+| `core/` | 资产主轴与主机运维：仓库读取、环境计划、文件浏览、会话备份、监控、诊断 | `repository`（含 `builtin/` 内置仓库）、`environment`、`filesystem`、`session-backup`、`monitor`、`doctor` |
+| `workspace/` | 仓库 → agent / sandbox / plugin 装配 | `agents`、`sandboxes`、`plugins` |
 | `memory/` | 记忆域（文件 / SQLite 持久化） | `knowledge`、`prompt-memory`、`skill-memory`、`session-search` |
-| `notes/` | 笔记（Obsidian 风格 + 会话备份，Phase 6，已建） | `notes` |
-| `optimization/` | token 与输出优化（三控件：开关 + 滑块） | `token-optimization`、`smart-pruning` |
+| `notes/` | 笔记（Obsidian 风格 + 会话备份） | `notes` |
+| `optimization/` | token / 输出优化与代码图谱 | `token-optimization`、`smart-pruning`、`codegraph` |
 | `learning/` | 自我进化 | `evolution` |
+| `capability/` | LLM 驱动的会话/工件能力（经 dsh llm seam） | `brief`、`review` |
+| `automation/` | 任务、MCP、provider 探测与桌面策略 | `tasks`、`mcp`、`mcp-client`、`provider-probe`、`computer-use`、`agent-migration` |
+| `collaboration/` | 团队配置 | `teams` |
 | `web/` | 独立 Web UI（独立端口 8320，不并入 dsh Web UI） | `web-server`、`web-ui` |
-| `gui/` | 桌面壳（Tauri 2 内嵌 web-ui，Phase 8，已建） | `gui` |
-| `cli/` | `rin` 启动器（profile 自举，Phase 8，已建） | `rin` |
-| `bundle/` | rin profile 装配层（cordis.yml，Phase 8，已建） | `rin` |
+| `gui/` | 桌面壳（Tauri 2 内嵌 web-ui） | `gui` |
+| `cli/` | `rin` 启动器（装配 dsh-base + @rin host 全家） | `rin` |
+| `bundle/` | rin 装配层（cordis.yml） | `rin` |
 
-规划后置（见 MIGRATION.md §10 value tiering）：`collaboration/`（team/remote/im）、
-`automation/`（computer-use / agent-migration / schedule / worktree）。
+未迁移/后置项的处置定论见下文「旧项目迁移处置」节（含「已决定不迁移」「已由 dsh 取代」「待决」三栏）。
 
 ## package 结构约定
 
@@ -44,6 +46,35 @@ MIGRATION.md §1.1，更新迭代契约见 §9。
 - seam 接入（Phase 9）：注册代码集中在 `src/seam.ts`，`apply()` 保持薄；结构型 seam 不新增依赖，tools/agentPresets/skills 走真实 workspace 依赖。见 `SEAM-PROJECTION.md`。
 - 聚合：`rin/tsconfig.json` 是唯一聚合（references 全部 package）；`tsconfig.base.json` 的 `paths` 有每个 `@rin/<name>` → `./rin/<group>/<name>/src` 的映射（根级合并点之一，见 MIGRATION.md §9）。
 - 产品层（web-ui / gui / cli / bundle）可以有构建或运行依赖；host 插件层保持零依赖。
+
+## 旧项目迁移处置（收口定论）
+
+旧项目剩余能力的处置定论，杜绝反复提起：
+
+### 已决定不迁移
+
+价值低 / 小众 / 已被现有能力覆盖（详见 MIGRATION.md §10）：
+
+- dsh hook 桥：`hook-protocol` + `hooks-claude-code` / `hooks-codex`（rin 是独立产品，外部 agent CLI 互操作非目标）
+- 自动化 / 远程子代理：`acp`、`subagent-acp`、`subagent-dsh-sdk`
+- 桌面目录选择器：`directory-picker-native` / `directory-picker-browse`（GUI 壳未实现原生选择）
+- 会话基础设施变体：`session-persistence-sqlite`、`session-projection-cache`、`session-stats`（base 用 jsonl 已够）
+- `message-feedback`（无 UI / 工具消费者）
+- `github`（空桩，成本 > 价值）
+- `worktree`（bash 可替代）
+- `editor-notebook`（小众）
+- 小服务：notificationService、mcpHostPreflight、modelImageCapabilityProbe
+
+### 已由 dsh 取代
+
+- `conversationService`（旧 `/api/conversations`）→ dsh `/api/sessions`：会话/对话由 dsh session 原生承载，无遗留引用，无需迁移。
+
+### 待决（需 scope 或外部凭据）
+
+- `@rin/remote`（bridge / ssh / teleport / daemon）：需先定「rin 的 remote 是什么」
+- `e2b` 远程沙箱、`web-search-exa` / `web-search-perplexity`：需外部 API 凭据
+- `voice` + STT、`im-feishu` / `im-telegram`：需外部 STT / IM 凭据
+- LSP 激活：`lsp-stdio` 已挂载但 `disabled`，需部署层提供具体 language-server `servers` 表
 
 ## 权威文档
 

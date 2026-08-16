@@ -16,12 +16,16 @@ rin-harness inherits DeepSeek Harness's _developer preview_ status and is iterat
 
 rin layers a set of `@rin/*` packages on top of the `dsh` base:
 
-- **Asset repository** (`@rin/repository`) and **environment** (`@rin/environment`) — read the asset repository and resolve environment installation plans.
+- **Asset repository and environments** (`@rin/repository`, `@rin/environment`, `@rin/agents`, `@rin/sandboxes`) — read the asset repository, project agents, and environment installation plans into runnable sandbox profiles.
+- **Filesystem and session backup** (`@rin/filesystem`, `@rin/session-backup`) — path-contained directory browsing and gzip session export/import.
 - **Memory** — four packages: `@rin/knowledge`, `@rin/prompt-memory`, `@rin/skill-memory`, and `@rin/session-search`.
 - **Notes** (`@rin/notes`) — Obsidian-style notes with session backup.
-- **Optimization** (`@rin/token-optimization`, `@rin/smart-pruning`) — token and output optimization controls.
+- **Optimization and code graph** (`@rin/token-optimization`, `@rin/smart-pruning`, `@rin/codegraph`) — token/output controls and SQLite code-graph visualization.
 - **Evolution** (`@rin/evolution`) — self-evolution state and configuration.
-- **Web** (`@rin/web-server`, `@rin/web-ui`) — a standalone Web UI served on its own port (default `8320`).
+- **Diagnostics** (`@rin/monitor`, `@rin/doctor`) — Linux host metrics snapshots and honest host self-diagnostics.
+- **Automation and collaboration** (`@rin/tasks`, `@rin/mcp`, `@rin/mcp-client`, `@rin/provider-probe`, `@rin/computer-use`, `@rin/agent-migration`, `@rin/teams`) — tasks, MCP configuration and model-facing MCP bridging, provider probes, desktop computer-use policy, agent migration, and teams.
+- **LLM capabilities** (`@rin/brief`, `@rin/review`) — LLM-generated session briefs and artifact review.
+- **Web** (`@rin/web-server`, `@rin/web-ui`) — a standalone Web UI served on its own port (default `8320`), including a browser terminal over `/ws/terminal/<id>`.
 - **Desktop shell** (`@rin/gui`) — a Tauri shell embedding the same Web UI.
 
 ## Run

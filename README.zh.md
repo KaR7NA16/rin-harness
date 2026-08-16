@@ -16,12 +16,16 @@ rin-harness 继承了 DeepSeek Harness 的 _开发者预览_ 状态，正在快�
 
 rin 在 `dsh` 底座之上叠加了一组 `@rin/*` 包：
 
-- **资产仓库**（`@rin/repository`）与**环境**（`@rin/environment`）——读取资产仓库并解析环境安装计划。
+- **资产仓库与环境**（`@rin/repository`、`@rin/environment`、`@rin/agents`、`@rin/sandboxes`）——读取资产仓库、投影 agent，并把环境安装计划落到可运行的 sandbox profile。
+- **文件系统与会话备份**（`@rin/filesystem`、`@rin/session-backup`）——路径收容的目录浏览，以及 gzip 会话导出/导入。
 - **记忆**——四个包：`@rin/knowledge`、`@rin/prompt-memory`、`@rin/skill-memory` 与 `@rin/session-search`。
 - **笔记**（`@rin/notes`）——Obsidian 风格笔记，含会话备份。
-- **优化**（`@rin/token-optimization`、`@rin/smart-pruning`）——token 与输出优化控件。
+- **优化与代码图谱**（`@rin/token-optimization`、`@rin/smart-pruning`、`@rin/codegraph`）——token/输出优化控件，以及 SQLite 代码图谱可视化。
 - **进化**（`@rin/evolution`）——自我进化的状态与配置。
-- **Web**（`@rin/web-server`、`@rin/web-ui`）——在独立端口（默认 `8320`）上运行的 Web UI。
+- **诊断**（`@rin/monitor`、`@rin/doctor`）——Linux 主机指标快照与诚实的 host 自诊断。
+- **自动化与协作**（`@rin/tasks`、`@rin/mcp`、`@rin/mcp-client`、`@rin/provider-probe`、`@rin/computer-use`、`@rin/agent-migration`、`@rin/teams`）——任务、MCP 配置与模型侧 MCP 桥接、provider 探测、桌面 computer-use 策略、agent 迁移与团队。
+- **LLM 能力**（`@rin/brief`、`@rin/review`）——LLM 生成的会话摘要与工件审查。
+- **Web**（`@rin/web-server`、`@rin/web-ui`）——在独立端口（默认 `8320`）上运行的 Web UI，含基于 `/ws/terminal/<id>` 的浏览器终端。
 - **桌面壳**（`@rin/gui`）——内嵌同一套 Web UI 的 Tauri 壳。
 
 ## 运行

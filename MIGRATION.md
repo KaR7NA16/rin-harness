@@ -8,7 +8,7 @@
 
 dsh 给「组合 + 运行时」，rin 给「资产 + 环境」。第一公民是 Asset Repository（九类资产单一事实源）。迁移 = 把旧项目的差异化能力重写为 @rin 插件挂在 dsh 底座上，砍掉上游包袱与 UI 重写，复用 dsh 的 loop/工具/会话/沙箱/多模型。
 
-已落地：@rin/repository（reader/writer/validation/migration/seed 全量）、@rin/environment（预检 + 分阶段安装计划）、记忆域 4 包（knowledge / prompt-memory / skill-memory / session-search）、evolution、token-optimization（响应风格开关 + prompt 清理开关）+ smart-pruning（级别）、独立 Web UI（8320，v2 API + React 8 页）、全新 git 仓库 main 主支、裁 codex/claude 子代理。
+已落地：`rin/` 下 32 个 `@rin/*` 包全部建仓并通过 rin 门禁；当前装配为 `dsh-base` + 27 个 @rin host 插件 + `@rin/web-server`（共 28 个 @rin rows）。覆盖资产仓库与环境（repository/environment）、仓库装配（agents/sandboxes/plugins/filesystem/session-backup）、记忆域 4 包、笔记、优化三控件 + codegraph、evolution、自动化与协作（tasks/mcp/mcp-client/provider-probe/computer-use/agent-migration/teams）、LLM 会话能力（brief/review）、主机诊断（monitor/doctor）、独立 Web UI（8320，18 页 React SPA，含浏览器终端）、Tauri GUI、`rin` CLI 与 bundle 装配。dsh 模型工具行（code-runtime / time-context / terminal / persistent bash / lsp / schedule / session-query）也已并入 rin bundle。
 
 **第四轮审计与方案修订要点**（相对上一轮）：
 
@@ -265,15 +265,27 @@ rin 侧完整链（补齐缺口）：
 
 ## 7. 分阶段路线（进度 + 剩余）
 
-已完成：Phase 0（新仓库 main + repository reader + environment plan + 裁 codex/claude + 目录重组）、Phase 1（repository writer/validation/migration/seed + environment preflight/stages）、Phase 2（记忆域 4 包）、Phase 3（evolution + smart-pruning + token-optimization 开关）、Phase 4（web-server v1/v2 + web-ui 8 页，独立端口）、**Phase 5（@rin/agents + @rin/sandboxes + @rin/environment 执行状态机 exec.ts + builtin 种子仓库，冒烟/tsc 通过）**、**Phase 6（@rin/notes + knowledge 检索工具 knowledge_search/knowledge_stats，冒烟/tsc 通过）**、**Phase 7 主体（web-ui 新增 NotesPage/SandboxesPage/AgentWorkspacePage + TokenOptimizationPage 三控件 + web-server 路由/POST/enabled 开关：web-server 冒烟/tsc 通过、web-ui tsc 通过）**。
+已完成：
 
-- **Phase 5 资产链路（HIGH，本轮新增）**：@rin/agents + @rin/sandboxes + @rin/environment 执行 + builtin 种子资产。依赖 repository/environment 已建；两包可并行（agents 依赖 agent-presets authoring，sandboxes 依赖 environment plan）。
-- **Phase 6 笔记与知识闭环（HIGH，本轮新增）**：@rin/notes（存储 + 工具 + API + 会话备份）+ knowledge 检索工具 + KnowledgeSpace 页补全。两域互不依赖，可并行。
-- **Phase 7 UI 补齐（HIGH）**：web-ui 新增 NotesPage / SandboxesPage / AgentWorkspacePage + TokenOptimizationPage 改三控件。
-- **Phase 8 装配与发布（HIGH，已完成）**：@rin/gui（Tauri 2 桌面壳，内嵌 web-ui）+ @rin/bundle（cordis.yml 装配 dsh-base + @rin 全家）+ @rin/cli（`rin` 启动器：起 host 8320 打印 URL，GUI 壳复用）+ 文档收口（本文档为唯一权威，PHASE4-STANDALONE.md 为 Web API 契约）。选型定稿见 §8 决策 9/10。
-- **Phase 9 seam 接入（HIGH，已完成）**：8 个缺口经 8 个子代理并行实现 + 主线程收口，全部接入 dsh seam（矩阵与交付摘要见 `rin/SEAM-PROJECTION.md`）：prompt-memory→systemPrompt 段落、session-search→session 事件索引 + `rin_session_search`/`rin_session_stats` 工具、skill-memory→skills provider、agents→`agent/created` 自动投影（指纹去重）、environment+sandboxes→`ctx.shell` 真实执行（dryRun 开关）、smart-pruning→`agent/pre-step` 去重+替代读折叠、evolution→reviewModel 适配器修复 + autoTrigger 开关、repository→`repository_search`/`repository_read` 资产浏览工具。收口：`pnpm install --lockfile-only`（新增 dsh-tools/dsh-skill 依赖）→ `pnpm rin:typecheck` 通过 → 9 个 seam 冒烟 + 5 个回归冒烟全绿。knowledge/notes/token-optimization 此前已接入。
-- 后置（MEDIUM，MVP 验证价值后按需）：team、remote/bridge、im-feishu/telegram、computer-use、agent-migration、codegraph、schedule、doctor。
-- 砍/极后置（LOW/负值）：worktree、editor-notebook、voice、github（空桩）。
+- **Phase 0–4**：新仓库 main、repository reader/writer/validation/migration/seed、environment preflight/stages/执行、记忆域 4 包、evolution、token-optimization、smart-pruning、独立 Web UI（web-server v1/v2 + React SPA）。
+- **Phase 5**：`@rin/agents` + `@rin/sandboxes` + environment 执行状态机 + builtin 种子仓库。
+- **Phase 6**：`@rin/notes` + `knowledge_search`/`knowledge_stats` 检索工具。
+- **Phase 7**：web-ui 补齐 Notes/Sandboxes/AgentWorkspace/TokenOptimization 等页面与 web-server 写路由。
+- **Phase 8**：`@rin/gui`（Tauri 2 桌面壳）+ `@rin/bundle`（dsh-base + @rin host 全家）+ `@rin/cli`（`rin` 启动器，默认 8320）。
+- **Phase 9**：seam 接入全部完成（见 `rin/SEAM-PROJECTION.md`）：prompt-memory→systemPrompt、session-search→session 事件索引 + 工具、skill-memory→skills provider、agents→agent presets 投影、environment+sandboxes→ctx.shell、smart-pruning→agent/pre-step、evolution→reviewModel、repository→资产浏览工具。
+- **Phase 10（门禁）**：`rin/vitest.config.ts`、`rin/.oxlintrc.json`、`rin/scripts/rin-gates.ts` + 5 个 verify 叶子、`.github/workflows/rin.yml`、渐进覆盖率阈值全部落地。
+- **后 Phase 9 增量（已落地）**：原 MEDIUM 项中的 teams、tasks、mcp、provider-probe、computer-use、agent-migration、codegraph、doctor 已实现；新增 `@rin/mcp-client`（@rin/mcp → dsh MCP client 桥）、`@rin/monitor`（Linux /proc 指标 + `monitor_snapshot` 工具）、`@rin/brief` / `@rin/review`（dsh llm seam 上的会话摘要与工件审查）、浏览器终端（`/ws/terminal/<id>` + web-ui Terminal 页），并把 dsh 模型工具行（code-runtime、time-context、terminal、persistent bash、lsp、schedule、session-query）装配进 `rin/bundle`。
+
+当前装配：`dsh-base` + 27 个 @rin host 插件 + `@rin/web-server` = 28 个 @rin rows；web-ui 18 页（17 个 `src/pages/*.tsx` + ScheduledTasks）。
+
+剩余（均为外部依赖或部署决策，不再是 @rin 包缺口）：
+
+- `@rin/remote`（bridge / ssh / teleport / daemon）：需先定「rin 的 remote」scope。
+- 外部凭据能力：`e2b` 远程沙箱、`web-search-exa` / `web-search-perplexity`、`voice` + STT、`im-feishu` / `im-telegram`。
+- LSP 激活：`lsp-stdio` 已挂载但 `disabled`，需部署层提供具体 language-server `servers` 表。
+- 发布收尾：替换 README/包清单中的 `your-name/rin-harness` 占位仓库地址；根 package 名称仍沿用上游 `@deepseek-ai/dsh-root`，发布前需决策是否改根名。
+
+砍/极后置（LOW/负值）保持不变：worktree、editor-notebook、voice（见上）、github（空桩）。
 
 ## 8. 关键决策（含本轮新增/修订）
 
@@ -304,11 +316,11 @@ rin 侧完整链（补齐缺口）：
 价值 = 差异化 × 用户价值 × 战略契合 ÷ 迁移成本 ÷ 法律风险。
 
 - **🟢 HIGH（护城河，本轮必做）**：@rin/repository + @rin/environment（唯一差异化「harness 内环境」，本轮补执行）、@rin/agents + @rin/sandboxes（仓库接入 agent/sandbox 配置，本轮新晋）、@rin/notes（本轮新晋）、@rin/knowledge（补检索工具）、@rin/prompt-memory、@rin/skill-memory + @rin/evolution（自我进化）、@rin/session-search、token 优化三控件、@rin/web-server + web-ui + gui + bundle + cli（产品面）。
-- **🟡 MEDIUM（有价值，后置）**：team、remote/bridge、im-feishu/telegram、computer-use、agent-migration、codegraph、schedule、doctor。
+- **🟡 MEDIUM（本轮已基本落地）**：team（`@rin/teams`）、computer-use、agent-migration、codegraph、schedule（dsh row）、doctor 均已实现；仍待 scope/凭据的只有 remote/bridge、im-feishu/telegram、e2b、voice 与外部 web-search。
 - **🔴 LOW（审慎，可能不值）**：worktree（bash 可替代）、editor-notebook（小众）、voice（边缘）、github（空桩，成本>价值）。
 - **⚫ 零值/负值（砍）**：dsh 已覆盖的 16 工具组 + messages/PromptInput/diff/permissions UI；上游包袱 grove/REPL/ClaudeCodeHint/DesktopUpsell/subscriptions/marketplace/chrome/rate-limits；五栈独立服务与 codeGraph 独立页（折叠进三控件）；SessionBackup 独立页（并入 notes）。
 
-关键结论：内容资产（prompts/systemPromptSections）是上游派生，只能重写设计不能搬原文；github-app 是空桩；voice/worktree/editor-notebook 是边缘。**MVP = HIGH 域（约 14 host 插件 + web-ui 11 页 + gui + 装配层），其余后置。**
+关键结论：内容资产（prompts/systemPromptSections）是上游派生，只能重写设计不能搬原文；github-app 是空桩；voice/worktree/editor-notebook 是边缘。**MVP 已交付：28 个 @rin 装配 rows + web-ui 18 页 + gui + CLI/bundle；剩余项全部是外部 scope/凭据或发布占位符。**
 
 ## 11. 子 agent 并行执行计划（第四轮）
 
