@@ -32,6 +32,7 @@ function makeServices(overrides: Record<string, () => unknown> = {}) {
     tokenOptimization: () => undefined,
     sessions: () => undefined,
     sessionPersistence: () => undefined,
+    sessionTitle: () => undefined,
     dshAgents: () => undefined,
     agentDefaultModel: () => undefined,
     settings: () => undefined,
@@ -77,6 +78,27 @@ describe('legacy: repositories', () => {
     expect(res?.status).toBe(200)
     expect(res?.body.repositories[0].id).toBe('r1')
     expect(res?.body.repositories[0].rootPath).toBe('/r')
+  })
+
+  test('list auto-connects the builtin repository when empty', async () => {
+    let connectedPath: string | undefined
+    const s = makeServices({ repository: () => ({
+      listConnections: async () => connectedPath === undefined ? [] : [conn],
+      connectRepository: async (path: string) => { connectedPath = path; return conn },
+    }) })
+    const res = await handle('/api/repositories', '', 'GET', undefined, s, config)
+    expect(res?.status).toBe(200)
+    expect(connectedPath?.endsWith('core/repository/builtin/')).toBe(true)
+    expect(res?.body.repositories[0].id).toBe('r1')
+  })
+
+  test('list connect failure returns 500', async () => {
+    const s = makeServices({ repository: () => ({
+      listConnections: async () => [],
+      connectRepository: async () => { throw new Error('bad repo') },
+    }) })
+    const res = await handle('/api/repositories', '', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 500, body: { error: 'bad repo' } })
   })
 
   test('connect requires path', async () => {
@@ -251,8 +273,57 @@ describe('legacy: sessions', () => {
     expect(res).toEqual({ status: 404, body: { error: 'unknown session action' } })
   })
 
-  test('item PATCH is unsupported and DELETE removes the session', async () => {
-    expect(await handle('/api/sessions/s1', '', 'PATCH', {}, makeServices(), config)).toEqual({ status: 501, body: 'session update is not available on this host yet' })
+  test('item PATCH renames a live session', async () => {
+    let renamedTitle: string | undefined
+    const s = makeServices({
+      sessions: () => ({ get: () => ({ id: 's1', events: [] }) }),
+      sessionTitle: () => ({ async rename(_session: unknown, title: string) { renamedTitle = title } }),
+    })
+    const res = await handle('/api/sessions/s1', '', 'PATCH', { title: 'New title' }, s, config)
+    expect(res).toEqual({ status: 200, body: { ok: true } })
+    expect(renamedTitle).toBe('New title')
+  })
+
+  test('item PATCH requires a non-empty title', async () => {
+    const s = makeServices({
+      sessions: () => ({ get: () => ({ id: 's1', events: [] }) }),
+      sessionTitle: () => ({ async rename() {} }),
+    })
+    expect(await handle('/api/sessions/s1', '', 'PATCH', {}, s, config)).toEqual({ status: 400, body: { error: 'title is required' } })
+    expect(await handle('/api/sessions/s1', '', 'PATCH', { title: '   ' }, s, config)).toEqual({ status: 400, body: { error: 'title is required' } })
+  })
+
+  test('item PATCH prepares a persisted session before renaming', async () => {
+    let prepared = false
+    let sessionReady = false
+    let renamedTitle: string | undefined
+    const s = makeServices({
+      sessions: () => ({ get: () => sessionReady ? { id: 's2', events: [] } : undefined }),
+      sessionPersistence: () => ({ prepare: async () => { prepared = true; sessionReady = true } }),
+      sessionTitle: () => ({ async rename(_session: unknown, title: string) { renamedTitle = title } }),
+    })
+    const res = await handle('/api/sessions/s2', '', 'PATCH', { title: 'T' }, s, config)
+    expect(res).toEqual({ status: 200, body: { ok: true } })
+    expect(prepared).toBe(true)
+    expect(renamedTitle).toBe('T')
+  })
+
+  test('item PATCH missing session returns 404', async () => {
+    const s = makeServices({
+      sessions: () => ({ get: () => undefined }),
+      sessionTitle: () => ({ async rename() {} }),
+    })
+    const res = await handle('/api/sessions/s1', '', 'PATCH', { title: 'T' }, s, config)
+    expect(res).toEqual({ status: 404, body: { error: 'session not found' } })
+  })
+
+  test('item PATCH without session title service returns 500', async () => {
+    const s = makeServices({ sessions: () => ({ get: () => ({ id: 's1', events: [] }) }) })
+    const res = await handle('/api/sessions/s1', '', 'PATCH', { title: 'T' }, s, config)
+    expect(res).toEqual({ status: 500, body: { error: 'session title service is not mounted' } })
+  })
+
+  test('item DELETE removes the session', async () => {
     const res = await handle('/api/sessions/s1', '', 'DELETE', undefined, makeServices(), config)
     expect(res.status).toBe(200)
     expect((res as { body: { ok: boolean; removed: number } }).body.ok).toBe(true)
@@ -527,6 +598,10 @@ describe('legacy: skills', () => {
   test('config returns the skills dir', async () => {
     expect(await handle('/api/skills/config', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 200, body: { config: { userSkillsDir: '', displayPath: '' } } })
   })
+
+  test('open-config is desktop-only', async () => {
+    expect(await handle('/api/skills/open-config', '', 'POST', undefined, makeServices(), config)).toEqual({ status: 501, body: { error: 'this action is desktop-only; switch to the rin desktop app' } })
+  })
 })
 
 describe('legacy: token optimization', () => {
@@ -717,12 +792,31 @@ describe('legacy: sandboxes', () => {
     expect(await handle('/api/sandboxes/profile/missing/state', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { exists: false, running: false } })
   })
 
-  test('item start/stop/exec/test return 501', async () => {
+  test('item start/stop/test/interactive-command are desktop-only', async () => {
     const s = makeServices({ sandboxes: () => sandboxes })
-    for (const action of ['start', 'stop', 'exec', 'test', 'interactive-command']) {
+    for (const action of ['start', 'stop', 'test', 'interactive-command']) {
       const res = await handle('/api/sandboxes/profile/sb1/' + action, '', 'POST', undefined, s, config)
-      expect(res).toEqual({ status: 501, body: { error: 'sandbox ' + action + ' is not available for local-sandbox profiles yet' } })
+      expect(res).toEqual({ status: 501, body: { error: 'this action is desktop-only; switch to the rin desktop app' } })
     }
+  })
+
+  test('item exec runs a command', async () => {
+    let captured: { id: string; command: string } | undefined
+    const s = makeServices({ sandboxes: () => ({ ...sandboxes, async exec(id: string, command: string) { captured = { id, command }; return { code: 0, stdout: 'out', stderr: '' } } }) })
+    const res = await handle('/api/sandboxes/profile/sb1/exec', '', 'POST', { command: 'ls -la' }, s, config)
+    expect(res).toEqual({ status: 200, body: { code: 0, stdout: 'out', stderr: '' } })
+    expect(captured).toEqual({ id: 'sb1', command: 'ls -la' })
+  })
+
+  test('item exec requires a command', async () => {
+    const s = makeServices({ sandboxes: () => ({ ...sandboxes, async exec() { return { code: 0, stdout: '', stderr: '' } } }) })
+    expect(await handle('/api/sandboxes/profile/sb1/exec', '', 'POST', {}, s, config)).toEqual({ status: 400, body: { error: 'command is required' } })
+    expect(await handle('/api/sandboxes/profile/sb1/exec', '', 'POST', { command: '  ' }, s, config)).toEqual({ status: 400, body: { error: 'command is required' } })
+  })
+
+  test('item exec requires POST', async () => {
+    const s = makeServices({ sandboxes: () => sandboxes })
+    expect(await handle('/api/sandboxes/profile/sb1/exec', '', 'GET', undefined, s, config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
   })
 
   test('item prepare-environment runs pipeline', async () => {
@@ -741,9 +835,9 @@ describe('legacy: sandboxes', () => {
     expect(res).toEqual({ status: 404, body: { error: 'sandbox profile not found' } })
   })
 
-  test('item approve-environment returns 501', async () => {
+  test('item approve-environment is already approved', async () => {
     const s = makeServices({ sandboxes: () => sandboxes })
-    expect(await handle('/api/sandboxes/profile/sb1/approve-environment', '', 'POST', undefined, s, config)).toEqual({ status: 501, body: { error: 'environment execution is direct; the run is already approved after prepare' } })
+    expect(await handle('/api/sandboxes/profile/sb1/approve-environment', '', 'POST', undefined, s, config)).toEqual({ status: 200, body: { ok: true, alreadyApproved: true } })
   })
 
   test('item unknown action returns 404', async () => {
@@ -1107,6 +1201,10 @@ describe('legacy: A/B/D services', () => {
   test('tasks wrong method returns 405', async () => {
     expect(await handle('/api/tasks', '', 'PUT', {}, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
     expect(await handle('/api/tasks/lists', '', 'DELETE', undefined, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
+  })
+
+  test('computer-use open-settings falls through to 404', async () => {
+    expect(await handle('/api/computer-use/open-settings', '', 'POST', undefined, makeServices(), config)).toBeNull()
   })
 
   test('computer-use unmounted status', async () => {

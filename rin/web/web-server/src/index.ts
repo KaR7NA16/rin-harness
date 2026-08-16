@@ -107,6 +107,7 @@ export class WebServerService extends Service {
       tokenOptimization: () => ctx.get('tokenOptimization'),
       sessions: () => ctx.get('sessions') as unknown as DshSessionStoreLike | undefined,
       sessionPersistence: () => ctx.get('sessionPersistence') as unknown as DshSessionPersistenceLike | undefined,
+      sessionTitle: () => ctx.get('sessionTitle') as unknown as { rename(session: unknown, title: string): Promise<void> | void } | undefined,
       dshAgents: () => ctx.get('agents') as unknown as DshAgentRegistryLike | undefined,
       agentDefaultModel: () => ctx.get('agentDefaultModel') as unknown as DshAgentDefaultModelLike | undefined,
       settings: () => ctx.get('settings') as unknown as DshSettingsLike | undefined,

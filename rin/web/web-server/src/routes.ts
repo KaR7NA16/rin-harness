@@ -199,6 +199,7 @@ export interface RinServiceRefs {
   tokenOptimization(): TokenOptimizationRef | undefined
   sessions(): DshSessionStoreLike | undefined
   sessionPersistence(): DshSessionPersistenceLike | undefined
+  sessionTitle(): { rename(session: unknown, title: string): Promise<void> | void } | undefined
   dshAgents(): DshAgentRegistryLike | undefined
   agentDefaultModel(): DshAgentDefaultModelLike | undefined
   settings(): DshSettingsLike | undefined

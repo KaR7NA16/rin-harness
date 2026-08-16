@@ -13,6 +13,7 @@ import { randomUUID } from 'node:crypto'
 import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { buildPromptMemoryInsights } from '@rin/prompt-memory'
 import type { DiscoveryInput, ProviderTestInput } from '@rin/provider-probe'
 import type { BrowseInput } from '@rin/filesystem'
@@ -101,7 +102,7 @@ export async function handle(
   // Skills (legacy desktop path backed by @rin/skill-memory)
   if (pathname === '/api/skills') return skillsListRoute(services, config)
   if (pathname === '/api/skills/config') return skillsConfigRoute(config)
-  if (pathname === '/api/skills/open-config') return notImplemented(method, 'opening the skills config directory is a desktop-only action')
+  if (pathname === '/api/skills/open-config') return notImplemented(method, 'this action is desktop-only; switch to the rin desktop app')
 
   // Token optimization (legacy desktop paths backed by the two @rin knobs)
   if (pathname.startsWith('/api/token-optimization/')) {
@@ -176,7 +177,6 @@ export async function handle(
   if (pathname === '/api/computer-use/apps') return computerUseAppsRoute(services)
   if (pathname === '/api/computer-use/authorized-apps') return computerUseAuthorizedAppsRoute(method, body, services)
   if (pathname === '/api/computer-use/setup') return computerUseSetupRoute(method)
-  if (pathname === '/api/computer-use/open-settings') return computerUseOpenSettingsRoute(method)
   if (pathname === '/api/agent-migration/scan' || pathname === '/api/agent-migration') return agentMigrationRoute(services)
   if (pathname === '/api/agent-migration/migrate') return agentMigrationMigrateRoute(method, body, services)
   const migrationItem = /^\/api\/agent-migration\/items\/([^/]+)$/.exec(pathname)
@@ -308,8 +308,15 @@ async function sandboxesItemRoute(
       return error(405, 'method not allowed')
     }
     if (action === 'state') return json(200, { exists: (await sandboxes.get(id)) !== null, running: false })
-    if (action === 'start' || action === 'stop' || action === 'exec' || action === 'test' || action === 'interactive-command') {
-      return error(501, 'sandbox ' + action + ' is not available for local-sandbox profiles yet')
+    if (action === 'start' || action === 'stop' || action === 'test' || action === 'interactive-command') {
+      return error(501, 'this action is desktop-only; switch to the rin desktop app')
+    }
+    if (action === 'exec') {
+      if (method !== 'POST') return error(405, 'method not allowed')
+      const fields = asRecord(body)
+      const command = fields === undefined ? undefined : stringField(fields, 'command')
+      if (command === undefined || command.trim() === '') return error(400, 'command is required')
+      return json(200, await sandboxes.exec(id, command))
     }
     if (action === 'prepare-environment') {
       if (method !== 'POST') return error(405, 'method not allowed')
@@ -334,7 +341,7 @@ async function sandboxesItemRoute(
       return json(200, { runs: legacyInstallRuns.get(id) ?? [] })
     }
     if (action === 'approve-environment') {
-      return error(501, 'environment execution is direct; the run is already approved after prepare')
+      return json(200, { ok: true, alreadyApproved: true })
     }
     return error(404, 'unknown sandbox action')
   } catch (err) {
@@ -1060,6 +1067,22 @@ async function modelsCurrentRoute(method: string, body: unknown, services: RinSe
 
 /* ----------------------------- repositories ----------------------------- */
 
+/**
+ * Resolve the harness built-in repository root.
+ *
+ * Mirrors @rin/bundle's builtinRepositoryRoot(): the builtin repository lives
+ * at rin/core/repository/builtin — four levels above this routes/ directory,
+ * i.e. three above the package src/, the same relative depth the bundle
+ * resolves from. Kept local because a project reference to @rin/bundle would
+ * form a circular reference graph (the bundle already references web-server),
+ * and the tsconfig paths mapping would pull the bundle source outside this
+ * project's rootDir.
+ * @returns the absolute built-in repository root (contains repository.yaml).
+ */
+function builtinRepositoryRoot(): string {
+  return fileURLToPath(new URL('../../../../core/repository/builtin/', import.meta.url))
+}
+
 async function repositoriesListRoute(
   method: string,
   body: unknown,
@@ -1070,7 +1093,13 @@ async function repositoriesListRoute(
   const repository = services.repository()
   if (repository === undefined) return notMounted()
   try {
-    const connections = await repository.listConnections()
+    let connections = await repository.listConnections()
+    if (connections.length === 0) {
+      // First boot: surface the harness built-in repository as the default
+      // connection so the UI has something to mount without manual setup.
+      await repository.connectRepository(builtinRepositoryRoot())
+      connections = await repository.listConnections()
+    }
     return json(200, { repositories: connections.map(repositoryConnectionDto) })
   } catch (err) {
     return error(500, errorMessage(err))
@@ -1959,11 +1988,6 @@ async function computerUseSetupRoute(method: string): Promise<JsonResponse> {
   })
 }
 
-async function computerUseOpenSettingsRoute(method: string): Promise<JsonResponse> {
-  if (method !== 'POST') return error(405, 'method not allowed')
-  return error(501, 'opening OS privacy settings is a desktop-only action and is not available on the web host')
-}
-
 async function agentMigrationRoute(services: RinServiceRefs): Promise<JsonResponse> {
   const agentMigration = services.agentMigration()
   if (agentMigration === undefined) {
@@ -2435,7 +2459,7 @@ async function sessionsItemRoute(
     if (method === 'DELETE') {
       return deleteSessionRoute(id, services)
     }
-    if (method === 'PATCH') return json(501, 'session update is not available on this host yet')
+    if (method === 'PATCH') return sessionRenameRoute(id, body, services)
     return error(405, 'method not allowed')
   }
 
@@ -2580,6 +2604,30 @@ async function sessionRewindRoute(id: string, method: string, body: unknown, ser
       ? store.create(undefined, { meta: { ...(session.header?.cwd !== undefined ? { cwd: session.header.cwd } : {}) } })
       : store.fork(id, boundary)
     return json(200, { ...result, sessionId: child.id, session: sessionListItemDto(child, session.header?.cwd ?? null) })
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
+}
+
+/**
+ * Rename a session through the dsh SessionTitleService.
+ *
+ * dsh's title seam appends a user-sourced `session/title` event that pins the
+ * title (automatic generation is superseded). The legacy desktop PATCH maps
+ * onto that seam directly; a persisted session is prepared into the live store
+ * first, mirroring {@link ensureLiveSession}.
+ */
+async function sessionRenameRoute(id: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  const sessionTitle = services.sessionTitle()
+  if (sessionTitle === undefined) return error(500, 'session title service is not mounted')
+  const fields = asRecord(body)
+  const title = fields === undefined ? undefined : stringField(fields, 'title')
+  if (title === undefined || title.trim() === '') return error(400, 'title is required')
+  const session = await ensureLiveSession(id, services)
+  if (session === undefined) return error(404, 'session not found')
+  try {
+    await sessionTitle.rename(session, title)
+    return json(200, { ok: true })
   } catch (err) {
     return error(400, errorMessage(err))
   }
