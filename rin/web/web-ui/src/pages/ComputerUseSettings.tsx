@@ -35,10 +35,6 @@ function StatusRow({ label, ok, detail }: { label: string; ok: boolean | null; d
   )
 }
 
-async function openSystemSettings(pane: 'Privacy_ScreenCapture' | 'Privacy_Accessibility') {
-  await computerUseApi.openSettings(pane)
-}
-
 async function openExternalUrl(url: string) {
   try {
     const { open } = await import('@tauri-apps/plugin-shell')
@@ -178,8 +174,6 @@ export function ComputerUseSettings() {
     status.venv.created &&
     status.dependencies.installed
 
-  const accessibilityNeedsAttention = status?.permissions.accessibility === false
-  const screenRecordingNeedsAttention = status?.permissions.screenRecording === false
   const screenRecordingReady = status ? status.permissions.screenRecording !== false : null
   const pythonDownloadUrl = status
     ? PYTHON_DOWNLOAD_URLS[status.platform] ?? 'https://www.python.org/downloads/'
@@ -280,31 +274,6 @@ export function ComputerUseSettings() {
                 }
               />
               </SettingsSection>
-              {(accessibilityNeedsAttention || screenRecordingNeedsAttention) && (
-                <div className="flex flex-col gap-2 px-[16px] py-[12px] rounded-[12px] bg-[var(--color-warning)]/5 border border-[var(--color-warning)]/30">
-                  <p className="text-[12px] text-[var(--color-text-tertiary)]">{t('settings.computerUse.permRestartHint')}</p>
-                  <div className="flex gap-2">
-                    {accessibilityNeedsAttention && (
-                      <button
-                        onClick={() => openSystemSettings('Privacy_Accessibility')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-[var(--color-brand)] border border-[var(--color-border)] rounded-full hover:bg-[var(--color-surface-hover)]"
-                      >
-                        <Icon name="open_in_new" size={14} />
-                        {t('settings.computerUse.openAccessibility')}
-                      </button>
-                    )}
-                    {screenRecordingNeedsAttention && (
-                      <button
-                        onClick={() => openSystemSettings('Privacy_ScreenCapture')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-[var(--color-brand)] border border-[var(--color-border)] rounded-full hover:bg-[var(--color-surface-hover)]"
-                      >
-                        <Icon name="open_in_new" size={14} />
-                        {t('settings.computerUse.openScreenRecording')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
             </>
           )}
 

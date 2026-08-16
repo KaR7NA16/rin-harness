@@ -1,8 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from '../../i18n'
-import { computerUseApi } from '../../api/computerUse'
 import { useChatStore } from '../../stores/chatStore'
-import { useUIStore } from '../../stores/uiStore'
 import type {
   ComputerUsePermissionRequest,
   ComputerUsePermissionResponse,
@@ -72,9 +70,6 @@ export function ComputerUsePermissionModal({ sessionId, request }: Props) {
   const respondToComputerUsePermission = useChatStore(
     (s) => s.respondToComputerUsePermission,
   )
-  const [openingPane, setOpeningPane] = useState<
-    'Privacy_Accessibility' | 'Privacy_ScreenCapture' | null
-  >(null)
 
   const requestedFlags = useMemo(
     () =>
@@ -102,22 +97,6 @@ export function ComputerUsePermissionModal({ sessionId, request }: Props) {
       request.requestId,
       buildAllowResponse(request),
     )
-  }
-
-  const openSettings = async (
-    pane: 'Privacy_Accessibility' | 'Privacy_ScreenCapture',
-  ) => {
-    setOpeningPane(pane)
-    try {
-      await computerUseApi.openSettings(pane)
-    } catch {
-      useUIStore.getState().addToast({
-        type: 'error',
-        message: t('computerUseApproval.openSettingsFailed'),
-      })
-    } finally {
-      setOpeningPane(null)
-    }
   }
 
   const tccState = request.tccState
@@ -159,16 +138,10 @@ export function ComputerUsePermissionModal({ sessionId, request }: Props) {
             <PermissionRow
               label={t('computerUseApproval.accessibility')}
               granted={tccState.accessibility}
-              actionLabel={t('computerUseApproval.openAccessibility')}
-              actionLoading={openingPane === 'Privacy_Accessibility'}
-              onAction={() => openSettings('Privacy_Accessibility')}
             />
             <PermissionRow
               label={t('computerUseApproval.screenRecording')}
               granted={tccState.screenRecording}
-              actionLabel={t('computerUseApproval.openScreenRecording')}
-              actionLoading={openingPane === 'Privacy_ScreenCapture'}
-              onAction={() => openSettings('Privacy_ScreenCapture')}
             />
           </div>
 
@@ -277,15 +250,9 @@ export function ComputerUsePermissionModal({ sessionId, request }: Props) {
 function PermissionRow({
   label,
   granted,
-  actionLabel,
-  actionLoading,
-  onAction,
 }: {
   label: string
   granted: boolean
-  actionLabel: string
-  actionLoading: boolean
-  onAction: () => void
 }) {
   const t = useTranslation()
 
@@ -301,17 +268,6 @@ function PermissionRow({
             : t('computerUseApproval.notGranted')}
         </div>
       </div>
-
-      {!granted ? (
-        <Button
-          variant="secondary"
-          size="sm"
-          loading={actionLoading}
-          onClick={onAction}
-        >
-          {actionLabel}
-        </Button>
-      ) : null}
     </div>
   )
 }

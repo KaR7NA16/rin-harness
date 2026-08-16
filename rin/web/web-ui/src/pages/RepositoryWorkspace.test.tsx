@@ -50,4 +50,35 @@ describe('RepositoryWorkspace', () => {
     expect(screen.getByText('ggplot2')).toBeInTheDocument()
     expect(screen.getByText('Scientific')).toBeInTheDocument()
   })
+
+  it('displays the default built-in repository without requiring a manual connect', async () => {
+    vi.mocked(repositoriesApi.list).mockResolvedValue({
+      repositories: [{
+        id: 'built-in',
+        name: 'Built-in repository',
+        rootPath: '/home/user/rin/core/repository/builtin',
+        createdAt: '2026-08-13T00:00:00.000Z',
+        updatedAt: '2026-08-13T00:00:00.000Z',
+        environmentPackages: [],
+        environmentProfiles: [],
+      }],
+    })
+
+    render(<RepositoryWorkspace />)
+
+    await waitFor(() => expect(screen.getByText('Built-in repository')).toBeInTheDocument())
+    expect(screen.getByText('0 packages')).toBeInTheDocument()
+    expect(repositoriesApi.connect).not.toHaveBeenCalled()
+    expect(screen.queryByText('No repository connected')).not.toBeInTheDocument()
+  })
+
+  it('keeps the empty state free of the stale "no repository connected" claim', async () => {
+    vi.mocked(repositoriesApi.list).mockResolvedValue({ repositories: [] })
+
+    render(<RepositoryWorkspace />)
+
+    await waitFor(() => expect(screen.getByText('No repository to display')).toBeInTheDocument())
+    expect(screen.queryByText('No repository connected')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Connect existing folder' })).toBeInTheDocument()
+  })
 })

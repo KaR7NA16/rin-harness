@@ -8,6 +8,7 @@ import { useChatStore } from '../../stores/chatStore'
 import { getSessionDisplayTitle } from '../../utils/sessionTitle'
 import { NewSessionMenu } from './NewSessionMenu'
 import { NewProjectDialog } from './NewProjectDialog'
+import { SkillsConfigBrowser } from './SkillsConfigBrowser'
 import { resolveCurrentProject } from './NewSessionChooser'
 import { ProjectFilter } from './ProjectFilter'
 import { Icon } from '../shared/Icon'
@@ -99,6 +100,7 @@ export function Sidebar() {
   const [collapsedGroupKeys, setCollapsedGroupKeys] = useState<Set<string>>(
     () => new Set(readCollapsedGroupKeys()),
   )
+  const [skillsConfigBrowserOpen, setSkillsConfigBrowserOpen] = useState(false)
   const renameInputRef = useRef<HTMLInputElement>(null)
   const projectRenameInputRef = useRef<HTMLInputElement>(null)
   const newSessionButtonRef = useRef<HTMLButtonElement>(null)
@@ -484,6 +486,17 @@ export function Sidebar() {
             )}
           </div>
         </div>
+
+        <div className="border-t border-[var(--color-border-separator)] px-[10px] pb-[10px] pt-[8px]">
+          <button
+            type="button"
+            onClick={() => setSkillsConfigBrowserOpen(true)}
+            className="flex h-[36px] w-full items-center gap-2 rounded-[8px] px-[10px] text-[12px] font-medium text-[var(--color-text-secondary)] transition-colors duration-100 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]"
+          >
+            <Icon name="folder_open" size={14} className="shrink-0 text-[var(--color-text-tertiary)]" />
+            <span className="truncate">{t('sidebar.skillsConfigDir')}</span>
+          </button>
+        </div>
       </div>
 
       {contextMenu?.kind === 'session' && (
@@ -564,6 +577,11 @@ export function Sidebar() {
         open={newProjectDialogOpen}
         onClose={() => setNewProjectDialogOpen(false)}
         onCreate={createAndOpenSession}
+      />
+
+      <SkillsConfigBrowser
+        open={skillsConfigBrowserOpen}
+        onClose={() => setSkillsConfigBrowserOpen(false)}
       />
     </aside>
   )

@@ -17,6 +17,7 @@ export const zh: Record<TranslationKey, string> = {
   'common.disable': '禁用',
   'common.active': '已激活',
   'common.close': '关闭',
+  'common.up': '上一级',
 
   // ─── Sidebar ──────────────────────────────────────
   'sidebar.newSession': '新建会话',
@@ -54,6 +55,7 @@ export const zh: Record<TranslationKey, string> = {
   'sidebar.expand': '展开侧边栏',
   'sidebar.projectGraph': '知识空间',
   'sidebar.repository': '\u4ED3\u5E93',
+  'sidebar.skillsConfigDir': 'Skills 配置目录',
 
   // ─── 新建会话 ──────────────────────────────────────
   'newSession.title': '新建会话',
@@ -492,7 +494,9 @@ export const zh: Record<TranslationKey, string> = {
   'settings.skills.title': '技能',
   'settings.skills.description': '管理已安装的技能与自动技能学习。',
   'settings.skills.openConfigPath': '打开技能目录',
-  'settings.skills.openConfigFailed': '打开技能目录失败',
+  'skillsConfigBrowser.title': 'Skills 配置目录',
+  'skillsConfigBrowser.empty': '此目录为空。',
+  'skillsConfigBrowser.loadFailed': '无法加载 Skills 配置目录。',
   'settings.skills.browserTitle': '浏览已安装技能',
   'settings.skills.browserEyebrow': '技能浏览器',
   'settings.skills.browserDescription': '查看内置、项目和用户技能，比较它们的来源与规模，并打开技能目录阅读文档和源码文件。',
@@ -762,9 +766,6 @@ export const zh: Record<TranslationKey, string> = {
   'settings.computerUse.appsEmpty': '未找到已安装的 App，请先安装环境。',
   'settings.computerUse.appsSearch': '搜索 App...',
   'settings.computerUse.appsSaved': '已保存',
-  'settings.computerUse.openAccessibility': '打开辅助功能设置',
-  'settings.computerUse.openScreenRecording': '打开屏幕录制设置',
-  'settings.computerUse.permRestartHint': '授权后需重启 App 才能生效。',
   'settings.computerUse.flagClipboard': '剪贴板访问',
   'settings.computerUse.flagSystemKeys': '系统快捷键',
 
@@ -1094,11 +1095,8 @@ export const zh: Record<TranslationKey, string> = {
   'computerUseApproval.screenRecording': '屏幕录制',
   'computerUseApproval.granted': '已授权',
   'computerUseApproval.notGranted': '未授权',
-  'computerUseApproval.openAccessibility': '打开辅助功能设置',
-  'computerUseApproval.openScreenRecording': '打开屏幕录制设置',
   'computerUseApproval.tccHint': '先在系统设置里授予缺失权限，然后关闭此对话框。',
   'computerUseApproval.closeHint': '关闭会把控制权交还给 Cyberpsychosis，让它在 macOS 权限生效后重新调用 request_access。',
-  'computerUseApproval.openSettingsFailed': '无法打开系统设置，请手动打开。',
 
   // ─── Ask User Question ──────────────────────────────────────
   'question.needsInput': '需要你的输入',
@@ -1903,8 +1901,8 @@ export const zh: Record<TranslationKey, string> = {
   'repository.create': '\u65B0\u5EFA\u4ED3\u5E93',
   'repository.connectExisting': '\u8FDE\u63A5\u73B0\u6709\u6587\u4EF6\u5939',
   'repository.createNew': '\u65B0\u5EFA\u72EC\u7ACB\u6587\u4EF6\u5939',
-  'repository.empty': '\u5C1A\u672A\u8FDE\u63A5\u4ED3\u5E93',
-  'repository.emptyDetail': '\u8FDE\u63A5\u73B0\u6709\u6587\u4EF6\u5939\uFF0C\u6216\u65B0\u5EFA\u4E00\u4E2A\u72EC\u7ACB\u4ED3\u5E93\u3002',
+  'repository.empty': '\u6CA1\u6709\u53EF\u663E\u793A\u7684\u4ED3\u5E93',
+  'repository.emptyDetail': 'Harness \u5185\u7F6E\u4ED3\u5E93\u4F1A\u81EA\u52A8\u8FDE\u63A5\u3002\u53EF\u5237\u65B0\u5217\u8868\uFF0C\u6216\u8FDE\u63A5\u5DF2\u6709\u76EE\u5F55/\u65B0\u5EFA\u4ED3\u5E93\u3002',
   'repository.root': '\u6839\u76EE\u5F55',
   'repository.environment': '\u73AF\u5883\u914D\u7F6E',
   'repository.environmentDetail': '\u8FD9\u91CC\u58F0\u660E\u7684\u5305\u53EF\u5728\u5173\u8054\u6C99\u7BB1\u5185\u5B89\u88C5\u3002',

@@ -63,16 +63,6 @@ const MOCK_FETCH_LEARNING = vi.fn()
 const MOCK_SET_LEARNING_MODE = vi.fn()
 const MOCK_APPROVE_CANDIDATE = vi.fn()
 const MOCK_REJECT_CANDIDATE = vi.fn()
-const MOCK_TAURI_INVOKE = vi.hoisted(() => vi.fn())
-const MOCK_TAURI_OPEN = vi.hoisted(() => vi.fn())
-
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: MOCK_TAURI_INVOKE,
-}))
-
-vi.mock('@tauri-apps/plugin-shell', () => ({
-  open: MOCK_TAURI_OPEN,
-}))
 
 describe('Settings > Skills tab', () => {
   beforeEach(() => {
@@ -322,14 +312,23 @@ describe('Settings > Skills tab', () => {
     expect(fetchSkills).toHaveBeenCalledWith('/workspace/project')
   })
 
-  it('opens the skills folder through Tauri on desktop', async () => {
-    Object.defineProperty(window, '__TAURI_INTERNALS__', {
-      configurable: true,
-      value: {},
-    })
-    MOCK_TAURI_INVOKE.mockResolvedValue(undefined)
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({
+  it('opens the skills folder as an in-page browser instead of calling the desktop open-config route', async () => {
+    const fetchMock = vi.fn((url: string | URL | Request) => {
+      const target = String(url)
+      if (target.includes('/api/filesystem/browse')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          currentPath: '/Users/wang/.cyber/skills',
+          parentPath: '/Users/wang/.cyber',
+          entries: [
+            { name: 'alpha', path: '/Users/wang/.cyber/skills/alpha', isDirectory: true },
+            { name: 'SKILL.md', path: '/Users/wang/.cyber/skills/SKILL.md', isDirectory: false },
+          ],
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
+      return Promise.resolve(new Response(JSON.stringify({
         config: {
           userSkillsDir: '/Users/wang/.cyber/skills',
           displayPath: '~/.cyber/skills',
@@ -337,32 +336,44 @@ describe('Settings > Skills tab', () => {
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }),
-    )
+      }))
+    })
     vi.stubGlobal('fetch', fetchMock)
 
     render(<SkillSettings />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Open skills folder' }))
 
+    expect(await screen.findByText('Skills config directory')).toBeInTheDocument()
     await waitFor(() => {
-      expect(MOCK_TAURI_INVOKE).toHaveBeenCalledWith('open_skills_config_dir')
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/api/filesystem/browse'),
+        expect.anything(),
+      )
     })
+    expect(screen.getByText('alpha')).toBeInTheDocument()
     expect(fetchMock).not.toHaveBeenCalledWith(
       expect.stringContaining('/api/skills/open-config'),
       expect.anything(),
     )
   })
 
-  it('falls back to Tauri shell open instead of HTTP when the desktop command is unavailable', async () => {
-    Object.defineProperty(window, '__TAURI_INTERNALS__', {
-      configurable: true,
-      value: {},
-    })
-    MOCK_TAURI_INVOKE.mockRejectedValue(new Error('unknown command'))
-    MOCK_TAURI_OPEN.mockResolvedValue(undefined)
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({
+  it('roots the skills folder browser at the configured user skills directory', async () => {
+    const fetchMock = vi.fn((url: string | URL | Request) => {
+      const target = String(url)
+      if (target.includes('/api/filesystem/browse')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          currentPath: '/Users/wang/custom-claude/skills',
+          parentPath: '/Users/wang/custom-claude',
+          entries: [
+            { name: 'beta', path: '/Users/wang/custom-claude/skills/beta', isDirectory: true },
+          ],
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
+      return Promise.resolve(new Response(JSON.stringify({
         config: {
           userSkillsDir: '/Users/wang/custom-claude/skills',
           displayPath: '~/custom-claude/skills',
@@ -370,8 +381,8 @@ describe('Settings > Skills tab', () => {
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }),
-    )
+      }))
+    })
     vi.stubGlobal('fetch', fetchMock)
 
     render(<SkillSettings />)
@@ -379,13 +390,8 @@ describe('Settings > Skills tab', () => {
     await screen.findByText('~/custom-claude/skills')
     fireEvent.click(screen.getByRole('button', { name: 'Open skills folder' }))
 
-    await waitFor(() => {
-      expect(MOCK_TAURI_OPEN).toHaveBeenCalledWith('/Users/wang/custom-claude/skills')
-    })
-    expect(fetchMock).not.toHaveBeenCalledWith(
-      expect.stringContaining('/api/skills/open-config'),
-      expect.anything(),
-    )
+    expect(await screen.findByText('/Users/wang/custom-claude/skills')).toBeInTheDocument()
+    expect(screen.getByText('beta')).toBeInTheDocument()
   })
 
   it('opens skill detail with metadata cards and parsed markdown body', () => {

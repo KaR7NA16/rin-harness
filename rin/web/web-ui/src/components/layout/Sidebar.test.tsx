@@ -19,6 +19,27 @@ vi.mock('../../api/sessions', () => ({
   },
 }))
 
+vi.mock('../../api/skills', () => ({
+  skillsApi: {
+    config: vi.fn().mockResolvedValue({
+      config: { userSkillsDir: '/Users/wang/.cyber/skills', displayPath: '~/.cyber/skills' },
+    }),
+  },
+}))
+
+vi.mock('../../api/filesystem', () => ({
+  filesystemApi: {
+    browse: vi.fn().mockResolvedValue({
+      currentPath: '/Users/wang/.cyber/skills',
+      parentPath: '/Users/wang/.cyber',
+      entries: [
+        { name: 'alpha', path: '/Users/wang/.cyber/skills/alpha', isDirectory: true },
+        { name: 'beta', path: '/Users/wang/.cyber/skills/beta', isDirectory: false },
+      ],
+    }),
+  },
+}))
+
 vi.mock('@tauri-apps/plugin-dialog', () => ({
   open: openDialogMock,
 }))
@@ -70,6 +91,11 @@ vi.mock('../../i18n', () => ({
       'sidebar.timeGroup.last7days': 'Last 7 Days',
       'sidebar.timeGroup.last30days': 'Last 30 Days',
       'sidebar.timeGroup.older': 'Older',
+      'sidebar.skillsConfigDir': 'Skills directory',
+      'skillsConfigBrowser.title': 'Skills config directory',
+      'skillsConfigBrowser.empty': 'This directory is empty.',
+      'skillsConfigBrowser.loadFailed': 'Failed to load the skills directory.',
+      'common.up': 'Up',
       'sidebar.missingDir': 'Missing',
       'sidebar.confirmDelete': 'Delete this session? This cannot be undone.',
       'sidebar.collapse': 'Collapse sidebar',
@@ -884,5 +910,15 @@ describe('Sidebar', () => {
     expect(within(list).getAllByRole('region')[0]?.getAttribute('aria-label')).toBe('alpha')
 
     nowSpy.mockRestore()
+  })
+
+  it('opens the skills config directory browser from the sidebar footer', async () => {
+    render(<Sidebar />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skills directory' }))
+
+    expect(await screen.findByText('Skills config directory')).toBeInTheDocument()
+    expect(screen.getByText('alpha')).toBeInTheDocument()
+    expect(screen.getByText('beta')).toBeInTheDocument()
   })
 })

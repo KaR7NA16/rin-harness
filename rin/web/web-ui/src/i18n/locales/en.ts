@@ -15,6 +15,7 @@ export const en = {
   'common.disable': 'Disable',
   'common.active': 'ACTIVE',
   'common.close': 'Close',
+  'common.up': 'Up',
 
   // ─── Sidebar ──────────────────────────────────────
   'sidebar.newSession': 'New session',
@@ -52,6 +53,7 @@ export const en = {
   'sidebar.expand': 'Expand sidebar',
   'sidebar.projectGraph': 'Knowledge Space',
   'sidebar.repository': 'Repository',
+  'sidebar.skillsConfigDir': 'Skills directory',
 
   // ─── New Session ──────────────────────────────────────
   'newSession.title': 'New session',
@@ -490,7 +492,9 @@ export const en = {
   'settings.skills.title': 'Skills',
   'settings.skills.description': 'Manage installed skills and automatic skill learning.',
   'settings.skills.openConfigPath': 'Open skills folder',
-  'settings.skills.openConfigFailed': 'Failed to open skills folder',
+  'skillsConfigBrowser.title': 'Skills config directory',
+  'skillsConfigBrowser.empty': 'This directory is empty.',
+  'skillsConfigBrowser.loadFailed': 'Failed to load the skills directory.',
   'settings.skills.browserTitle': 'Browse installed skills',
   'settings.skills.browserEyebrow': 'Skill Browser',
   'settings.skills.browserDescription': 'Inspect bundled, project, and user skills, compare their scope, and open each skill folder to read its docs and source files.',
@@ -760,9 +764,6 @@ export const en = {
   'settings.computerUse.appsEmpty': 'No installed apps found. Please setup the environment first.',
   'settings.computerUse.appsSearch': 'Search apps...',
   'settings.computerUse.appsSaved': 'Saved',
-  'settings.computerUse.openAccessibility': 'Open Accessibility Settings',
-  'settings.computerUse.openScreenRecording': 'Open Screen Recording Settings',
-  'settings.computerUse.permRestartHint': 'After granting, restart the app for it to take effect.',
   'settings.computerUse.flagClipboard': 'Clipboard Access',
   'settings.computerUse.flagSystemKeys': 'System Key Combos',
 
@@ -1092,11 +1093,8 @@ export const en = {
   'computerUseApproval.screenRecording': 'Screen Recording',
   'computerUseApproval.granted': 'Granted',
   'computerUseApproval.notGranted': 'Not granted',
-  'computerUseApproval.openAccessibility': 'Open Accessibility',
-  'computerUseApproval.openScreenRecording': 'Open Screen Recording',
   'computerUseApproval.tccHint': 'Grant the missing permissions in System Settings, then close this dialog.',
   'computerUseApproval.closeHint': 'Closing returns control to Cyberpsychosis so it can call request_access once more after macOS permission changes take effect.',
-  'computerUseApproval.openSettingsFailed': 'Failed to open System Settings. Please open it manually.',
 
   // ─── Ask User Question ──────────────────────────────────────
   'question.needsInput': 'Needs your input',
@@ -1901,8 +1899,8 @@ export const en = {
   'repository.create': 'Create repository',
   'repository.connectExisting': 'Connect existing folder',
   'repository.createNew': 'Create a new folder',
-  'repository.empty': 'No repository connected',
-  'repository.emptyDetail': 'Connect an existing folder or create a new independent repository.',
+  'repository.empty': 'No repository to display',
+  'repository.emptyDetail': 'The built-in harness repository connects automatically. Reload to refresh the list, or connect a folder below.',
   'repository.root': 'Root folder',
   'repository.environment': 'Environment',
   'repository.environmentDetail': 'Packages declared here can be installed inside a linked sandbox.',

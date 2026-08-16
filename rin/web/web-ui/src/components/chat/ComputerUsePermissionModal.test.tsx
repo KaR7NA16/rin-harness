@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
-const { sendMock, openSettingsMock } = vi.hoisted(() => ({
+const { sendMock } = vi.hoisted(() => ({
   sendMock: vi.fn(),
-  openSettingsMock: vi.fn(async () => ({ ok: true })),
 }))
 
 vi.mock('../../api/websocket', () => ({
@@ -67,19 +66,12 @@ vi.mock('../../stores/cliTaskStore', () => ({
   },
 }))
 
-vi.mock('../../api/computerUse', () => ({
-  computerUseApi: {
-    openSettings: openSettingsMock,
-  },
-}))
-
 import { useChatStore } from '../../stores/chatStore'
 import { ComputerUsePermissionModal } from './ComputerUsePermissionModal'
 
 describe('ComputerUsePermissionModal', () => {
   beforeEach(() => {
     sendMock.mockReset()
-    openSettingsMock.mockReset()
     useChatStore.setState({ sessions: {} })
   })
 
@@ -149,7 +141,7 @@ describe('ComputerUsePermissionModal', () => {
     })
   })
 
-  it('opens System Settings from the macOS permission panel', async () => {
+  it('renders macOS permission states without OS settings buttons', () => {
     render(
       <ComputerUsePermissionModal
         sessionId="session-1"
@@ -167,10 +159,7 @@ describe('ComputerUsePermissionModal', () => {
       />,
     )
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /打开辅助功能设置|Open Accessibility/ }))
-    })
-
-    expect(openSettingsMock).toHaveBeenCalledWith('Privacy_Accessibility')
+    expect(screen.queryByText(/Open Accessibility/)).toBeNull()
+    expect(screen.queryByText(/Open Screen Recording/)).toBeNull()
   })
 })

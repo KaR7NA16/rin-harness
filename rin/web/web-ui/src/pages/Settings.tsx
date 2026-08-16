@@ -37,6 +37,7 @@ import { useSkillLearningStore } from '../stores/skillLearningStore'
 import { usePluginStore } from '../stores/pluginStore'
 import { PluginList } from '../components/plugins/PluginList'
 import { PluginDetail } from '../components/plugins/PluginDetail'
+import { SkillsConfigBrowser } from '../components/layout/SkillsConfigBrowser'
 import { useUIStore, type SettingsTab } from '../stores/uiStore'
 import { SettingsPage, SettingsSection, SettingsRow, SegmentedControl, Switch } from '../components/settings/SettingsLayout'
 import { SettingsNavigation, SettingsOverview, type SettingsNavSection } from '../components/settings/SettingsHub'
@@ -2354,7 +2355,7 @@ export function SkillSettings() {
   const fetchInstalledSkills = useSkillStore((s) => s.fetchSkills)
   const t = useTranslation()
   const [config, setConfig] = useState<SkillsConfig | null>(null)
-  const [openingConfig, setOpeningConfig] = useState(false)
+  const [configDirBrowserOpen, setConfigDirBrowserOpen] = useState(false)
   const [skillView, setSkillView] = useState<'installed' | SkillLearningView>('installed')
   const sessions = useSessionStore((s) => s.sessions)
   const activeSessionId = useSessionStore((s) => s.activeSessionId)
@@ -2392,42 +2393,6 @@ export function SkillSettings() {
     void fetchInstalledSkills(currentWorkDir)
   }, [currentWorkDir, fetchInstalledSkills, latestApprovedCandidateAt])
 
-  const openConfigDir = async () => {
-    setOpeningConfig(true)
-    try {
-      if (isTauriRuntime()) {
-        try {
-          const { invoke } = await import('@tauri-apps/api/core')
-          await invoke('open_skills_config_dir')
-          return
-        } catch (desktopError) {
-          console.warn('[skills] open_skills_config_dir failed, falling back to shell open', desktopError)
-        }
-
-        if (config?.userSkillsDir) {
-          try {
-            const { open } = await import('@tauri-apps/plugin-shell')
-            await open(config.userSkillsDir)
-            return
-          } catch (shellError) {
-            console.warn('[skills] shell open failed', shellError)
-          }
-        }
-
-        throw new Error(t('settings.skills.openConfigFailed'))
-      }
-
-      await skillsApi.openConfig()
-    } catch (error) {
-      useUIStore.getState().addToast({
-        type: 'error',
-        message: error instanceof Error ? error.message : t('settings.skills.openConfigFailed'),
-      })
-    } finally {
-      setOpeningConfig(false)
-    }
-  }
-
   if (selectedSkill) {
     return (
       <div className="w-full min-w-0">
@@ -2439,46 +2404,51 @@ export function SkillSettings() {
   }
 
   return (
-    <SettingsPage
-      title={t('settings.skills.title')}
-      description={t('settings.skills.description')}
-      action={<SkillLearningModeControl cwd={currentWorkDir} />}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-[12px]">
-        <SegmentedControl
-          items={[
-            { value: 'installed', label: t('settings.skills.learning.tab.installed') },
-            { value: 'pending', label: t('settings.skills.learning.tab.pending') },
-            { value: 'learning', label: t('settings.skills.learning.tab.learning') },
-          ]}
-          value={skillView}
-          onChange={setSkillView}
-          itemBadge={(value) => {
-            if (value === 'pending') return overview?.pendingCandidates.length
-            if (value === 'learning') {
-              return overview ? overview.memories.length + recentCandidates.length : undefined
-            }
-            return undefined
-          }}
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={openConfigDir}
-          loading={openingConfig}
-          icon={<Icon name="folder_open" size={14} />}
-          className="h-[32px] max-w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-[10px] font-mono text-[11px] font-medium normal-case tracking-normal text-[var(--color-text-secondary)]"
-          aria-label={t('settings.skills.openConfigPath')}
-          title={t('settings.skills.openConfigPath')}
-        >
-          <span className="truncate">{config?.displayPath ?? '~/.cyber/skills'}</span>
-        </Button>
-      </div>
-      {skillView === 'installed'
-        ? <SkillList />
-        : <SkillLearningPanel view={skillView} cwd={currentWorkDir} />}
-    </SettingsPage>
+    <>
+      <SettingsPage
+        title={t('settings.skills.title')}
+        description={t('settings.skills.description')}
+        action={<SkillLearningModeControl cwd={currentWorkDir} />}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-[12px]">
+          <SegmentedControl
+            items={[
+              { value: 'installed', label: t('settings.skills.learning.tab.installed') },
+              { value: 'pending', label: t('settings.skills.learning.tab.pending') },
+              { value: 'learning', label: t('settings.skills.learning.tab.learning') },
+            ]}
+            value={skillView}
+            onChange={setSkillView}
+            itemBadge={(value) => {
+              if (value === 'pending') return overview?.pendingCandidates.length
+              if (value === 'learning') {
+                return overview ? overview.memories.length + recentCandidates.length : undefined
+              }
+              return undefined
+            }}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfigDirBrowserOpen(true)}
+            icon={<Icon name="folder_open" size={14} />}
+            className="h-[32px] max-w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-[10px] font-mono text-[11px] font-medium normal-case tracking-normal text-[var(--color-text-secondary)]"
+            aria-label={t('settings.skills.openConfigPath')}
+            title={t('settings.skills.openConfigPath')}
+          >
+            <span className="truncate">{config?.displayPath ?? '~/.cyber/skills'}</span>
+          </Button>
+        </div>
+        {skillView === 'installed'
+          ? <SkillList />
+          : <SkillLearningPanel view={skillView} cwd={currentWorkDir} />}
+      </SettingsPage>
+      <SkillsConfigBrowser
+        open={configDirBrowserOpen}
+        onClose={() => setConfigDirBrowserOpen(false)}
+      />
+    </>
   )
 }
 

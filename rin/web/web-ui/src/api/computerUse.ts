@@ -70,7 +70,4 @@ export const computerUseApi = {
   setAuthorizedApps(config: Partial<ComputerUseConfig>) {
     return api.put<{ ok: true }>('/api/computer-use/authorized-apps', config)
   },
-  openSettings(pane: 'Privacy_ScreenCapture' | 'Privacy_Accessibility') {
-    return api.post<{ ok: true }>('/api/computer-use/open-settings', { pane })
-  },
 }

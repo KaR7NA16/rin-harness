@@ -16,8 +16,6 @@ export type SkillsConfig = {
 export const skillsApi = {
   config: () => api.get<{ config: SkillsConfig }>('/api/skills/config'),
 
-  openConfig: () => api.get<{ ok: true }>('/api/skills/open-config'),
-
   setEnabled: (source: string, name: string, enabled: boolean) =>
     api.patch<{ ok: true; disabledSkills: string[] }>('/api/skills/enabled', {
       source,
