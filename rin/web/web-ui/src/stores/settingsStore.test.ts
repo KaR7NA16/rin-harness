@@ -12,10 +12,10 @@ describe('settingsStore locale defaults', () => {
     expect(useSettingsStore.getState().locale).toBe('zh')
   })
 
-  it('defaults new desktop users to bypass permissions mode', async () => {
+  it('defaults new desktop users to workspace-write permission mode', async () => {
     const { useSettingsStore } = await import('./settingsStore')
 
-    expect(useSettingsStore.getState().permissionMode).toBe('bypassPermissions')
+    expect(useSettingsStore.getState().permissionMode).toBe('workspace-write')
   })
 
   it('keeps a stored locale override', async () => {
@@ -86,7 +86,7 @@ describe('settingsStore locale defaults', () => {
   it('syncs the current UI locale for existing users during settings load', async () => {
     const { settingsApi } = await import('../api/settings')
     const { modelsApi } = await import('../api/models')
-    vi.spyOn(settingsApi, 'getPermissionMode').mockResolvedValue({ mode: 'bypassPermissions' })
+    vi.spyOn(settingsApi, 'getPermissionMode').mockResolvedValue({ mode: 'workspace-write' })
     vi.spyOn(settingsApi, 'getUser').mockResolvedValue({ theme: 'light' })
     const updateSpy = vi.spyOn(settingsApi, 'updateUser').mockResolvedValue({ ok: true })
     vi.spyOn(modelsApi, 'list').mockResolvedValue({ models: [], provider: null })

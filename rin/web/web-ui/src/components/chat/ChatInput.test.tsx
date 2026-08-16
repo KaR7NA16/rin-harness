@@ -67,7 +67,7 @@ describe('ChatInput composer controls', () => {
 
     useSettingsStore.setState({
       locale: 'en',
-      permissionMode: 'default',
+      permissionMode: 'workspace-write',
       availableModels: OFFICIAL_MODELS,
       currentModel: OFFICIAL_MODELS[0] ?? null,
       activeProviderName: null,
@@ -101,16 +101,16 @@ describe('ChatInput composer controls', () => {
   it('shows permission mode as its own icon button outside the plus menu', () => {
     render(<ChatInput />)
 
-    expect(screen.getByRole('button', { name: 'Ask permissions' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Workspace write' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Open composer tools' }))
     expect(screen.getAllByText('Slash commands').length).toBeGreaterThan(0)
     expect(screen.getByText('Add file reference')).toBeInTheDocument()
     expect(screen.queryByText('Execution Permissions')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ask permissions' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Workspace write' }))
     expect(screen.getByText('Execution Permissions')).toBeInTheDocument()
-    expect(screen.getByText('Auto accept edits')).toBeInTheDocument()
+    expect(screen.getByText('Full access')).toBeInTheDocument()
   })
 
   it('keeps token usage in the same runtime control row as the model selector', () => {

@@ -144,10 +144,10 @@ describe('Settings > General tab', () => {
     expect(useSettingsStore.getState().setSkipWebFetchPreflight).toHaveBeenCalledWith(false)
   })
 
-  it('requires confirmation before enabling bypass permissions', () => {
+  it('requires confirmation before enabling full access', () => {
     render(<PermissionSettings />)
 
-    fireEvent.click(screen.getByRole('button', { name: /Bypass all/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Full access/ }))
 
     expect(screen.getByRole('dialog', { name: 'Enable bypass permissions?' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Enable bypass' })).toBeInTheDocument()

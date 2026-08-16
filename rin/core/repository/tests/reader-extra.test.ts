@@ -97,7 +97,7 @@ describe('readAssetRepository partitions', () => {
       'description: A coding agent',
       'systemPrompt: You code.',
       'model: deepseek-chat',
-      'permissionMode: plan',
+      'permissionMode: workspace-write',
       'tools: [bash, bash, fs]',
       'resources:',
       '  environmentProfileId: sci',
@@ -115,7 +115,7 @@ describe('readAssetRepository partitions', () => {
     expect(repo.agents[0]).toMatchObject({
       name: 'coder',
       model: 'deepseek-chat',
-      permissionMode: 'plan',
+      permissionMode: 'workspace-write',
       tools: ['bash', 'fs'],
       resources: { environmentProfileId: 'sci', skillIds: ['a', 'b'], workflowIds: ['w'] },
     })
