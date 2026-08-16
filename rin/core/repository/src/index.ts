@@ -10,8 +10,19 @@
  * @module @rin/repository
  */
 
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
+import {
+  connectRepository as connectRepositoryOnDisk,
+  connectionStorePath,
+  createRepository as createRepositoryOnDisk,
+  disconnectRepository as disconnectRepositoryOnDisk,
+  getConnection as getConnectionOnDisk,
+  listConnections as listConnectionsOnDisk,
+  type RepositoryConnection,
+} from './connections.ts'
 import { readAssetRepository } from './reader.ts'
 import { registerRepositorySeam } from './seam.ts'
 import type { RepositoryConfig } from './types.ts'
@@ -41,12 +52,48 @@ export abstract class RepositoryStore extends Service {
 
   /** Read and parse the repository at the configured root path. */
   abstract read(rootPath: string): ReturnType<typeof readAssetRepository>
+
+  abstract listConnections(): Promise<RepositoryConnection[]>
+  abstract getConnection(id: string): Promise<RepositoryConnection | undefined>
+  abstract connectRepository(rootPath: string, name?: string): Promise<RepositoryConnection>
+  abstract createRepository(parentDir: string, name: string): Promise<RepositoryConnection>
+  abstract disconnectRepository(id: string): Promise<boolean>
 }
 
-/** File-backed implementation reading the repository from disk on demand. */
+/** File-backed implementation reading the repository and its connection registry from disk. */
 export class FileRepositoryStore extends RepositoryStore {
+  private readonly connectionsPath: string
+
+  constructor(ctx: Context) {
+    super(ctx)
+    const home = process.env.RIN_HOME !== undefined && process.env.RIN_HOME.trim() !== ''
+      ? process.env.RIN_HOME
+      : join(homedir(), '.rin')
+    this.connectionsPath = connectionStorePath(home)
+  }
+
   override read(rootPath: string) {
     return readAssetRepository(rootPath)
+  }
+
+  override listConnections() {
+    return listConnectionsOnDisk(this.connectionsPath)
+  }
+
+  override getConnection(id: string) {
+    return getConnectionOnDisk(this.connectionsPath, id)
+  }
+
+  override connectRepository(rootPath: string, name?: string) {
+    return connectRepositoryOnDisk(this.connectionsPath, rootPath, name)
+  }
+
+  override createRepository(parentDir: string, name: string) {
+    return createRepositoryOnDisk(this.connectionsPath, parentDir, name)
+  }
+
+  override disconnectRepository(id: string) {
+    return disconnectRepositoryOnDisk(this.connectionsPath, id)
   }
 }
 

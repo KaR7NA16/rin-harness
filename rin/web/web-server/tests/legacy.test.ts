@@ -60,30 +60,19 @@ describe('legacy: dispatch fallthrough', () => {
 })
 
 describe('legacy: repositories', () => {
+  const conn = { id: 'r1', name: 'Repo 1', rootPath: '/r', createdAt: '2026-01-01', updatedAt: '2026-01-01', environmentPackages: [], environmentProfiles: [{ id: 'e1' }] }
+
   test('list requires repository service', async () => {
     const res = await handle('/api/repositories', '', 'GET', undefined, makeServices(), config)
     expect(res).toEqual({ status: 200, body: { mounted: false } })
   })
 
-  test('list returns builtin row', async () => {
-    const s = makeServices({ repository: () => ({}) })
+  test('list returns connections', async () => {
+    const s = makeServices({ repository: () => ({ listConnections: async () => [conn] }) })
     const res = await handle('/api/repositories', '', 'GET', undefined, s, config)
     expect(res?.status).toBe(200)
-    expect(res?.body.repositories[0].id).toBe('builtin')
-    expect(res?.body.repositories[0].path).toBe('/repo')
-  })
-
-  test('list missing root returns 500', async () => {
-    const s = makeServices({ repository: () => ({}) })
-    const res = await handle('/api/repositories', '', 'GET', undefined, s, { ...config, repositoryRoot: undefined })
-    expect(res).toEqual({ status: 500, body: { error: 'repository root is not configured' } })
-  })
-
-  test('POST list delegates to connect', async () => {
-    const res = await handle('/api/repositories', '', 'POST', { path: '/p' }, makeServices(), config)
-    expect(res?.status).toBe(200)
-    expect(res?.body.name).toBe('builtin')
-    expect(res?.body.path).toBe('/p')
+    expect(res?.body.repositories[0].id).toBe('r1')
+    expect(res?.body.repositories[0].rootPath).toBe('/r')
   })
 
   test('connect requires path', async () => {
@@ -91,33 +80,49 @@ describe('legacy: repositories', () => {
     expect(res).toEqual({ status: 400, body: { error: 'path is required' } })
   })
 
+  test('connect returns connection', async () => {
+    const s = makeServices({ repository: () => ({ connectRepository: async () => conn }) })
+    const res = await handle('/api/repositories/connect', '', 'POST', { path: '/r' }, s, config)
+    expect(res?.status).toBe(200)
+    expect(res?.body.id).toBe('r1')
+  })
+
+  test('create returns connection', async () => {
+    const s = makeServices({ repository: () => ({ createRepository: async () => conn }) })
+    const res = await handle('/api/repositories/create', '', 'POST', { parentDir: '/p', name: 'n' }, s, config)
+    expect(res?.status).toBe(200)
+    expect(res?.body.id).toBe('r1')
+  })
+
+  test('item GET returns connection', async () => {
+    const s = makeServices({ repository: () => ({ getConnection: async () => conn }) })
+    const res = await handle('/api/repositories/r1', '', 'GET', undefined, s, config)
+    expect(res?.status).toBe(200)
+    expect(res?.body.id).toBe('r1')
+  })
+
   test('item unknown id returns 404', async () => {
-    const res = await handle('/api/repositories/other', '', 'GET', undefined, makeServices(), config)
+    const s = makeServices({ repository: () => ({ getConnection: async () => undefined }) })
+    const res = await handle('/api/repositories/other', '', 'GET', undefined, s, config)
     expect(res).toEqual({ status: 404, body: { error: 'repository not found' } })
   })
 
   test('item DELETE returns disconnected', async () => {
-    const res = await handle('/api/repositories/builtin', '', 'DELETE', undefined, makeServices(), config)
-    expect(res).toEqual({ status: 200, body: { disconnected: false } })
+    const s = makeServices({ repository: () => ({ disconnectRepository: async () => true }) })
+    const res = await handle('/api/repositories/r1', '', 'DELETE', undefined, s, config)
+    expect(res).toEqual({ status: 200, body: { disconnected: true } })
   })
 
-  test('item GET returns builtin', async () => {
+  test('environment-profiles reads connection', async () => {
+    const s = makeServices({ repository: () => ({ getConnection: async () => conn }) })
+    const res = await handle('/api/repositories/r1/environment-profiles', '', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 200, body: { repositoryId: 'r1', profiles: [{ id: 'e1' }] } })
+  })
+
+  test('manifest returns 501', async () => {
     const s = makeServices({ repository: () => ({}) })
-    const res = await handle('/api/repositories/builtin', '', 'GET', undefined, s, config)
-    expect(res?.status).toBe(200)
-    expect(res?.body.id).toBe('builtin')
-  })
-
-  test('environment-profiles reads repo', async () => {
-    const s = makeServices({ repository: () => ({ async read() { return { environmentProfiles: [{ id: 'e1' }] } } }) })
-    const res = await handle('/api/repositories/builtin/environment-profiles', '', 'GET', undefined, s, config)
-    expect(res).toEqual({ status: 200, body: { repositoryId: 'builtin', profiles: [{ id: 'e1' }] } })
-  })
-
-  test('manifest reads repo.manifest', async () => {
-    const s = makeServices({ repository: () => ({ async read() { return { manifest: { name: 'm' } } } }) })
-    const res = await handle('/api/repositories/builtin/manifest', '', 'GET', undefined, s, config)
-    expect(res).toEqual({ status: 200, body: { name: 'm' } })
+    const res = await handle('/api/repositories/r1/manifest', '', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 501, body: { error: 'repository manifest update is not implemented on this host' } })
   })
 
   test('resolve-environment plans', async () => {
@@ -144,8 +149,8 @@ describe('legacy: repositories', () => {
   })
 
   test('unknown repository action returns 404', async () => {
-    const s = makeServices({ repository: () => ({}) })
-    const res = await handle('/api/repositories/builtin/unknown-action', '', 'GET', undefined, s, config)
+    const s = makeServices({ repository: () => ({ getConnection: async () => conn }) })
+    const res = await handle('/api/repositories/r1/unknown-action', '', 'GET', undefined, s, config)
     expect(res).toEqual({ status: 404, body: { error: 'unknown repository action' } })
   })
 })

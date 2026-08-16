@@ -28,7 +28,6 @@ import {
 } from '../http.ts'
 import type { DshShellLike, RinServiceRefs } from '../routes.ts'
 
-const REPOSITORY_ID = 'builtin'
 const NOTE_PATH_RE = /^\/api\/notes\/note\/(.+)$/
 
 /**
@@ -50,8 +49,9 @@ export async function handle(
   config: Config,
 ): Promise<JsonResponse | null> {
   // Repositories
-  if (pathname === '/api/repositories') return repositoriesListRoute(method, body, services, config)
-  if (pathname === '/api/repositories/connect') return repositoriesConnectRoute(method, body)
+  if (pathname === '/api/repositories') return repositoriesListRoute(method, body, services)
+  if (pathname === '/api/repositories/connect') return repositoriesConnectRoute(method, body, services)
+  if (pathname === '/api/repositories/create') return repositoriesCreateRoute(method, body, services)
   if (pathname.startsWith('/api/repositories/')) {
     return repositoriesItemRoute(pathname, search, method, body, services, config)
   }
@@ -210,9 +210,8 @@ export async function handle(
   if (pathname === '/api/notes/assets') {
     return notImplemented(method, 'note asset upload is not implemented on this host')
   }
-  if (pathname === '/api/repositories/create' || pathname.endsWith('/manifest')
-    || pathname.endsWith('/install-plan') || pathname.endsWith('/environment-profiles')
-    || pathname.endsWith('/resolve-environment')) {
+  if (pathname.endsWith('/manifest') || pathname.endsWith('/install-plan')
+    || pathname.endsWith('/environment-profiles') || pathname.endsWith('/resolve-environment')) {
     return notImplemented(method, 'repository manifest/install management is not implemented on this host')
   }
   return null
@@ -1062,46 +1061,65 @@ async function repositoriesListRoute(
   method: string,
   body: unknown,
   services: RinServiceRefs,
-  config: Config,
 ): Promise<JsonResponse> {
-  if (method === 'POST') {
-    // The desktop's create/connect form may POST here; accept and return the builtin row.
-    return repositoriesConnectRoute('POST', body)
-  }
+  void body
+  if (method !== 'GET') return error(405, 'method not allowed')
   const repository = services.repository()
   if (repository === undefined) return notMounted()
-  const root = config.repositoryRoot
-  if (root === undefined) return error(500, 'repository root is not configured')
-  return json(200, {
-    repositories: [{
-      id: REPOSITORY_ID,
-      name: 'builtin',
-      path: root,
-      connected: true,
-      createdAt: new Date(0).toISOString(),
-      modifiedAt: new Date(0).toISOString(),
-    }],
-  })
+  try {
+    const connections = await repository.listConnections()
+    return json(200, { repositories: connections.map(repositoryConnectionDto) })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
 }
 
-function repositoriesConnectRoute(method: string, body: unknown): JsonResponse {
+async function repositoriesConnectRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
   if (method !== 'POST') return error(405, 'method not allowed')
   const fields = asRecord(body)
   const path = fields === undefined ? undefined : stringField(fields, 'path')
   if (path === undefined || path.trim() === '') return error(400, 'path is required')
-  return json(200, {
-    id: REPOSITORY_ID,
-    name: 'builtin',
-    path,
-    connected: true,
-    createdAt: new Date().toISOString(),
-    modifiedAt: new Date().toISOString(),
-  })
+  const repository = services.repository()
+  if (repository === undefined) return notMounted()
+  const name = fields === undefined ? undefined : stringField(fields, 'name')
+  try {
+    return json(200, repositoryConnectionDto(await repository.connectRepository(path, name)))
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
+}
+
+async function repositoriesCreateRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const repository = services.repository()
+  if (repository === undefined) return notMounted()
+  const fields = asRecord(body)
+  const parentDir = fields === undefined ? undefined : stringField(fields, 'parentDir')
+  const name = fields === undefined ? undefined : stringField(fields, 'name')
+  if (parentDir === undefined || name === undefined) return error(400, 'parentDir and name are required')
+  try {
+    return json(200, repositoryConnectionDto(await repository.createRepository(parentDir, name)))
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
+}
+
+/** Project a connected repository onto the legacy desktop DTO. */
+function repositoryConnectionDto(connection: { id: string; name: string; rootPath: string; createdAt: string; updatedAt: string }): Record<string, unknown> {
+  return {
+    id: connection.id,
+    name: connection.name,
+    rootPath: connection.rootPath,
+    manifest: { version: 1, name: connection.name, categories: [] },
+    storage: { mode: 'connected', workingPath: connection.rootPath, localModificationCount: 0 },
+    createdAt: connection.createdAt,
+    updatedAt: connection.updatedAt,
+  }
 }
 
 async function repositoriesItemRoute(
   pathname: string,
-  search: string,
+  _search: string,
   method: string,
   body: unknown,
   services: RinServiceRefs,
@@ -1109,42 +1127,37 @@ async function repositoriesItemRoute(
 ): Promise<JsonResponse> {
   const segments = pathname.slice('/api/repositories/'.length).split('/')
   const id = decodeURIComponent(segments[0] ?? '')
-  if (id !== '' && id !== REPOSITORY_ID) return error(404, 'repository not found')
   const action = segments[1]
 
-  if (action === undefined) {
-    if (method === 'DELETE') return json(200, { disconnected: false })
-    const repository = services.repository()
-    if (repository === undefined) return notMounted()
-    const root = config.repositoryRoot
-    if (root === undefined) return error(500, 'repository root is not configured')
-    return json(200, { id: REPOSITORY_ID, name: 'builtin', path: root, connected: true })
-  }
+  if (action === 'resolve-environment') return resolveEnvironmentRoute(body, services, config)
+  if (action === 'install-plan') return error(501, 'repository install plan is not implemented on this host')
+  if (action === 'manifest') return error(501, 'repository manifest update is not implemented on this host')
 
-  if (action === 'environment-profiles') {
-    const repository = services.repository()
-    if (repository === undefined) return notMounted()
-    const root = config.repositoryRoot
-    if (root === undefined) return error(500, 'repository root is not configured')
+  const repository = services.repository()
+  if (repository === undefined) return notMounted()
+
+  if (action === undefined) {
+    if (method === 'DELETE') {
+      try {
+        return json(200, { disconnected: await repository.disconnectRepository(id) })
+      } catch (err) {
+        return error(500, errorMessage(err))
+      }
+    }
     try {
-      const repo = await repository.read(root)
-      return json(200, { repositoryId: REPOSITORY_ID, profiles: repo.environmentProfiles })
+      const connection = await repository.getConnection(id)
+      if (connection === undefined) return error(404, 'repository not found')
+      return json(200, repositoryConnectionDto(connection))
     } catch (err) {
       return error(500, errorMessage(err))
     }
   }
 
-  if (action === 'resolve-environment') return resolveEnvironmentRoute(body, services, config)
-  if (action === 'install-plan') return resolveEnvironmentRoute(method === 'GET' ? { profileId: queryParam(search, 'profile') } : body, services, config)
-
-  if (action === 'manifest') {
-    const repository = services.repository()
-    if (repository === undefined) return notMounted()
-    const root = config.repositoryRoot
-    if (root === undefined) return error(500, 'repository root is not configured')
+  if (action === 'environment-profiles') {
     try {
-      const repo = await repository.read(root)
-      return json(200, repo.manifest)
+      const connection = await repository.getConnection(id)
+      if (connection === undefined) return error(404, 'repository not found')
+      return json(200, { repositoryId: id, profiles: connection.environmentProfiles })
     } catch (err) {
       return error(500, errorMessage(err))
     }
