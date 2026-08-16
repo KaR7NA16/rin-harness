@@ -39,6 +39,7 @@
       "@rin/smart-pruning": ["./rin/optimization/smart-pruning/src"],
       "@rin/web-server": ["./rin/web/web-server/src"],
     "@rin/agents": ["./rin/workspace/agents/src"],
+    "@rin/plugins": ["./rin/workspace/plugins/src"],
     "@rin/filesystem": ["./rin/core/filesystem/src"],
     "@rin/session-backup": ["./rin/core/session-backup/src"],
     "@rin/sandboxes": ["./rin/workspace/sandboxes/src"],

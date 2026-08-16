@@ -202,7 +202,12 @@ export async function handle(
 
   // Features the migrated frontend calls that have no @rin backend service yet.
   // Return an explicit 501 so the UI reports "not available" instead of a bare 404.
-  if (pathname.startsWith('/api/plugins')) return notImplemented(method, 'plugin lifecycle management is not implemented on this host')
+  if (pathname === '/api/plugins') return pluginsListRoute(method, services)
+  if (pathname === '/api/plugins/detail') return pluginsDetailRoute(search, services)
+  if (pathname === '/api/plugins/enable' || pathname === '/api/plugins/disable') return pluginsSetEnabledRoute(pathname, method, body, services)
+  if (pathname === '/api/plugins/update' || pathname === '/api/plugins/uninstall' || pathname === '/api/plugins/reload') {
+    return notImplemented(method, 'plugin update/uninstall/reload is not implemented on this host')
+  }
   if (pathname === '/api/filesystem/browse') return filesystemBrowseRoute(search, services)
   if (pathname.startsWith('/api/rin-oauth')) return notImplemented(method, 'rin OAuth pairing is not implemented on this host')
   if (pathname === '/api/sessions/export' || pathname === '/api/sessions/import'
@@ -1943,6 +1948,46 @@ async function agentMigrationPreviewRoute(rawId: string, search: string, service
     return json(200, await agentMigration.preview(agentId, itemId))
   } catch (err) {
     return error(404, errorMessage(err))
+  }
+}
+
+async function pluginsListRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'GET') return error(405, 'method not allowed')
+  const plugins = services.plugins()
+  if (plugins === undefined) return notMounted()
+  try {
+    return json(200, await plugins.list())
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function pluginsDetailRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const plugins = services.plugins()
+  if (plugins === undefined) return notMounted()
+  const id = queryParam(search, 'id')
+  if (id === undefined) return error(400, 'id is required')
+  try {
+    const detail = await plugins.detail(id)
+    if (detail === undefined) return error(404, 'plugin not found')
+    return json(200, { detail })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function pluginsSetEnabledRoute(pathname: string, method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const plugins = services.plugins()
+  if (plugins === undefined) return notMounted()
+  const fields = asRecord(body)
+  const id = fields === undefined ? undefined : stringField(fields, 'id')
+  if (id === undefined) return error(400, 'id is required')
+  const enabled = pathname.endsWith('/enable')
+  try {
+    return json(200, { ok: true, enabled: await plugins.setEnabled(id, enabled) })
+  } catch (err) {
+    return error(500, errorMessage(err))
   }
 }
 

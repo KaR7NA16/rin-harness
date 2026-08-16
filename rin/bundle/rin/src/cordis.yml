@@ -104,6 +104,9 @@
     agentsHome: !!js rinHome('agents')
     defaultRepositoryRoot: !!js builtinRepositoryRoot()
 
+- id: plugins
+  name: '@rin/plugins'
+
 - id: sandboxes
   name: '@rin/sandboxes'
   config:

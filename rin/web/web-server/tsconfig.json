@@ -45,6 +45,9 @@
       "path": "../../workspace/agents"
     },
     {
+      "path": "../../workspace/plugins"
+    },
+    {
       "path": "../../notes/notes"
     },
     {

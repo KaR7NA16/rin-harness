@@ -48,6 +48,7 @@ export const RIN_HOST_PLUGINS = [
   '@rin/smart-pruning',
   '@rin/notes',
   '@rin/agents',
+  '@rin/plugins',
   '@rin/sandboxes',
   '@rin/tasks',
   '@rin/mcp',

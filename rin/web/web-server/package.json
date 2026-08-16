@@ -45,6 +45,7 @@
     "@rin/knowledge": "workspace:^",
     "@rin/mcp": "workspace:^",
     "@rin/notes": "workspace:^",
+    "@rin/plugins": "workspace:^",
     "@rin/provider-probe": "workspace:^",
     "@rin/prompt-memory": "workspace:^",
     "@rin/repository": "workspace:^",
