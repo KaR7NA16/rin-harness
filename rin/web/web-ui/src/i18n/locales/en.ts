@@ -1879,6 +1879,8 @@ export const en = {
   'chat.toolCall.collapseAgent': 'Collapse agent',
   'chat.toolCall.expandAgent': 'Expand agent',
   'chat.codeViewer.collapse': 'Collapse',
+  'chat.codeViewer.loading': 'Loading code...',
+  'chat.diffViewer.loading': 'Loading diff...',
   'chat.codeViewer.showMoreLines': 'Show {count} more lines',
   'streaming.awaitingApproval': 'Waiting for your approval',
   'dirPicker.desktopOnly': 'Folder picking is only available in the desktop app',

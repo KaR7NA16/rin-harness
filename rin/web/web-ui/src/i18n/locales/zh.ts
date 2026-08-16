@@ -1881,6 +1881,8 @@ export const zh: Record<TranslationKey, string> = {
   'chat.toolCall.collapseAgent': '收起代理',
   'chat.toolCall.expandAgent': '展开代理',
   'chat.codeViewer.collapse': '收起',
+  'chat.codeViewer.loading': '正在加载代码...',
+  'chat.diffViewer.loading': '正在加载差异...',
   'chat.codeViewer.showMoreLines': '再显示 {count} 行',
   'streaming.awaitingApproval': '等待你的批准',
   'dirPicker.desktopOnly': '选择文件夹仅在桌面应用中可用',
