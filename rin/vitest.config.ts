@@ -41,6 +41,9 @@ export default defineConfig({
           // entry) and rely on React Testing Library auto-cleanup; both need
           // the `expect` / `afterEach` globals that vitest only injects here.
           globals: true,
+          // Stub WebSocket so jsdom tests never construct the real undici
+          // WebSocket (cross-realm Event dispatch throws ERR_INVALID_ARG_TYPE).
+          setupFiles: ['./rin/web/web-ui/src/test-websocket-setup.ts'],
           execArgv: vitestExecArgv,
           pool: 'forks',
           include: webUiTests,

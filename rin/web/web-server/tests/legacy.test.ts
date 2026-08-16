@@ -454,7 +454,7 @@ describe('legacy: notes', () => {
   })
 
   test('notes assets upload', async () => {
-    const s = makeServices({ notes: () => ({ async saveAsset(fileName: string, content: Buffer) { return { path: 'assets/1-' + fileName, url: '/api/notes/assets/assets/1-' + fileName } } }) })
+    const s = makeServices({ notes: () => ({ async saveAsset(fileName: string, _content: Buffer) { return { path: 'assets/1-' + fileName, url: '/api/notes/assets/assets/1-' + fileName } } }) })
     expect(await handle('/api/notes/assets', '', 'POST', { fileName: 'x.png', base64: 'AAEC' }, s, config)).toEqual({ status: 200, body: { path: 'assets/1-x.png', url: '/api/notes/assets/assets/1-x.png' } })
     expect(await handle('/api/notes/assets', '', 'POST', { fileName: 'x.png' }, s, config)).toEqual({ status: 400, body: { error: 'fileName and base64 are required' } })
     expect(await handle('/api/notes/assets', '', 'GET', undefined, s, config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
