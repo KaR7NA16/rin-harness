@@ -214,9 +214,7 @@ export async function handle(
     return notImplemented(method, 'session project-folders is not implemented on this host yet')
   }
 
-  if (pathname === '/api/notes/assets') {
-    return notImplemented(method, 'note asset upload is not implemented on this host')
-  }
+  if (pathname === '/api/notes/assets') return notesAssetUploadRoute(method, body, services)
   return null
 }
 
@@ -881,6 +879,22 @@ function skillsConfigRoute(config: Config): JsonResponse {
   if (roots === undefined) return json(200, { config: { userSkillsDir: '', displayPath: '' } })
   const dir = join(roots.globalConfigRoot, 'skill-memory')
   return json(200, { config: { userSkillsDir: dir, displayPath: dir } })
+}
+
+/** Upload a note binary asset (base64 body) and return its path/url. */
+async function notesAssetUploadRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const notes = services.notes()
+  if (notes === undefined) return notMounted()
+  const fields = asRecord(body)
+  const fileName = fields === undefined ? undefined : stringField(fields, 'fileName')
+  const base64 = fields === undefined ? undefined : stringField(fields, 'base64')
+  if (fileName === undefined || base64 === undefined) return error(400, 'fileName and base64 are required')
+  try {
+    return json(200, await notes.saveAsset(fileName, Buffer.from(base64, 'base64')))
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
 }
 
 /** Honest 501 for a frontend feature the @rin backend does not implement yet. */

@@ -122,6 +122,22 @@ async function handleRequest(
 
   if (method === 'GET' || method === 'HEAD') {
     const headOnly = method === 'HEAD'
+    // Note assets are served as raw bytes for <img>/download URLs.
+    if (url.pathname.startsWith('/api/notes/assets/')) {
+      const notes = services.notes()
+      if (notes === undefined) {
+        respondError(res, 500, 'notes service is not mounted')
+        return
+      }
+      const relPath = decodeURIComponent(url.pathname.slice('/api/notes/assets/'.length))
+      try {
+        const asset = await notes.readAsset(relPath)
+        respondBinary(res, asset.content, asset.mimeType)
+      } catch (err) {
+        respondError(res, 404, err instanceof Error ? err.message : String(err))
+      }
+      return
+    }
     const response = await routeApi(url.pathname, url.search, method, undefined, services, config)
     if (response !== null) {
       respondJson(res, response, headOnly)
