@@ -145,11 +145,21 @@ export async function handle(
 
   // A-class automation/collaboration surfaces over the new @rin services.
   if (pathname === '/api/teams') return teamsListRoute(method, services)
+  const teamsItem = /^\/api\/teams\/([^/]+)(?:\/members\/([^/]+)\/(transcript|messages))?$/.exec(pathname)
+  if (teamsItem !== null && teamsItem[1] !== undefined) {
+    return teamsItemRoute(decodeURIComponent(teamsItem[1]), teamsItem[2] === undefined ? undefined : decodeURIComponent(teamsItem[2]), teamsItem[3], method, body, services)
+  }
   if (pathname === '/api/tasks') return tasksRoute(method, services)
   if (pathname === '/api/tasks/lists') return taskListsRoute(method, services)
+  const taskListItem = /^\/api\/tasks\/lists\/([^/]+)(?:\/([^/]+))?$/.exec(pathname)
+  if (taskListItem !== null && taskListItem[1] !== undefined) {
+    return taskListItemRoute(decodeURIComponent(taskListItem[1]), taskListItem[2] === undefined ? undefined : decodeURIComponent(taskListItem[2]), method, services)
+  }
   if (pathname === '/api/computer-use/status') return computerUseStatusRoute(services)
   if (pathname === '/api/computer-use/apps') return computerUseAppsRoute(services)
-  if (pathname === '/api/computer-use/authorized-apps') return computerUseAuthorizedAppsRoute(services)
+  if (pathname === '/api/computer-use/authorized-apps') return computerUseAuthorizedAppsRoute(method, body, services)
+  if (pathname === '/api/computer-use/setup') return computerUseSetupRoute(method)
+  if (pathname === '/api/computer-use/open-settings') return computerUseOpenSettingsRoute(method)
   if (pathname === '/api/agent-migration/scan' || pathname === '/api/agent-migration') return agentMigrationRoute(services)
   if (pathname === '/api/status/diagnostics') {
     return json(200, {
@@ -1336,6 +1346,60 @@ async function teamsListRoute(method: string, services: RinServiceRefs): Promise
   }
 }
 
+async function teamsItemRoute(
+  name: string,
+  agentId: string | undefined,
+  action: string | undefined,
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  void body; void agentId
+  if (action === 'transcript' || action === 'messages') {
+    return error(501, 'team member ' + action + ' is not available on this host yet (multi-agent orchestration is deferred)')
+  }
+  const teams = services.teams()
+  if (teams === undefined) return notMounted()
+  try {
+    if (method === 'GET') return json(200, await teams.get(name))
+    if (method === 'DELETE') {
+      await teams.delete(name)
+      return json(200, { ok: true })
+    }
+    return error(405, 'method not allowed')
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function taskListItemRoute(
+  listId: string,
+  taskId: string | undefined,
+  method: string,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  const tasks = services.tasks()
+  if (tasks === undefined) return notMounted()
+  try {
+    if (taskId === 'reset') {
+      if (method !== 'POST') return error(405, 'method not allowed')
+      const items = await tasks.getTasksForList(listId)
+      for (const item of items) await tasks.deleteTask(listId, item.id)
+      return json(200, { ok: true })
+    }
+    if (taskId !== undefined) {
+      if (method !== 'GET') return error(405, 'method not allowed')
+      const task = await tasks.getTask(listId, taskId)
+      if (task === null) return error(404, 'task not found')
+      return json(200, { task })
+    }
+    if (method !== 'GET') return error(405, 'method not allowed')
+    return json(200, { tasks: await tasks.getTasksForList(listId) })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
 async function mcpListRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
   if (method !== 'GET' && method !== 'POST') return error(405, 'method not allowed')
   const mcp = services.mcp()
@@ -1525,10 +1589,26 @@ async function computerUseAppsRoute(services: RinServiceRefs): Promise<JsonRespo
   }
 }
 
-async function computerUseAuthorizedAppsRoute(services: RinServiceRefs): Promise<JsonResponse> {
+async function computerUseAuthorizedAppsRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
   const computerUse = services.computerUse()
   if (computerUse === undefined) return json(200, { apps: [] })
   try {
+    if (method === 'PUT') {
+      const fields = asRecord(body)
+      if (fields === undefined) return error(400, 'request body must be a JSON object')
+      if (Array.isArray(fields['authorizedApps'])) {
+        const apps = fields['authorizedApps'].map((value) => asRecord(value))
+          .filter((value): value is Record<string, unknown> => value !== undefined)
+          .map((value) => ({ bundleId: stringField(value, 'bundleId') ?? '', displayName: stringField(value, 'displayName') ?? '' }))
+        await computerUse.replaceAuthorizedApps(apps)
+      }
+      const grantFlags = fields['grantFlags'] === undefined ? undefined : asRecord(fields['grantFlags'])
+      if (grantFlags !== undefined) {
+        await computerUse.updateGrantFlags(grantFlags as never)
+      }
+      return json(200, { ok: true })
+    }
+    if (method !== 'GET') return error(405, 'method not allowed')
     const [authorizedApps, grantFlags] = await Promise.all([
       computerUse.listAuthorizedApps(),
       computerUse.getGrantFlags(),
@@ -1537,6 +1617,19 @@ async function computerUseAuthorizedAppsRoute(services: RinServiceRefs): Promise
   } catch (err) {
     return error(500, errorMessage(err))
   }
+}
+
+async function computerUseSetupRoute(method: string): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  return json(200, {
+    success: false,
+    steps: [{ name: 'python-environment', ok: false, message: 'computer-use runtime setup is not available on this host yet' }],
+  })
+}
+
+async function computerUseOpenSettingsRoute(method: string): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  return error(501, 'opening OS privacy settings is a desktop-only action and is not available on the web host')
 }
 
 async function agentMigrationRoute(services: RinServiceRefs): Promise<JsonResponse> {
