@@ -239,9 +239,15 @@ describe('legacy: sessions', () => {
     expect(res).toEqual({ status: 404, body: { error: 'unknown session action' } })
   })
 
-  test('item PATCH and DELETE return ok', async () => {
-    expect(await handle('/api/sessions/s1', '', 'PATCH', {}, makeServices(), config)).toEqual({ status: 200, body: { ok: true } })
-    expect(await handle('/api/sessions/s1', '', 'DELETE', undefined, makeServices(), config)).toEqual({ status: 200, body: { ok: true } })
+  test('item PATCH is unsupported and DELETE removes the session', async () => {
+    expect(await handle('/api/sessions/s1', '', 'PATCH', {}, makeServices(), config)).toEqual({ status: 501, body: 'session update is not available on this host yet' })
+    const res = await handle('/api/sessions/s1', '', 'DELETE', undefined, makeServices(), config)
+    expect(res.status).toBe(200)
+    expect((res as { body: { ok: boolean; removed: number } }).body.ok).toBe(true)
+    expect((res as { body: { ok: boolean; removed: number } }).body.removed).toBe(0)
+    // Deleted id is tombstoned: the list no longer reports it.
+    const list = await handle('/api/sessions', '', 'GET', undefined, makeServices(), config)
+    expect(JSON.stringify(list)).not.toContain('s1')
   })
 
   test('item no action wrong method returns 405', async () => {

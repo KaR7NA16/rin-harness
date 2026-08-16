@@ -9,7 +9,7 @@
  * @module @rin/web-server
  */
 
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
 import { buildPromptMemoryInsights } from '@rin/prompt-memory'
@@ -27,6 +27,15 @@ import type { DshShellLike, RinServiceRefs } from '../routes.ts'
 
 const REPOSITORY_ID = 'builtin'
 const NOTE_PATH_RE = /^\/api\/notes\/note\/(.+)$/
+
+/**
+ * Session ids removed through this host's lifetime. dsh's session store has
+ * no public removal API and empty (event-less) sessions have no durable file,
+ * so a rin-side tombstone is the only way to make deletion stick for them.
+ * In-memory only: on restart empty sessions are gone and durable files are
+ * already deleted, so no persistence is needed.
+ */
+const deletedSessionIds = new Set<string>()
 
 /** Dispatch the legacy desktop paths; null for anything else. */
 export async function handle(
@@ -1391,7 +1400,7 @@ async function sessionsListRoute(
     try {
       const persisted = await persistence.list()
       for (const header of persisted) {
-        if (seen.has(header.id)) continue
+        if (seen.has(header.id) || deletedSessionIds.has(header.id)) continue
         seen.add(header.id)
         const live = store?.get(header.id)
         rows.push({
@@ -1414,7 +1423,7 @@ async function sessionsListRoute(
 
   if (store !== undefined) {
     for (const session of store.list()) {
-      if (seen.has(session.id)) continue
+      if (seen.has(session.id) || deletedSessionIds.has(session.id)) continue
       seen.add(session.id)
       const last = session.events[session.events.length - 1]
       rows.push({
@@ -1505,13 +1514,9 @@ async function sessionsItemRoute(
 
   if (action === undefined) {
     if (method === 'DELETE') {
-      try {
-        return json(200, { ok: true })
-      } catch (err) {
-        return error(500, errorMessage(err))
-      }
+      return deleteSessionRoute(id, services)
     }
-    if (method === 'PATCH') return json(200, { ok: true })
+    if (method === 'PATCH') return json(501, 'session update is not available on this host yet')
     return error(405, 'method not allowed')
   }
 
@@ -1520,6 +1525,57 @@ async function sessionsItemRoute(
   }
 
   return error(404, 'unknown session action')
+}
+
+/**
+ * Delete one session's durable artifact files.
+ *
+ * dsh's session model is append-only: the SessionStore exposes no public
+ * removal API and the persistence seam no delete method, so a session's
+ * durable files under the dsh home are the only removal target. Deleting them
+ * makes the session disappear from {@link sessionsListRoute} (persistence
+ * list) on the next refresh; a live in-memory entry is left to its lifecycle.
+ */
+async function deleteSessionRoute(id: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const root = join(homedir(), '.dsh', 'sessions')
+  let removed = 0
+  try {
+    for await (const file of walkSessionFiles(root, id)) {
+      await rm(file, { force: true })
+      removed++
+    }
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+  void services // kept for signature symmetry with sibling routes
+  // Tombstone in-memory sessions (no durable file) so the list stops showing
+  // them for the rest of this host's lifetime.
+  deletedSessionIds.add(id)
+  return json(200, { ok: true, removed })
+}
+
+/**
+ * Yield every session artifact file matching one session id under a root,
+ * walking workspace directories without following symlinks.
+ */
+async function* walkSessionFiles(
+  root: string,
+  id: string,
+): AsyncGenerator<string, void, undefined> {
+  let entries: Array<{ isDirectory(): boolean; isFile(): boolean; name: string }>
+  try {
+    entries = await readdir(root, { withFileTypes: true }) as Array<{ isDirectory(): boolean; isFile(): boolean; name: string }>
+  } catch {
+    return
+  }
+  for (const entry of entries) {
+    const full = join(root, entry.name)
+    if (entry.isDirectory()) {
+      yield* walkSessionFiles(full, id)
+    } else if (entry.isFile() && entry.name.startsWith(id + '.jsonl')) {
+      yield full
+    }
+  }
 }
 
 function mapSessionEvents(session: { events: readonly { type: string; seq: number; time: number; data: unknown }[] }): Array<Record<string, unknown>> {
