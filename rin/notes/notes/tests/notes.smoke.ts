@@ -74,6 +74,32 @@ try {
   }
   check(missing, 'delete removes the note')
 
+  // assets: save + read with mime detection and sanitized names
+  const saved = await vault.saveAsset('paste.png', Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+  check(saved.path.startsWith('assets/'), 'asset saved under assets/')
+  check(saved.path.includes('-paste.png'), 'asset name carries timestamp and safe name')
+  check(saved.url === '/api/notes/assets/' + saved.path, 'asset url served from /api/notes/assets')
+  const asset = await vault.readAsset(saved.path)
+  check(asset.mimeType === 'image/png', 'png mime detected')
+  check(asset.content.length === 4 && asset.content[0] === 0x89, 'asset bytes round-trip')
+  const sanitized = await vault.saveAsset('a/../../evil "name"?.txt', Buffer.from('x'))
+  check(!sanitized.path.includes('..'), 'saveAsset sanitizes the file name')
+  check((await vault.readAsset(sanitized.path)).mimeType === 'text/plain', 'txt mime detected')
+  let assetTraversal = false
+  try {
+    await vault.readAsset('../escape.png')
+  } catch {
+    assetTraversal = true
+  }
+  check(assetTraversal, 'asset path traversal rejected')
+  let nonAssetRejected = false
+  try {
+    await vault.readAsset('work/ideas.md')
+  } catch {
+    nonAssetRejected = true
+  }
+  check(nonAssetRejected, 'readAsset rejects non-asset paths')
+
   // tool schema smoke
   check(NOTES_TOOL_NAME === 'notes', 'tool name is notes')
   check(notesToolParameters.action.enum.join(',') === 'list,search,read', 'action enum')

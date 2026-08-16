@@ -180,3 +180,49 @@ describe('backupSession', () => {
     expect(await vault.list()).toEqual([])
   })
 })
+
+describe('assets', () => {
+  test('saveAsset writes a timestamped file under assets/ and returns path + url', async () => {
+    const { root, vault } = await createVault()
+    const saved = await vault.saveAsset('photo.png', Buffer.from('png-bytes'))
+
+    expect(saved.path).toMatch(/^assets\/\d+-photo\.png$/)
+    expect(saved.url).toBe('/api/notes/assets/' + saved.path)
+    expect(await readFile(join(root, saved.path), 'utf8')).toBe('png-bytes')
+  })
+
+  test('saveAsset sanitizes the file name and keeps the extension', async () => {
+    const { root, vault } = await createVault()
+    const saved = await vault.saveAsset('a/../../evil "name"?.txt', Buffer.from('x'))
+
+    expect(saved.path.startsWith('assets/')).toBe(true)
+    expect(saved.path).not.toContain('..')
+    expect(saved.path.endsWith('.txt')).toBe(true)
+    expect(await readFile(join(root, saved.path), 'utf8')).toBe('x')
+  })
+
+  test('readAsset returns the bytes and the extension-derived mime type', async () => {
+    const { vault } = await createVault()
+    const saved = await vault.saveAsset('note.md', Buffer.from('# asset'))
+
+    const asset = await vault.readAsset(saved.path)
+    expect(asset.content.toString('utf8')).toBe('# asset')
+    expect(asset.mimeType).toBe('text/markdown')
+    expect(await vault.readAsset(saved.path)).toEqual(asset)
+  })
+
+  test('readAsset rejects traversal and non-asset paths', async () => {
+    const { vault } = await createVault()
+    await vault.write('note.md', '# n')
+
+    await expect(vault.readAsset('../escape.png')).rejects.toThrow(/escapes the vault/)
+    await expect(vault.readAsset('note.md')).rejects.toThrow(/assets/)
+  })
+
+  test('assets are not listed as notes', async () => {
+    const { vault } = await createVault()
+    await vault.saveAsset('image.png', Buffer.from('x'))
+
+    expect(await vault.list()).toEqual([])
+  })
+})

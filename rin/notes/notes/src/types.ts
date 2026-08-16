@@ -89,6 +89,21 @@ export interface NoteTemplate {
   path: string
 }
 
+/** A stored note asset's identity: its vault path and web-server URL. */
+export interface NoteAssetRef {
+  /** POSIX path relative to the vault root, e.g. `assets/1699999999999-paste.png`. */
+  path: string
+  /** Web-server URL the asset is served from. */
+  url: string
+}
+
+/** A stored note asset's bytes with its detected mime type. */
+export interface NoteAsset {
+  content: Buffer
+  /** Extension-derived mime type, e.g. `image/png`. */
+  mimeType: string
+}
+
 /** One history snapshot of a note. */
 export interface NoteSnapshotMeta {
   /** Snapshot file name: `<epoch-millis>-<6-digit sequence>.md`. */

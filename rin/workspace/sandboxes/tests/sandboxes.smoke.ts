@@ -68,10 +68,24 @@ try {
   const bakExists = await readFile(join(root, 'sandboxes.json.bak'), 'utf8').then(() => true).catch(() => false)
   if (!bakExists) throw new Error('expected sandboxes.json.bak after migration')
 
+  // 5. exec: run one command inside a profile's sandbox via its provider.
+  const execProfile = await migrated.create({ name: 'Exec', type: 'local-sandbox', repositoryPath: root })
+  const result = await migrated.exec(execProfile.id, 'echo hello-from-sandbox')
+  if (result.code !== 0) throw new Error('exec echo failed: ' + result.stderr)
+  if (!result.stdout.includes('hello-from-sandbox')) throw new Error('exec stdout missing: ' + result.stdout)
+  let missingProfile = false
+  try {
+    await migrated.exec('missing-id', 'echo x')
+  } catch {
+    missingProfile = true
+  }
+  if (!missingProfile) throw new Error('exec should reject an unknown profile id')
+
   console.log('SANDBOXES-SMOKE-OK', {
     profiles: profiles.length,
     mounts: attached.mounts?.length,
     pip: caps.runtimes.pip,
+    exec: result.stdout.trim(),
   })
 } finally {
   await rm(root, { recursive: true, force: true })

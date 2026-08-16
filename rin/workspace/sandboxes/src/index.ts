@@ -129,6 +129,17 @@ export class SandboxStore extends Service {
   }
 
   /**
+   * Run one command inside a profile's sandbox.
+   *
+   * @param id - the profile id.
+   * @param command - the shell command to run.
+   * @returns the exit code and captured stdout/stderr.
+   */
+  exec(id: string, command: string): Promise<{ code: number; stdout: string; stderr: string }> {
+    return this.store.exec(id, command)
+  }
+
+  /**
    * Execute a resolved environment plan inside the profile's sandbox.
    *
    * @param profile - the target sandbox profile.

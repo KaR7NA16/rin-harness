@@ -16,6 +16,8 @@ import type { Dirent } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { extractLinks, extractTags, extractTitle } from './parse.ts'
 import type {
+  NoteAsset,
+  NoteAssetRef,
   NoteDocument,
   NoteGraph,
   NoteGraphEdge,
@@ -33,13 +35,17 @@ export const HISTORY_DIRNAME = '.history'
 export const TEMPLATES_DIRNAME = '.templates'
 /** Directory holding session-backup notes. */
 export const BACKUPS_DIRNAME = 'backups'
+/** Directory holding note attachments (images, files referenced from notes). */
+export const ASSETS_DIRNAME = 'assets'
+/** Web-server URL prefix a stored asset is served from. */
+export const ASSET_URL_PREFIX = '/api/notes/assets/'
 /** Maximum byte size (UTF-8) of a single note body. */
 export const MAX_NOTE_BYTES = 4 * 1024 * 1024
 /** Number of snapshots retained per note before the oldest is pruned. */
 export const HISTORY_KEEP = 10
 
 /** Directories excluded from the note walk: internal plus dependency folders. */
-const INTERNAL_DIRNAMES = new Set([HISTORY_DIRNAME, TEMPLATES_DIRNAME, BACKUPS_DIRNAME, 'node_modules'])
+const INTERNAL_DIRNAMES = new Set([HISTORY_DIRNAME, TEMPLATES_DIRNAME, BACKUPS_DIRNAME, ASSETS_DIRNAME, 'node_modules'])
 
 /** Monotonic per-process counter guaranteeing unique, sortable snapshot ids. */
 let snapshotSequence = 0
@@ -130,6 +136,66 @@ function slugify(text: string): string {
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 80)
+}
+
+/** Extension to mime type map for note assets. */
+const MIME_BY_EXTENSION: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml',
+  avif: 'image/avif',
+  bmp: 'image/bmp',
+  ico: 'image/x-icon',
+  txt: 'text/plain',
+  md: 'text/markdown',
+  json: 'application/json',
+  csv: 'text/csv',
+  html: 'text/html',
+  pdf: 'application/pdf',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  ogg: 'audio/ogg',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  zip: 'application/zip',
+  gz: 'application/gzip',
+  wasm: 'application/wasm',
+}
+
+/** Derive the mime type from a file name's extension. */
+function mimeTypeFor(fileName: string): string {
+  const dot = fileName.lastIndexOf('.')
+  if (dot < 0) return 'application/octet-stream'
+  return MIME_BY_EXTENSION[fileName.slice(dot + 1).toLowerCase()] ?? 'application/octet-stream'
+}
+
+/**
+ * Sanitize an uploaded file name into a filesystem-safe asset name, keeping a
+ * recognized extension so mime detection and browser rendering keep working.
+ */
+function safeAssetName(fileName: string): string {
+  const base = basename(fileName.replace(/\\/g, '/'))
+  const dot = base.lastIndexOf('.')
+  const name = dot > 0 ? base.slice(0, dot) : base
+  const extension = dot > 0 ? base.slice(dot + 1) : ''
+  const safeBase = slugify(name) || 'file'
+  const safeExtension = /^[A-Za-z0-9]{1,10}$/.test(extension) ? extension.toLowerCase() : ''
+  return safeExtension ? safeBase + '.' + safeExtension : safeBase
+}
+
+/**
+ * Require an asset path: vault-relative and under assets/.
+ *
+ * @param relPath - the requested POSIX vault-relative asset path.
+ */
+export function assertAssetPath(relPath: string): void {
+  assertSafeRelPath(relPath)
+  if (!relPath.startsWith(ASSETS_DIRNAME + '/')) {
+    throw new Error('rin notes: asset path must live under ' + ASSETS_DIRNAME + '/: ' + relPath)
+  }
 }
 
 /**
@@ -482,5 +548,34 @@ export class NotesVault {
     const relPath = `${BACKUPS_DIRNAME}/${stamp}-${slug}.md`
     const body = heading ? `# ${heading}\n\n${content}` : content
     return this.write(relPath, body)
+  }
+  /**
+   * Store one binary attachment under assets/, returning its vault-relative
+   * path (for markdown ![](path) references) and the web-server URL.
+   *
+   * @param fileName - the original file name; sanitized before writing.
+   * @param content - the attachment bytes.
+   * @returns the vault path and web URL of the stored asset.
+   */
+  async saveAsset(fileName: string, content: Buffer): Promise<NoteAssetRef> {
+    const safeName = safeAssetName(fileName)
+    const relPath = ASSETS_DIRNAME + '/' + Date.now() + '-' + safeName
+    const abs = this.resolveSafe(relPath)
+    await mkdir(dirname(abs), { recursive: true })
+    await writeFile(abs, content)
+    return { path: relPath, url: ASSET_URL_PREFIX + relPath }
+  }
+
+  /**
+   * Read one stored asset with its extension-derived mime type.
+   *
+   * @param relPath - the POSIX vault-relative asset path (under assets/).
+   * @returns the asset bytes and mime type.
+   */
+  async readAsset(relPath: string): Promise<NoteAsset> {
+    assertAssetPath(relPath)
+    const abs = this.resolveSafe(relPath)
+    const content = await readFile(abs)
+    return { content, mimeType: mimeTypeFor(relPath) }
   }
 }

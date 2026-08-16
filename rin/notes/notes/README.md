@@ -33,6 +33,8 @@ registered when the plugin loads.
 // ctx.notes.todos()                    -> NoteTodo[]            (line-level checkboxes)
 // ctx.notes.templates()                -> NoteTemplate[]        ({ name, path })
 // ctx.notes.backupSession(title, body) -> NoteDocument          (note under backups/)
+// ctx.notes.saveAsset(fileName, buf)   -> NoteAssetRef          ({ path, url } under assets/)
+// ctx.notes.readAsset(path)            -> NoteAsset             ({ content, mimeType })
 ```
 
 `Config` has one optional field, `vaultRoot` (absolute or cwd-relative); it
@@ -41,7 +43,9 @@ defaults to `~/.rin/notes` via `node:os` homedir.
 Guards: every path is resolved and must remain inside the vault (traversal and
 absolute paths fail loud); a single note body is capped at 4 MiB. Updates
 snapshot the previous content into `.history/<path>/` and keep the latest 10
-snapshots per note.
+snapshots per note. Assets live under `assets/` with sanitized, timestamped
+file names; `saveAsset` returns the vault path (for markdown references) and
+the `/api/notes/assets/...` URL.
 
 ## Model Experience
 
@@ -80,10 +84,10 @@ prefix and changes only when the tool set does.
   is deferred.
 - **Session backups share the 4 MiB cap.** Long session transcripts over 4 MiB
   are rejected; a separate backup-size budget is deferred.
-- **No move/rename, template instantiation, asset storage, or checkbox
-  toggling.** The old notesService's `move`, `createFromTemplate`, `daily`,
-  `saveAsset`, and `setTodo` are out of scope for this milestone; callers can
-  compose them from `read`/`write`/`delete`.
+- **No move/rename, template instantiation, or checkbox toggling.** The old
+  notesService's `move`, `createFromTemplate`, `daily`, and `setTodo` are out
+  of scope for this milestone; callers can compose them from
+  `read`/`write`/`delete`.
 - **Inline tags are matched anywhere in the body**, including inside fenced code
   blocks, so a `#word` in a code sample becomes a tag.
 - **No per-note backlinks API.** `graph()` returns resolved edges, but there is

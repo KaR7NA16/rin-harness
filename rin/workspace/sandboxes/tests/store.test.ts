@@ -118,4 +118,34 @@ describe('FileSandboxStore', () => {
     const caps = await store.probeCapabilities(profile)
     expect(caps.runtimes.python).toBe(true)
   })
+
+  it('exec runs the command through the profile provider and surfaces the result', async () => {
+    const provider: SandboxProvider = {
+      ...fakeProvider('local-sandbox'),
+      runCommand: async (_profile, command) => ({ code: 0, stdout: 'echo:' + command, stderr: '' }),
+    }
+    const store = new FileSandboxStore({ profilesPath, providers: { ...defaultProviders(), local: provider } })
+    const profile = await store.create({ name: 'E', type: 'local-sandbox' })
+
+    const result = await store.exec(profile.id, 'hello')
+    expect(result).toEqual({ code: 0, stdout: 'echo:hello', stderr: '' })
+  })
+
+  it('exec reports a non-zero exit and stderr from the provider', async () => {
+    const provider: SandboxProvider = {
+      ...fakeProvider('local-sandbox'),
+      runCommand: async () => ({ code: 2, stdout: '', stderr: 'boom' }),
+    }
+    const store = new FileSandboxStore({ profilesPath, providers: { ...defaultProviders(), local: provider } })
+    const profile = await store.create({ name: 'E', type: 'local-sandbox' })
+
+    const result = await store.exec(profile.id, 'fail')
+    expect(result.code).toBe(2)
+    expect(result.stderr).toBe('boom')
+  })
+
+  it('exec rejects an unknown profile id', async () => {
+    const store = new FileSandboxStore({ profilesPath })
+    await expect(store.exec('missing', 'echo x')).rejects.toThrow(/profile not found/)
+  })
 })

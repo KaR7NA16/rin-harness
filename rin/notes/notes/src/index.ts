@@ -21,6 +21,8 @@ import {
 } from './schema.ts'
 import type { Config as NotesConfig } from './types.ts'
 import type {
+  NoteAsset,
+  NoteAssetRef,
   NoteDocument,
   NoteGraph,
   NoteMeta,
@@ -33,12 +35,15 @@ import type {
 
 export type * from './types.ts'
 export {
+  ASSETS_DIRNAME,
+  ASSET_URL_PREFIX,
   BACKUPS_DIRNAME,
   HISTORY_DIRNAME,
   HISTORY_KEEP,
   MAX_NOTE_BYTES,
   NotesVault,
   TEMPLATES_DIRNAME,
+  assertAssetPath,
   assertMarkdownPath,
   assertSafeRelPath,
   defaultVaultRoot,
@@ -98,6 +103,21 @@ export abstract class NotesStore extends Service {
 
   /** Export one session as a backup note under `backups/`. */
   abstract backupSession(title: string, content: string): Promise<NoteDocument>
+
+  /**
+   * Store one binary attachment under `assets/`.
+   * @param fileName - the original file name; sanitized before writing.
+   * @param content - the attachment bytes.
+   * @returns the vault path and web URL of the stored asset.
+   */
+  abstract saveAsset(fileName: string, content: Buffer): Promise<NoteAssetRef>
+
+  /**
+   * Read one stored asset with its extension-derived mime type.
+   * @param path - the POSIX vault-relative asset path (under `assets/`).
+   * @returns the asset bytes and mime type.
+   */
+  abstract readAsset(path: string): Promise<NoteAsset>
 }
 
 /** File-backed notes service delegating to a `NotesVault`. */
@@ -151,6 +171,14 @@ export class FileNotesStore extends NotesStore {
 
   override backupSession(title: string, content: string) {
     return this.vault.backupSession(title, content)
+  }
+
+  override saveAsset(fileName: string, content: Buffer) {
+    return this.vault.saveAsset(fileName, content)
+  }
+
+  override readAsset(path: string) {
+    return this.vault.readAsset(path)
   }
 }
 

@@ -165,6 +165,19 @@ export class FileSandboxStore {
   }
 
   /**
+   * Run one command inside a profile's sandbox.
+   *
+   * @param id - the profile id.
+   * @param command - the shell command to run.
+   * @returns the exit code and captured stdout/stderr.
+   */
+  async exec(id: string, command: string): Promise<{ code: number; stdout: string; stderr: string }> {
+    const profile = await this.get(id)
+    if (profile === null) throw new Error('rin sandboxes: profile not found: ' + id)
+    return providerFor(profile, this.providers).runCommand(profile, command)
+  }
+
+  /**
    * Execute a resolved environment plan inside the profile's sandbox.
    *
    * @param profile - the target profile.

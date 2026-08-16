@@ -33,18 +33,22 @@ import type { Context } from '@deepseek-ai/cordis'
 // await sandboxes.remove(id)                      // boolean
 // await sandboxes.setDefault(id)                  // SandboxProfile
 // await sandboxes.probeCapabilities(profile)      // ResolverCapabilities
+// await sandboxes.exec(id, command)               // { code, stdout, stderr }
 // await sandboxes.executeEnvironmentPlan(profile, repositoryId, environmentProfileId, plan) // InstallRun
 ```
 
 The service never spawns a process itself for `list/get/create/update/remove/
 setDefault`; probing delegates to the provider selected by the profile's
-`type`, while execution runs stage commands through the dsh `ctx.shell` seam
-when one is mounted. The install-run state machine (blocked → resolved →
-approved → provisioning/verifying → ready | failed) lives in
-@rin/environment; this package supplies the executor. Execution fails loud when
-`ctx.shell` is unavailable unless `dryRun` is set. The host resolves its
-configuration home and injects the resulting store path via the `profilesPath`
-config; the default is `defaultSandboxProfilesPath()`.
+`type`, `exec(id, command)` runs one command through that same provider
+(`runCommand`, which `LocalProvider`/`ContainerProvider` implement and
+`RemoteProvider` stubs with `not implemented (P3)`), while environment-plan
+execution runs stage commands through the dsh `ctx.shell` seam when one is
+mounted. The install-run state machine (blocked → resolved →
+approved → provisioning/verifying → ready | failed) lives in @rin/environment; this
+package supplies the executor. Execution fails loud when `ctx.shell` is
+unavailable unless `dryRun` is set. The host resolves its configuration home
+and injects the resulting store path via the `profilesPath` config; the
+default is `defaultSandboxProfilesPath()`.
 
 ## Model Experience
 
