@@ -2,13 +2,15 @@
  * Validate the @rin declarative assembly (rin/bundle/rin/src/cordis.yml).
  *
  * The `rin` launcher patches @deepseek-ai/dsh-base and then mounts this file's
- * rows in order, so a working host assembly needs three facts to hold:
+ * rows in order, so a working host assembly needs four facts to hold:
  *   1. every row `name` resolves to a workspace package — @rin/* rows live under
  *      rin/, @deepseek-ai/* rows under packages/ (or vendor/);
  *   2. the ordered @rin roster @rin/bundle exports (RIN_HOST_PLUGINS plus
  *      RIN_WEB_SERVER, i.e. RIN_PLUGINS) matches the @rin rows of cordis.yml
  *      exactly, in order;
- *   3. the `!!js` path helpers the config interpolates (rinHome,
+ *   3. every row `name` is a declared dependency of @rin/bundle, so app-boot
+ *      can resolve it from the published bundle (not just via tsx paths);
+ *   4. the `!!js` path helpers the config interpolates (rinHome,
  *      builtinRepositoryRoot, webUiDistRoot) are real exports of @rin/bundle.
  */
 
@@ -34,6 +36,7 @@ const JS_HELPERS = ['rinHome', 'builtinRepositoryRoot', 'webUiDistRoot'] as cons
 const rinRoot = resolve(import.meta.dirname, '..')
 const repoRoot = resolve(import.meta.dirname, '../..')
 const CONFIG_FILE = 'bundle/rin/src/cordis.yml'
+const BUNDLE_MANIFEST = 'bundle/rin/package.json'
 
 const jsExprType = new yaml.Type('tag:yaml.org,2002:js', {
   kind: 'scalar',
@@ -61,8 +64,10 @@ function main(): number {
   const jsExprs = collectJsExprs(document)
   const rinPackages = workspacePackages('*/*/package.json', rinRoot)
   const dshPackages = workspacePackages(['packages/*/*/package.json', 'vendor/*/package.json'], repoRoot)
+  const bundleDeps = bundleManifestDependencies()
 
   failures.push(...validateRowResolution(rows, rinPackages, dshPackages))
+  failures.push(...validateRowDependencyClosure(rows, bundleDeps))
   failures.push(...validateRoster(rows))
   failures.push(...validateJsHelpers(jsExprs))
 
@@ -76,7 +81,7 @@ function main(): number {
   const dshRowCount = rows.length - rinRowCount
   const referenced = JS_HELPERS.filter(name => jsExprs.some(expr => new RegExp(`\\b${name}\\b`).test(expr)))
   console.log(
-    `verify-rin-cordis: ${rows.length} rows (${rinRowCount} @rin, ${dshRowCount} dsh) resolve; `
+    `verify-rin-cordis: ${rows.length} rows (${rinRowCount} @rin, ${dshRowCount} dsh) resolve and are declared; `
     + `RIN_HOST_PLUGINS (${bundle.RIN_HOST_PLUGINS.length}) + RIN_WEB_SERVER match the ${rinRowCount} @rin rows; `
     + `!!js helpers defined in @rin/bundle: ${referenced.join(', ')}.`,
   )
@@ -151,6 +156,34 @@ function validateRowResolution(
       continue
     }
     failures.push(`${CONFIG_FILE}: ${row.name} is not a scoped package specifier`)
+  }
+  return failures
+}
+
+/** Direct dependency names from the @rin/bundle package manifest. */
+function bundleManifestDependencies(): ReadonlySet<string> {
+  const manifest = JSON.parse(readFileSync(resolve(rinRoot, BUNDLE_MANIFEST), 'utf8')) as {
+    dependencies?: unknown
+  }
+  const dependencies = manifest.dependencies
+  if (!isRecord(dependencies)) {
+    throw new Error(`${BUNDLE_MANIFEST}: dependencies must be an object`)
+  }
+  return new Set(Object.keys(dependencies))
+}
+
+function validateRowDependencyClosure(
+  rows: readonly Row[],
+  bundleDeps: ReadonlySet<string>,
+): string[] {
+  const failures: string[] = []
+  for (const row of rows) {
+    if (!bundleDeps.has(row.name)) {
+      failures.push(
+        `${BUNDLE_MANIFEST}: ${row.name} is mounted by cordis.yml but is not declared in @rin/bundle dependencies`
+        + ' (source runs can hide this behind tsconfig paths, published bundles cannot)',
+      )
+    }
   }
   return failures
 }
