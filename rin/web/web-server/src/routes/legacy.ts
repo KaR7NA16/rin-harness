@@ -2510,8 +2510,12 @@ async function ensureLiveSession(id: string, services: RinServiceRefs): Promise<
   const persistence = services.sessionPersistence()
   let session = store?.get(id)
   if (session === undefined && persistence !== undefined) {
-    await persistence.prepare(id)
-    session = store?.get(id)
+    try {
+      await persistence.prepare(id)
+      session = store?.get(id)
+    } catch {
+      // Persisted session does not exist — leave undefined for the 404 path.
+    }
   }
   return session as { id: string; events: readonly { type: string; seq: number; time: number; data: unknown }[]; header?: { cwd?: string } } | undefined
 }
