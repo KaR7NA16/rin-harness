@@ -174,6 +174,11 @@ export async function handle(
   if (pathname === '/api/computer-use/setup') return computerUseSetupRoute(method)
   if (pathname === '/api/computer-use/open-settings') return computerUseOpenSettingsRoute(method)
   if (pathname === '/api/agent-migration/scan' || pathname === '/api/agent-migration') return agentMigrationRoute(services)
+  if (pathname === '/api/agent-migration/migrate') return agentMigrationMigrateRoute(method, body, services)
+  const migrationItem = /^\/api\/agent-migration\/items\/([^/]+)$/.exec(pathname)
+  if (migrationItem !== null && migrationItem[1] !== undefined) {
+    return agentMigrationPreviewRoute(migrationItem[1], search, services)
+  }
   if (pathname === '/api/status/diagnostics') {
     return json(200, {
       nodeVersion: process.version,
@@ -204,9 +209,7 @@ export async function handle(
     || pathname === '/api/sessions/project-folders') {
     return notImplemented(method, 'session export/import (raw binary) is not implemented on this host yet')
   }
-  if (pathname === '/api/agent-migration/migrate' || pathname.startsWith('/api/agent-migration/items/')) {
-    return notImplemented(method, 'agent migration execution is not implemented on this host (only scan is available)')
-  }
+
   if (pathname === '/api/notes/assets') {
     return notImplemented(method, 'note asset upload is not implemented on this host')
   }
@@ -1920,6 +1923,39 @@ async function agentMigrationRoute(services: RinServiceRefs): Promise<JsonRespon
   }
   try {
     return json(200, await agentMigration.scan())
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function agentMigrationPreviewRoute(rawId: string, search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const agentMigration = services.agentMigration()
+  if (agentMigration === undefined) return notMounted()
+  let itemId: string
+  try {
+    itemId = decodeURIComponent(rawId)
+  } catch {
+    return error(400, 'invalid item id')
+  }
+  const agentId = queryParam(search, 'agentId')
+  if (agentId === undefined) return error(400, 'agentId is required')
+  try {
+    return json(200, await agentMigration.preview(agentId, itemId))
+  } catch (err) {
+    return error(404, errorMessage(err))
+  }
+}
+
+async function agentMigrationMigrateRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const agentMigration = services.agentMigration()
+  if (agentMigration === undefined) return notMounted()
+  const fields = asRecord(body)
+  const agentId = fields === undefined ? undefined : stringField(fields, 'agentId')
+  if (agentId === undefined) return error(400, 'agentId is required')
+  const itemIds = Array.isArray(fields?.['itemIds']) ? fields['itemIds'].filter((value): value is string => typeof value === 'string') : []
+  try {
+    return json(200, await agentMigration.migrate(agentId, itemIds))
   } catch (err) {
     return error(500, errorMessage(err))
   }
