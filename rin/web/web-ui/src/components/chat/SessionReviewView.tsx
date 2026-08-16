@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from '../../i18n'
 import type { UIMessage } from '../../types/chat'
 import { collectSessionDiffs } from '../../utils/sessionReview'
-import { DiffViewer } from './DiffViewer'
+import { SuspendedDiffViewer } from './lazyRenderers'
 import { Icon } from '../shared/Icon'
 
 type Props = {
@@ -131,7 +131,7 @@ export function SessionReviewView({ messages, onClose }: Props) {
                         {expandedFile.editCount > 1 && ` ${index + 1}/${expandedFile.editCount}`}
                       </span>
                     </div>
-                    <DiffViewer
+                    <SuspendedDiffViewer
                       filePath={expandedFile.filePath}
                       oldString={edit.oldString}
                       newString={edit.newString}

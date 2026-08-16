@@ -1,9 +1,8 @@
-import { useEffect, memo, useRef } from 'react'
-import { Settings } from '../../pages/Settings'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { useUIStore } from '../../stores/uiStore'
 import { useTranslation } from '../../i18n'
 
-const MemoSettings = memo(Settings)
+const Settings = lazy(() => import('../../pages/Settings').then((module) => ({ default: module.Settings })))
 
 type Props = {
   visible: boolean
@@ -53,7 +52,9 @@ export function SettingsPanel({ visible, reserveRightRail = false }: Props) {
       <div className="settings-panel-card flex h-[88vh] w-full max-w-[1100px] flex-col overflow-hidden rounded-[14px] border border-[var(--color-border-separator)] bg-[var(--color-background)] shadow-[var(--shadow-window)]">
         <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
           <div key="settings-home" className="settings-panel-content min-h-0 flex flex-1 flex-col overflow-hidden">
-            <MemoSettings />
+            <Suspense fallback={<div className="flex h-full items-center justify-center text-[13px] text-[var(--color-text-tertiary)]">Loading settings...</div>}>
+              <Settings />
+            </Suspense>
           </div>
         </div>
       </div>

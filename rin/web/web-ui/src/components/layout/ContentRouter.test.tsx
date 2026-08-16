@@ -94,7 +94,7 @@ describe('ContentRouter content routing', () => {
     expect(sessionTwo).not.toHaveAttribute('aria-hidden', 'true')
   })
 
-  it('renders the Terminal page for a terminal tab with its spawn command', () => {
+  it('renders the Terminal page for a terminal tab with its spawn command', async () => {
     useTabStore.setState({
       tabs: [{
         sessionId: '__terminal__1',
@@ -109,13 +109,13 @@ describe('ContentRouter content routing', () => {
 
     render(<ContentRouter />)
 
-    const terminal = screen.getByTestId('terminal-page')
+    const terminal = await screen.findByTestId('terminal-page')
     expect(terminal).toBeInTheDocument()
     expect(terminal).toHaveAttribute('data-terminal-id', '__terminal__1')
     expect(terminal).toHaveAttribute('data-spawn-command', 'bash -l')
   })
 
-  it('renders the Terminal page without a spawn command when the tab has none', () => {
+  it('renders the Terminal page without a spawn command when the tab has none', async () => {
     useTabStore.setState({
       tabs: [{ sessionId: '__terminal__1', title: 'Terminal 1', type: 'terminal', status: 'idle' }],
       activeTabId: '__terminal__1',
@@ -129,7 +129,7 @@ describe('ContentRouter content routing', () => {
     expect(terminal).not.toHaveAttribute('data-spawn-command')
   })
 
-  it('treats a terminal tab as a tab rather than a workspace view', () => {
+  it('treats a terminal tab as a tab rather than a workspace view', async () => {
     useTabStore.setState({
       tabs: [{ sessionId: '__terminal__1', title: 'Terminal 1', type: 'terminal', status: 'idle' }],
       activeTabId: '__terminal__1',
@@ -138,7 +138,7 @@ describe('ContentRouter content routing', () => {
 
     render(<ContentRouter />)
 
-    expect(screen.getByTestId('terminal-page')).toBeInTheDocument()
+    expect(await screen.findByTestId('terminal-page')).toBeInTheDocument()
     expect(screen.queryByTestId('empty-session')).not.toBeInTheDocument()
     expect(screen.queryByTestId('scheduled-tasks')).not.toBeInTheDocument()
   })

@@ -1,4 +1,4 @@
-import { CodeViewer } from './CodeViewer'
+import { SuspendedCodeViewer } from './lazyRenderers'
 import { useState } from 'react'
 import { useTranslation } from '../../i18n'
 import { InlineImageGallery } from './InlineImageGallery'
@@ -67,7 +67,7 @@ export function ToolResultBlock({ content, isError, toolName, standalone = true 
               {text}
             </div>
           ) : (
-            <CodeViewer
+            <SuspendedCodeViewer
               code={text}
               language="plaintext"
               maxLines={12}

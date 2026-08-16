@@ -1,8 +1,10 @@
-import { useMemo, useCallback } from 'react'
+import { lazy, Suspense, useMemo, useCallback, type ReactNode } from 'react'
 import DOMPurify from 'dompurify'
 import { Marked, type Tokens } from 'marked'
-import { CodeViewer } from '../chat/CodeViewer'
-import { MermaidRenderer } from '../chat/MermaidRenderer'
+import { useTranslation } from '../../i18n'
+
+const CodeViewer = lazy(() => import('../chat/CodeViewer').then((module) => ({ default: module.CodeViewer })))
+const MermaidRenderer = lazy(() => import('../chat/MermaidRenderer').then((module) => ({ default: module.MermaidRenderer })))
 
 type Props = {
   content: string
@@ -182,6 +184,11 @@ function enhanceMarkdownHtml(html: string): string {
   return container.innerHTML
 }
 
+/** Suspense boundary shared by lazily loaded code/diagram renderers. */
+function LazyRenderer({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
+  return <Suspense fallback={fallback}>{children}</Suspense>
+}
+
 function parseMarkdown(content: string): { html: string; codeBlocks: CodeBlock[] } {
   const codeBlocks: CodeBlock[] = []
   const parser = createMarkedParser(codeBlocks)
@@ -254,6 +261,7 @@ function getProseClasses(variant: 'default' | 'document' | 'chat', className?: s
 }
 
 export function MarkdownRenderer({ content, variant = 'default', className }: Props) {
+  const t = useTranslation()
   const { html, codeBlocks } = useMemo(() => parseMarkdown(content), [content])
   const proseClasses = useMemo(
     () => getProseClasses(variant, className),
@@ -337,14 +345,24 @@ export function MarkdownRenderer({ content, variant = 'default', className }: Pr
         part.type === 'html' ? (
           <div key={i} dangerouslySetInnerHTML={{ __html: enhanceMarkdownHtml(part.content) }} />
         ) : shouldRenderAsMermaid(part.block) ? (
-          <MermaidRenderer key={part.block.id} code={part.block.code} />
+          <LazyRenderer
+            key={part.block.id}
+            fallback={<div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-code-bg)] px-3 py-2 text-[13px] text-[var(--color-text-secondary)]">{t('mermaid.rendering')}</div>}
+          >
+            <MermaidRenderer code={part.block.code} />
+          </LazyRenderer>
         ) : (
-          <div key={part.block.id} className="my-4">
-            <CodeViewer
-              code={part.block.code}
-              language={part.block.language}
-            />
-          </div>
+          <LazyRenderer
+            key={part.block.id}
+            fallback={<div className="my-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-code-bg)] px-3 py-2 text-[13px] text-[var(--color-text-secondary)]">{t('chat.codeViewer.loading')}</div>}
+          >
+            <div className="my-4">
+              <CodeViewer
+                code={part.block.code}
+                language={part.block.language}
+              />
+            </div>
+          </LazyRenderer>
         )
       )}
     </div>

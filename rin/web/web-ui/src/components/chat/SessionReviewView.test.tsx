@@ -51,7 +51,7 @@ describe('SessionReviewView', () => {
     render(<SessionReviewView messages={messages} onClose={onClose} />)
 
     expect(screen.getAllByText('src/app.ts').length).toBeGreaterThan(0)
-    expect(screen.getByTestId('mock-diff')).toBeInTheDocument()
+    expect(await screen.findByTestId('mock-diff')).toBeInTheDocument()
   })
 
   it('closes on Escape', () => {

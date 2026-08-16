@@ -1,18 +1,32 @@
-import { useEffect, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, type ReactNode } from 'react'
 import { useTabStore } from '../../stores/tabStore'
 import { useUIStore } from '../../stores/uiStore'
 import { ActiveSession } from '../../pages/ActiveSession'
 import { EmptySession } from '../../pages/EmptySession'
-import { ScheduledTasks } from '../../features/scheduledTasks'
-import { Notes } from '../../pages/Notes'
-import { KnowledgeSpace } from '../../pages/KnowledgeSpace'
-import { Sandboxes } from '../../pages/Sandboxes'
-import { Monitor } from '../../pages/Monitor'
-import { RepositoryWorkspace } from '../../pages/RepositoryWorkspace'
-import { AgentWorkspace } from '../../pages/AgentWorkspace'
-import { Terminal } from '../../pages/Terminal'
+
+const ScheduledTasks = lazy(() => import('../../features/scheduledTasks').then((module) => ({ default: module.ScheduledTasks })))
+const Notes = lazy(() => import('../../pages/Notes').then((module) => ({ default: module.Notes })))
+const KnowledgeSpace = lazy(() => import('../../pages/KnowledgeSpace').then((module) => ({ default: module.KnowledgeSpace })))
+const Sandboxes = lazy(() => import('../../pages/Sandboxes').then((module) => ({ default: module.Sandboxes })))
+const Monitor = lazy(() => import('../../pages/Monitor').then((module) => ({ default: module.Monitor })))
+const RepositoryWorkspace = lazy(() => import('../../pages/RepositoryWorkspace').then((module) => ({ default: module.RepositoryWorkspace })))
+const AgentWorkspace = lazy(() => import('../../pages/AgentWorkspace').then((module) => ({ default: module.AgentWorkspace })))
+const Terminal = lazy(() => import('../../pages/Terminal').then((module) => ({ default: module.Terminal })))
 
 const WARM_SESSION_PANEL_COUNT = 2
+
+/** Shared fallback for lazily mounted workspace/terminal pages. */
+function RouteFallback() {
+  return (
+    <div className="flex h-full items-center justify-center text-[13px] text-[var(--color-text-tertiary)]">
+      Loading...
+    </div>
+  )
+}
+
+function Suspended({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<RouteFallback />}>{children}</Suspense>
+}
 
 export function ContentRouter() {
   const activeTabId = useTabStore((s) => s.activeTabId)
@@ -45,13 +59,13 @@ export function ContentRouter() {
       : null
   const resolvedWorkspaceView = workspaceView ?? legacyWorkspaceView
   const nonSessionPage: ReactNode =
-    resolvedWorkspaceView === 'scheduled' ? <ScheduledTasks />
-    : resolvedWorkspaceView === 'notes' ? <Notes />
-    : resolvedWorkspaceView === 'codeGraph' ? <KnowledgeSpace />
-    : resolvedWorkspaceView === 'sandbox' ? <Sandboxes />
-    : resolvedWorkspaceView === 'repository' ? <RepositoryWorkspace />
-    : resolvedWorkspaceView === 'agents' ? <AgentWorkspace />
-    : resolvedWorkspaceView === 'monitor' ? <Monitor />
+    resolvedWorkspaceView === 'scheduled' ? <Suspended><ScheduledTasks /></Suspended>
+    : resolvedWorkspaceView === 'notes' ? <Suspended><Notes /></Suspended>
+    : resolvedWorkspaceView === 'codeGraph' ? <Suspended><KnowledgeSpace /></Suspended>
+    : resolvedWorkspaceView === 'sandbox' ? <Suspended><Sandboxes /></Suspended>
+    : resolvedWorkspaceView === 'repository' ? <Suspended><RepositoryWorkspace /></Suspended>
+    : resolvedWorkspaceView === 'agents' ? <Suspended><AgentWorkspace /></Suspended>
+    : resolvedWorkspaceView === 'monitor' ? <Suspended><Monitor /></Suspended>
     : null
 
   const showEmptySession = !resolvedWorkspaceView && (!activeTabId || !activeTabType)
@@ -92,7 +106,7 @@ export function ContentRouter() {
           key={activeTabId}
           className="content-route-panel content-route-panel--active absolute inset-0 z-10 flex min-h-0 flex-col overflow-hidden"
         >
-          <Terminal terminalId={activeTabId} spawnCommand={activeTab?.spawnCommand} />
+          <Suspended><Terminal terminalId={activeTabId} spawnCommand={activeTab?.spawnCommand} /></Suspended>
         </div>
       )}
 

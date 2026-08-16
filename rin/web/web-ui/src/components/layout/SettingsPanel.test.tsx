@@ -54,41 +54,41 @@ describe('SettingsPanel content routing', () => {
     })
   })
 
-  it('renders the normal settings home for the settings button', () => {
+  it('renders the normal settings home for the settings button', async () => {
     render(<SettingsPanel visible />)
 
-    expect(screen.getByTestId('settings-home')).toBeInTheDocument()
+    expect(await screen.findByTestId('settings-home')).toBeInTheDocument()
     expect(screen.getByTestId('settings-panel')).toHaveAttribute('role', 'dialog')
     expect(screen.getByTestId('settings-panel')).toHaveAttribute('aria-modal', 'true')
     expect(screen.getByTestId('settings-panel')).toHaveClass('z-[90]')
     expect(screen.getByTestId('settings-panel')).toHaveClass('right-0')
   })
 
-  it('keeps the chat-side rail clickable when opened from a project session', () => {
+  it('keeps the chat-side rail clickable when opened from a project session', async () => {
     render(<SettingsPanel visible reserveRightRail />)
 
     expect(screen.getByTestId('settings-panel')).toHaveClass('right-[var(--sidebar-rail-width)]')
     expect(screen.getByTestId('settings-panel')).not.toHaveClass('right-0')
   })
 
-  it('does not duplicate scheduled tasks inside the settings shell', () => {
+  it('does not duplicate scheduled tasks inside the settings shell', async () => {
     useUIStore.setState({ settingsPanelView: 'scheduled' })
 
     render(<SettingsPanel visible />)
 
-    expect(screen.getByTestId('settings-home')).toBeInTheDocument()
+    expect(await screen.findByTestId('settings-home')).toBeInTheDocument()
     expect(screen.queryByTestId('scheduled-panel')).not.toBeInTheDocument()
   })
 
-  it('routes terminal into the settings home (terminal lives in main-area tabs)', () => {
+  it('routes terminal into the settings home (terminal lives in main-area tabs)', async () => {
     useUIStore.setState({ settingsPanelView: 'terminal' })
 
     render(<SettingsPanel visible />)
 
-    expect(screen.getByTestId('settings-home')).toBeInTheDocument()
+    expect(await screen.findByTestId('settings-home')).toBeInTheDocument()
   })
 
-  it('closes the settings shell when Escape is pressed and no child modal is open', () => {
+  it('closes the settings shell when Escape is pressed and no child modal is open', async () => {
     render(<SettingsPanel visible />)
 
     fireEvent.keyDown(window, { key: 'Escape' })
@@ -96,34 +96,34 @@ describe('SettingsPanel content routing', () => {
     expect(useUIStore.getState().settingsOpen).toBe(false)
   })
 
-  it('moves focus into the settings dialog when it opens', () => {
+  it('moves focus into the settings dialog when it opens', async () => {
     const { getByTestId } = render(<SettingsPanel visible />)
 
     expect(document.activeElement).toBe(getByTestId('settings-panel'))
   })
 
-  it('renders prompt memory via the settings home nav', () => {
+  it('renders prompt memory via the settings home nav', async () => {
     useUIStore.setState({ settingsPanelView: 'memory', pendingSettingsTab: 'memory' })
 
     render(<SettingsPanel visible />)
 
-    expect(screen.getByTestId('settings-home')).toBeInTheDocument()
+    expect(await screen.findByTestId('settings-home')).toBeInTheDocument()
   })
 
-  it('renders token optimization via the settings home nav', () => {
+  it('renders token optimization via the settings home nav', async () => {
     useUIStore.setState({ settingsPanelView: 'tokenOptimization', pendingSettingsTab: 'tokenOptimization' })
 
     render(<SettingsPanel visible />)
 
-    expect(screen.getByTestId('settings-home')).toBeInTheDocument()
+    expect(await screen.findByTestId('settings-home')).toBeInTheDocument()
   })
 
-  it('does not duplicate Code Graph inside the settings shell', () => {
+  it('does not duplicate Code Graph inside the settings shell', async () => {
     useUIStore.setState({ settingsPanelView: 'codeGraph' })
 
     render(<SettingsPanel visible />)
 
-    expect(screen.getByTestId('settings-home')).toBeInTheDocument()
+    expect(await screen.findByTestId('settings-home')).toBeInTheDocument()
     expect(screen.queryByTestId('knowledge-space-panel')).not.toBeInTheDocument()
   })
 })

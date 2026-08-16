@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CodeViewer } from './CodeViewer'
-import { DiffViewer } from './DiffViewer'
+import { SuspendedCodeViewer, SuspendedDiffViewer } from './lazyRenderers'
 import { TerminalChrome } from './TerminalChrome'
 import { CopyButton } from '../shared/CopyButton'
 import { useTranslation } from '../../i18n'
@@ -152,11 +151,11 @@ function renderPreview(
   const filePath = typeof obj.file_path === 'string' ? obj.file_path : 'file'
 
   if (toolName === 'Edit' && typeof obj.old_string === 'string' && typeof obj.new_string === 'string') {
-    return <DiffViewer filePath={filePath} oldString={obj.old_string} newString={obj.new_string} />
+    return <SuspendedDiffViewer filePath={filePath} oldString={obj.old_string} newString={obj.new_string} />
   }
 
   if (toolName === 'Write' && typeof obj.content === 'string') {
-    return <DiffViewer filePath={filePath} oldString="" newString={obj.content} />
+    return <SuspendedDiffViewer filePath={filePath} oldString="" newString={obj.content} />
   }
 
   if (toolName === 'Bash' && typeof obj.command === 'string') {
@@ -193,7 +192,7 @@ function renderPreview(
                 className="btn-ghost px-2 py-1 text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-brand)]"
               />
             </div>
-            <CodeViewer code={text} language="plaintext" maxLines={18} />
+            <SuspendedCodeViewer code={text} language="plaintext" maxLines={18} />
           </div>
         </>
       )
@@ -220,7 +219,7 @@ function renderDetails(toolName: string, obj: Record<string, unknown>, t?: (key:
           className="btn-ghost px-2 py-1 text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-brand)]"
         />
       </div>
-      <CodeViewer code={text} language="json" maxLines={18} />
+      <SuspendedCodeViewer code={text} language="json" maxLines={18} />
     </div>
   )
 }

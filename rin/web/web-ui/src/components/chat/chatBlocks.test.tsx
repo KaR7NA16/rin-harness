@@ -241,7 +241,7 @@ describe('chat blocks', () => {
     expect(container.querySelectorAll('.tool-running-text').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('expands tool errors so full Computer Use gate messages are readable', () => {
+  it('expands tool errors so full Computer Use gate messages are readable', async () => {
     const { container } = render(
       <ToolCallBlock
         toolName="mcp__computer-use__left_click"
@@ -258,11 +258,13 @@ describe('chat blocks', () => {
 
     fireEvent.click(screen.getByRole('button'))
 
-    expect(container.textContent).toContain('Take a new screenshot')
-    expect(container.textContent).toContain('allowed applications')
+    await vi.waitFor(() => {
+      expect(container.textContent).toContain('Take a new screenshot')
+      expect(container.textContent).toContain('allowed applications')
+    })
   })
 
-  it('shows a diff preview for edit permission requests', () => {
+  it('shows a diff preview for edit permission requests', async () => {
     useChatStore.setState({
       sessions: {
         'active-tab': {
@@ -310,9 +312,12 @@ describe('chat blocks', () => {
 
     expect(container.textContent).toContain('/tmp/example.ts')
     expect(container.textContent).toMatch(/允许|Allow/)
+    // DiffViewer is lazy; wait for the real wrapper after its chunk resolves.
     // react-diff-viewer-continued uses styled-components tables that don't
-    // fully render in jsdom, so we verify the DiffViewer wrapper is mounted
-    expect(container.querySelector('[class*="rounded-[var(--radius-lg)]"]')).toBeTruthy()
+    // fully render in jsdom, so we verify the DiffViewer wrapper is mounted.
+    await vi.waitFor(() => {
+      expect(container.querySelector('[class*="rounded-[var(--radius-lg)]"]')).toBeTruthy()
+    })
   })
 
   it('renders ExitPlanMode as a compact plan confirmation instead of a tool authorization', () => {

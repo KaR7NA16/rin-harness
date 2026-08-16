@@ -3,7 +3,7 @@ import { useChatStore } from '../../stores/chatStore'
 import { useTabStore } from '../../stores/tabStore'
 import { useTranslation } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
-import { DiffViewer } from './DiffViewer'
+import { SuspendedDiffViewer } from './lazyRenderers'
 import { Icon } from '../shared/Icon'
 import { kbdChipClass } from '../shared/styles'
 
@@ -90,11 +90,11 @@ function renderPermissionPreview(toolName: string, input: unknown) {
   const filePath = typeof obj.file_path === 'string' ? obj.file_path : 'file'
 
   if (toolName === 'Edit' && typeof obj.old_string === 'string' && typeof obj.new_string === 'string') {
-    return <DiffViewer filePath={filePath} oldString={obj.old_string} newString={obj.new_string} />
+    return <SuspendedDiffViewer filePath={filePath} oldString={obj.old_string} newString={obj.new_string} />
   }
 
   if (toolName === 'Write' && typeof obj.content === 'string') {
-    return <DiffViewer filePath={filePath} oldString="" newString={obj.content} />
+    return <SuspendedDiffViewer filePath={filePath} oldString="" newString={obj.content} />
   }
 
   if (toolName === 'Bash' && typeof obj.command === 'string') {

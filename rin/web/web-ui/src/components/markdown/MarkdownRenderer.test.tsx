@@ -59,24 +59,24 @@ describe('MarkdownRenderer', () => {
     expect(screen.getByText('claude-sonnet-4-6')).toBeInTheDocument()
   })
 
-  it('renders mermaid fenced blocks with the Mermaid renderer', () => {
+  it('renders mermaid fenced blocks with the Mermaid renderer', async () => {
     render(<MarkdownRenderer content={'```mermaid\ngraph TB\nA-->B\n```'} />)
 
-    expect(screen.getByText('Rendering diagram...')).toBeInTheDocument()
+    expect(await screen.findByText('Rendering diagram...')).toBeInTheDocument()
     expect(screen.queryByText('mermaid')).not.toBeInTheDocument()
   })
 
-  it('detects mermaid diagrams even when the fence has no language tag', () => {
+  it('detects mermaid diagrams even when the fence has no language tag', async () => {
     render(<MarkdownRenderer content={'```\ngraph TB\nA-->B\n```'} />)
 
-    expect(screen.getByText('Rendering diagram...')).toBeInTheDocument()
+    expect(await screen.findByText('Rendering diagram...')).toBeInTheDocument()
     expect(screen.queryByText('graph TB')).not.toBeInTheDocument()
   })
 
-  it('keeps non-mermaid code fences in the normal code viewer', () => {
+  it('keeps non-mermaid code fences in the normal code viewer', async () => {
     render(<MarkdownRenderer content={'```ts\nconst value = 1\n```'} />)
 
-    expect(screen.getByText('ts')).toBeInTheDocument()
+    expect(await screen.findByText('ts')).toBeInTheDocument()
     expect(screen.getByText('const value = 1')).toBeInTheDocument()
     expect(screen.queryByText('Rendering diagram...')).not.toBeInTheDocument()
   })

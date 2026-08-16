@@ -1,4 +1,4 @@
-import { motion } from 'motion/react'
+import { motion } from 'framer-motion'
 import { useTranslation, type TranslationKey } from '../../i18n'
 import type {
   PromptMemoryInsight,
