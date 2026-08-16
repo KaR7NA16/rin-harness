@@ -32,9 +32,21 @@ importers:
       '@deepseek-ai/dsh-tool-session-query':
         specifier: workspace:^
         version: link:packages/session-query/tool-session-query
+      '@rin/brief':
+        specifier: workspace:^
+        version: link:rin/capability/brief
+      '@rin/doctor':
+        specifier: workspace:^
+        version: link:rin/core/doctor
+      '@rin/monitor':
+        specifier: workspace:^
+        version: link:rin/core/monitor
       '@rin/repository':
         specifier: workspace:^
         version: link:rin/core/repository
+      '@rin/review':
+        specifier: workspace:^
+        version: link:rin/capability/review
       '@stylistic/eslint-plugin':
         specifier: ^5.10.0
         version: 5.10.0(eslint@10.5.0(jiti@2.7.0))
@@ -8587,6 +8599,28 @@ importers:
         specifier: ^4.1.8
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
+  rin/automation/mcp-client:
+    dependencies:
+      '@deepseek-ai/dsh-mcp-client':
+        specifier: workspace:^
+        version: link:../../../packages/mcp/mcp-client
+      '@rin/mcp':
+        specifier: workspace:^
+        version: link:../mcp
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+
   rin/automation/provider-probe:
     devDependencies:
       '@deepseek-ai/cordis':
@@ -8622,39 +8656,117 @@ importers:
       '@deepseek-ai/dsh-base':
         specifier: workspace:^
         version: link:../../../packages/bundle/base
+      '@deepseek-ai/dsh-code-runtime':
+        specifier: workspace:^
+        version: link:../../../packages/code-runtime/code-runtime
+      '@deepseek-ai/dsh-code-runtime-worker-thread':
+        specifier: workspace:^
+        version: link:../../../packages/code-runtime/code-runtime-worker-thread
+      '@deepseek-ai/dsh-lsp':
+        specifier: workspace:^
+        version: link:../../../packages/lsp/lsp
+      '@deepseek-ai/dsh-lsp-stdio':
+        specifier: workspace:^
+        version: link:../../../packages/lsp/lsp-stdio
+      '@deepseek-ai/dsh-schedule':
+        specifier: workspace:^
+        version: link:../../../packages/schedule/schedule
+      '@deepseek-ai/dsh-storage':
+        specifier: workspace:^
+        version: link:../../../packages/storage/storage
+      '@deepseek-ai/dsh-storage-domain':
+        specifier: workspace:^
+        version: link:../../../packages/storage/storage-domain
+      '@deepseek-ai/dsh-storage-json':
+        specifier: workspace:^
+        version: link:../../../packages/storage/storage-json
+      '@deepseek-ai/dsh-terminal':
+        specifier: workspace:^
+        version: link:../../../packages/terminal/terminal
+      '@deepseek-ai/dsh-terminal-bash':
+        specifier: workspace:^
+        version: link:../../../packages/terminal/terminal-bash
+      '@deepseek-ai/dsh-time-context':
+        specifier: workspace:^
+        version: link:../../../packages/context/time-context
+      '@deepseek-ai/dsh-tool-bash-persistent':
+        specifier: workspace:^
+        version: link:../../../packages/shell/tool-bash-persistent
+      '@deepseek-ai/dsh-tool-lsp':
+        specifier: workspace:^
+        version: link:../../../packages/lsp/tool-lsp
+      '@deepseek-ai/dsh-tool-session-query':
+        specifier: workspace:^
+        version: link:../../../packages/session-query/tool-session-query
+      '@deepseek-ai/dsh-tool-terminal':
+        specifier: workspace:^
+        version: link:../../../packages/terminal/tool-terminal
+      '@deepseek-ai/dsh-workspace':
+        specifier: workspace:^
+        version: link:../../../packages/workspace/workspace
       '@rin/agent-migration':
         specifier: workspace:^
         version: link:../../automation/agent-migration
       '@rin/agents':
         specifier: workspace:^
         version: link:../../workspace/agents
+      '@rin/brief':
+        specifier: workspace:^
+        version: link:../../capability/brief
+      '@rin/codegraph':
+        specifier: workspace:^
+        version: link:../../optimization/codegraph
       '@rin/computer-use':
         specifier: workspace:^
         version: link:../../automation/computer-use
+      '@rin/doctor':
+        specifier: workspace:^
+        version: link:../../core/doctor
       '@rin/environment':
         specifier: workspace:^
         version: link:../../core/environment
       '@rin/evolution':
         specifier: workspace:^
         version: link:../../learning/evolution
+      '@rin/filesystem':
+        specifier: workspace:^
+        version: link:../../core/filesystem
       '@rin/knowledge':
         specifier: workspace:^
         version: link:../../memory/knowledge
       '@rin/mcp':
         specifier: workspace:^
         version: link:../../automation/mcp
+      '@rin/mcp-client':
+        specifier: workspace:^
+        version: link:../../automation/mcp-client
+      '@rin/monitor':
+        specifier: workspace:^
+        version: link:../../core/monitor
       '@rin/notes':
         specifier: workspace:^
         version: link:../../notes/notes
+      '@rin/plugins':
+        specifier: workspace:^
+        version: link:../../workspace/plugins
       '@rin/prompt-memory':
         specifier: workspace:^
         version: link:../../memory/prompt-memory
+      '@rin/provider-probe':
+        specifier: workspace:^
+        version: link:../../automation/provider-probe
       '@rin/repository':
         specifier: workspace:^
         version: link:../../core/repository
+      '@rin/review':
+        specifier: workspace:^
+        version: link:../../capability/review
       '@rin/sandboxes':
         specifier: workspace:^
         version: link:../../workspace/sandboxes
+      '@rin/session-backup':
+        specifier: workspace:^
+        version: link:../../core/session-backup
       '@rin/session-search':
         specifier: workspace:^
         version: link:../../memory/session-search
@@ -8676,6 +8788,50 @@ importers:
       '@rin/web-server':
         specifier: workspace:^
         version: link:../../web/web-server
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+
+  rin/capability/brief:
+    dependencies:
+      '@deepseek-ai/dsh-commands':
+        specifier: workspace:^
+        version: link:../../../packages/interaction/commands
+      '@deepseek-ai/dsh-llm':
+        specifier: workspace:^
+        version: link:../../../packages/llm/llm
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:^
+        version: link:../../../packages/core/tools
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+
+  rin/capability/review:
+    dependencies:
+      '@deepseek-ai/dsh-commands':
+        specifier: workspace:^
+        version: link:../../../packages/interaction/commands
+      '@deepseek-ai/dsh-llm':
+        specifier: workspace:^
+        version: link:../../../packages/llm/llm
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:^
+        version: link:../../../packages/core/tools
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -8718,6 +8874,25 @@ importers:
         specifier: ^4.1.8
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
+  rin/core/doctor:
+    dependencies:
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:^
+        version: link:../../../packages/core/tools
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+
   rin/core/environment:
     dependencies:
       '@rin/repository':
@@ -8735,6 +8910,25 @@ importers:
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
   rin/core/filesystem:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@26.1.2)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+
+  rin/core/monitor:
+    dependencies:
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:^
+        version: link:../../../packages/core/tools
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -8975,6 +9169,9 @@ importers:
       '@rin/computer-use':
         specifier: workspace:^
         version: link:../../automation/computer-use
+      '@rin/doctor':
+        specifier: workspace:^
+        version: link:../../core/doctor
       '@rin/environment':
         specifier: workspace:^
         version: link:../../core/environment
@@ -8990,6 +9187,9 @@ importers:
       '@rin/mcp':
         specifier: workspace:^
         version: link:../../automation/mcp
+      '@rin/monitor':
+        specifier: workspace:^
+        version: link:../../core/monitor
       '@rin/notes':
         specifier: workspace:^
         version: link:../../notes/notes
@@ -9041,6 +9241,12 @@ importers:
       '@vscode/codicons':
         specifier: ^0.0.45
         version: 0.0.45
+      '@xterm/addon-fit':
+        specifier: ^0.11.0
+        version: 0.11.0
+      '@xterm/xterm':
+        specifier: ^6.0.0
+        version: 6.0.0
       dompurify:
         specifier: ^3.3.3
         version: 3.4.11
@@ -12354,6 +12560,12 @@ packages:
 
   '@vueuse/shared@12.8.2':
     resolution: {integrity: sha512-dznP38YzxZoNloI0qpEfpkms8knDtaoQ6Y/sfS0L7Yki4zh40LFHEhur0odJC6xTHG5dxWVPiUWBXn+wCG2s5w==}
+
+  '@xterm/addon-fit@0.11.0':
+    resolution: {integrity: sha512-jYcgT6xtVYhnhgxh3QgYDnnNMYTcf8ElbxxFzX0IZo+vabQqSPAjC3c1wJrKB5E19VwQei89QCiZZP86DCPF7g==}
+
+  '@xterm/xterm@6.0.0':
+    resolution: {integrity: sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg==}
 
   '@yarnpkg/cli-dist@4.17.1':
     resolution: {integrity: sha512-2tiSQuJNl/L3QwTdrq6lKWDpkcnp9MGvCT/rIldHcbu3SWfnLdmehvt3eulX1hT7FFt1Gjfq3CesF+kvhFip6g==}
@@ -18205,6 +18417,10 @@ snapshots:
       vue: 3.5.39(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
+
+  '@xterm/addon-fit@0.11.0': {}
+
+  '@xterm/xterm@6.0.0': {}
 
   '@yarnpkg/cli-dist@4.17.1': {}
 
