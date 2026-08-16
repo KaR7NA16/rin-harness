@@ -583,19 +583,66 @@ describe('legacy: token optimization', () => {
   })
 
   test('codegraph read requires the codegraph service', async () => {
-    const res = await handle('/api/token-optimization/codegraph', '', 'GET', undefined, makeServices(), config)
+    const res = await handle('/api/token-optimization/codegraph', '?projectPath=%2Fp', 'GET', undefined, makeServices(), config)
     expect(res).toEqual({ status: 200, body: { mounted: false } })
   })
 
-  test('codegraph status requires path', async () => {
+  test('codegraph status requires projectPath', async () => {
     const s = makeServices({ codegraph: () => ({}) })
     const res = await handle('/api/token-optimization/codegraph', '', 'GET', undefined, s, config)
-    expect(res).toEqual({ status: 400, body: { error: 'path is required' } })
+    expect(res).toEqual({ status: 400, body: { error: 'projectPath is required' } })
+  })
+
+  test('codegraph status returns the service status', async () => {
+    const statusBody = { projectPath: '/p', indexable: true, enabled: true, state: 'ready', progress: null, stats: null, error: null, bundledLanguages: [] }
+    const s = makeServices({ codegraph: () => ({ status: () => statusBody }) })
+    const res = await handle('/api/token-optimization/codegraph', '?projectPath=%2Fp', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 200, body: statusBody })
+  })
+
+  test('codegraph graph requires projectPath', async () => {
+    const s = makeServices({ codegraph: () => ({}) })
+    const res = await handle('/api/token-optimization/codegraph/graph', '', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 400, body: { error: 'projectPath is required' } })
+  })
+
+  test('codegraph graph returns the visualization', async () => {
+    const vis = { nodes: [], edges: [], architecture: { analyzedNodeCount: 0, analyzedEdgeCount: 0, availableNodeCount: 0, truncated: false, communities: [], hubNodeIds: [], bridgeNodeIds: [], confidence: { extracted: 0, inferred: 0, unknown: 0 } } }
+    const s = makeServices({ codegraph: () => ({ visualization: () => vis }) })
+    const res = await handle('/api/token-optimization/codegraph/graph', '?projectPath=%2Fp&limit=50', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 200, body: vis })
+  })
+
+  test('codegraph enable/disable/rebuild require projectPath in body', async () => {
+    const s = makeServices({ codegraph: () => ({}) })
+    expect(await handle('/api/token-optimization/codegraph/enable', '', 'POST', {}, s, config)).toEqual({ status: 400, body: { error: 'projectPath is required' } })
+    expect(await handle('/api/token-optimization/codegraph/disable', '', 'POST', {}, s, config)).toEqual({ status: 400, body: { error: 'projectPath is required' } })
+    expect(await handle('/api/token-optimization/codegraph/rebuild', '', 'POST', {}, s, config)).toEqual({ status: 400, body: { error: 'projectPath is required' } })
+  })
+
+  test('codegraph enable/rebuild return 202 and disable returns 200', async () => {
+    const statusBody = { projectPath: '/p', indexable: true, enabled: true, state: 'preparing', progress: null, stats: null, error: null, bundledLanguages: [] }
+    const s = makeServices({ codegraph: () => ({ enable: async () => statusBody, disable: async () => statusBody, rebuild: async () => statusBody }) })
+    expect(await handle('/api/token-optimization/codegraph/enable', '', 'POST', { projectPath: '/p' }, s, config)).toEqual({ status: 202, body: statusBody })
+    expect(await handle('/api/token-optimization/codegraph/rebuild', '', 'POST', { projectPath: '/p' }, s, config)).toEqual({ status: 202, body: statusBody })
+    expect(await handle('/api/token-optimization/codegraph/disable', '', 'POST', { projectPath: '/p' }, s, config)).toEqual({ status: 200, body: statusBody })
+  })
+
+  test('codegraph enable requires POST', async () => {
+    const s = makeServices({ codegraph: () => ({}) })
+    expect(await handle('/api/token-optimization/codegraph/enable', '', 'GET', undefined, s, config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
+  })
+
+  test('codegraph global status and enable/disable', async () => {
+    const s = makeServices({ codegraph: () => ({ globalStatus: () => ({ enabled: true }), enableGlobal: () => ({ enabled: true }), disableGlobal: async () => ({ enabled: false }) }) })
+    expect(await handle('/api/token-optimization/codegraph/global', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { enabled: true } })
+    expect(await handle('/api/token-optimization/codegraph/global/enable', '', 'POST', undefined, s, config)).toEqual({ status: 200, body: { enabled: true } })
+    expect(await handle('/api/token-optimization/codegraph/global/disable', '', 'POST', undefined, s, config)).toEqual({ status: 200, body: { enabled: false } })
   })
 
   test('rtk returns unavailable', async () => {
     const res = await handle('/api/token-optimization/rtk', '', 'GET', undefined, makeServices(), config)
-    expect(res).toEqual({ status: 200, body: { enabled: false, available: false, version: null, stats: null, error: 'codegraph indexer is not available on this host (only graph read is)' } })
+    expect(res).toEqual({ status: 200, body: { enabled: false, available: false, version: null, stats: null, error: 'rtk is not available on this host' } })
   })
 
   test('unknown token endpoint returns 404', async () => {

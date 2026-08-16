@@ -1488,9 +1488,15 @@ async function tokenOptimizationRoute(
 ): Promise<JsonResponse> {
   if (pathname === '/api/token-optimization/codegraph/graph') return codegraphGraphRoute(search, services)
   if (pathname === '/api/token-optimization/codegraph') return codegraphStatusRoute(search, services)
-  if (pathname.includes('/codegraph') || pathname.includes('/rtk')) {
-    // Enable/disable/rebuild require the tree-sitter indexer, which is not yet ported.
-    return json(200, { enabled: false, available: false, version: null, stats: null, error: 'codegraph indexer is not available on this host (only graph read is)' })
+  if (pathname === '/api/token-optimization/codegraph/global/enable') return codegraphGlobalWriteRoute(method, services, true)
+  if (pathname === '/api/token-optimization/codegraph/global/disable') return codegraphGlobalWriteRoute(method, services, false)
+  if (pathname === '/api/token-optimization/codegraph/global') return codegraphGlobalStatusRoute(method, services)
+  if (pathname === '/api/token-optimization/codegraph/enable') return codegraphEnableRoute(method, body, services)
+  if (pathname === '/api/token-optimization/codegraph/disable') return codegraphDisableRoute(method, body, services)
+  if (pathname === '/api/token-optimization/codegraph/rebuild') return codegraphRebuildRoute(method, body, services)
+  if (pathname.includes('/rtk')) {
+    // rtk (response token keeping) is a native desktop optimization, not ported to the web host.
+    return json(200, { enabled: false, available: false, version: null, stats: null, error: 'rtk is not available on this host' })
   }
 
   const token = services.tokenOptimization()
@@ -1958,11 +1964,11 @@ async function agentMigrationPreviewRoute(rawId: string, search: string, service
 async function codegraphGraphRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
   const codegraph = services.codegraph()
   if (codegraph === undefined) return notMounted()
-  const path = queryParam(search, 'path')
-  if (path === undefined) return error(400, 'path is required')
+  const projectPath = queryParam(search, 'projectPath')
+  if (projectPath === undefined) return error(400, 'projectPath is required')
   const rawLimit = Number(queryParam(search, 'limit') ?? '120')
   try {
-    return json(200, codegraph.visualization(path, Number.isFinite(rawLimit) ? rawLimit : 120))
+    return json(200, codegraph.visualization(projectPath, Number.isFinite(rawLimit) ? rawLimit : 120))
   } catch (err) {
     return error(404, errorMessage(err))
   }
@@ -1971,13 +1977,75 @@ async function codegraphGraphRoute(search: string, services: RinServiceRefs): Pr
 async function codegraphStatusRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
   const codegraph = services.codegraph()
   if (codegraph === undefined) return notMounted()
-  const path = queryParam(search, 'path')
-  if (path === undefined) return error(400, 'path is required')
+  const projectPath = queryParam(search, 'projectPath')
+  if (projectPath === undefined) return error(400, 'projectPath is required')
   try {
-    return json(200, codegraph.status(path))
+    return json(200, codegraph.status(projectPath))
   } catch (err) {
     return error(500, errorMessage(err))
   }
+}
+
+async function codegraphGlobalStatusRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'GET') return error(405, 'method not allowed')
+  const codegraph = services.codegraph()
+  if (codegraph === undefined) return notMounted()
+  return json(200, codegraph.globalStatus())
+}
+
+async function codegraphGlobalWriteRoute(method: string, services: RinServiceRefs, enable: boolean): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const codegraph = services.codegraph()
+  if (codegraph === undefined) return notMounted()
+  try {
+    return json(200, enable ? codegraph.enableGlobal() : await codegraph.disableGlobal())
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function codegraphEnableRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const codegraph = services.codegraph()
+  if (codegraph === undefined) return notMounted()
+  const projectPath = codegraphProjectPathFromBody(body)
+  if (projectPath === undefined) return error(400, 'projectPath is required')
+  try {
+    return json(202, await codegraph.enable(projectPath))
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
+}
+
+async function codegraphDisableRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const codegraph = services.codegraph()
+  if (codegraph === undefined) return notMounted()
+  const projectPath = codegraphProjectPathFromBody(body)
+  if (projectPath === undefined) return error(400, 'projectPath is required')
+  try {
+    return json(200, await codegraph.disable(projectPath))
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
+}
+
+async function codegraphRebuildRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const codegraph = services.codegraph()
+  if (codegraph === undefined) return notMounted()
+  const projectPath = codegraphProjectPathFromBody(body)
+  if (projectPath === undefined) return error(400, 'projectPath is required')
+  try {
+    return json(202, await codegraph.rebuild(projectPath))
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
+}
+
+function codegraphProjectPathFromBody(body: unknown): string | undefined {
+  const fields = asRecord(body)
+  return fields === undefined ? undefined : stringField(fields, 'projectPath')
 }
 
 async function pluginsListRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
