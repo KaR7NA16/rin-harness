@@ -9,9 +9,10 @@
  * @module @rin/web-server
  */
 
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { buildPromptMemoryInsights } from '@rin/prompt-memory'
 import type { Config, JsonResponse, ResponseStyle } from '../types.ts'
 import {
@@ -117,11 +118,14 @@ export async function handle(
 
   // Settings / models / providers minimal compatibility
   if (pathname === '/api/settings/user') return settingsUserRoute(method, body)
+  if (pathname === '/api/settings/cli-launcher') return cliLauncherRoute(method)
   if (pathname === '/api/permissions/mode') return permissionsModeRoute(method, body)
-  if (pathname === '/api/permissions/rules') return permissionsRulesRoute(method)
+  if (pathname === '/api/permissions/rules') return permissionsRulesRoute(method, body, search)
   if (pathname === '/api/models') return modelsRoute(services)
-  if (pathname === '/api/models/current') return modelsCurrentRoute(services)
-  if (pathname === '/api/effort') return json(200, { level: 'medium', available: ['low', 'medium', 'high'] })
+  if (pathname === '/api/models/current') return modelsCurrentRoute(method, body, services)
+  if (pathname === '/api/effort') return effortRoute(method, body, services)
+  if (pathname === '/api/status') return statusRoute()
+  if (pathname === '/api/adapters') return adaptersRoute(method, body)
   if (pathname === '/api/providers') return providersRoute(method, body)
   if (pathname === '/api/providers/presets') return json(200, { presets: PROVIDER_PRESETS })
   if (pathname === '/api/providers/auth-status') return authStatusRoute(services)
@@ -529,27 +533,178 @@ async function providerItemRoute(
 
 /* ---------------------- settings/models/providers ---------------------- */
 
-function settingsUserRoute(method: string, _body: unknown): JsonResponse {
-  if (method === 'GET') return json(200, {})
-  if (method === 'PUT') return json(200, { ok: true })
+/* ---------------------- rin settings file store ---------------------- */
+
+interface RinSettingsFile {
+  user: Record<string, unknown>
+  permissionMode: string
+  permissionRules: Array<Record<string, unknown>>
+  effort: string
+  currentModelId: string | null
+}
+
+const VALID_PERMISSION_MODES = ['default', 'acceptEdits', 'plan', 'bypassPermissions', 'dontAsk']
+const VALID_EFFORT_LEVELS = ['low', 'medium', 'high', 'max']
+
+function rinConfigDir(): string {
+  return process.env.RIN_HOME ?? join(homedir(), '.rin')
+}
+
+function settingsFilePath(): string {
+  return join(rinConfigDir(), 'settings.json')
+}
+
+async function readSettingsFile(): Promise<RinSettingsFile> {
+  try {
+    const parsed = JSON.parse(await readFile(settingsFilePath(), 'utf-8')) as Partial<RinSettingsFile>
+    return {
+      user: asRecord(parsed.user) ?? {},
+      permissionMode: typeof parsed.permissionMode === 'string' ? parsed.permissionMode : 'default',
+      permissionRules: Array.isArray(parsed.permissionRules) ? parsed.permissionRules : [],
+      effort: typeof parsed.effort === 'string' ? parsed.effort : 'medium',
+      currentModelId: typeof parsed.currentModelId === 'string' ? parsed.currentModelId : null,
+    }
+  } catch {
+    return { user: {}, permissionMode: 'default', permissionRules: [], effort: 'medium', currentModelId: null }
+  }
+}
+
+async function writeSettingsFile(store: RinSettingsFile): Promise<void> {
+  const path = settingsFilePath()
+  await mkdir(dirname(path), { recursive: true }).catch(() => {})
+  await writeFile(path, JSON.stringify(store, null, 2))
+}
+
+async function settingsUserRoute(method: string, body: unknown): Promise<JsonResponse> {
+  if (method === 'GET') return json(200, (await readSettingsFile()).user)
+  if (method === 'PUT') {
+    const fields = asRecord(body)
+    if (fields === undefined) return error(400, 'request body must be a JSON object')
+    const store = await readSettingsFile()
+    store.user = { ...store.user, ...fields }
+    await writeSettingsFile(store)
+    return json(200, { ok: true })
+  }
   return error(405, 'method not allowed')
 }
 
-function permissionsModeRoute(method: string, body: unknown): JsonResponse {
-  if (method === 'GET') return json(200, { mode: 'default' })
+async function permissionsModeRoute(method: string, body: unknown): Promise<JsonResponse> {
+  const store = await readSettingsFile()
+  if (method === 'GET') return json(200, { mode: store.permissionMode })
   if (method === 'PUT') {
     const fields = asRecord(body)
     const mode = fields === undefined ? 'default' : stringField(fields, 'mode') ?? 'default'
+    if (!VALID_PERMISSION_MODES.includes(mode)) return error(400, 'invalid permission mode')
+    store.permissionMode = mode
+    await writeSettingsFile(store)
     return json(200, { ok: true, mode })
   }
   return error(405, 'method not allowed')
 }
 
-function permissionsRulesRoute(method: string): JsonResponse {
-  if (method === 'GET') return json(200, { rules: [] })
-  if (method === 'POST') return json(200, { ok: true, rule: { source: 'userSettings', behavior: 'ask', ruleString: '', toolName: '' } })
-  if (method === 'DELETE') return json(200, { ok: true })
+async function permissionsRulesRoute(method: string, body: unknown, search: string): Promise<JsonResponse> {
+  const store = await readSettingsFile()
+  if (method === 'GET') return json(200, { rules: store.permissionRules })
+  if (method === 'POST') {
+    const fields = asRecord(body)
+    if (fields === undefined) return error(400, 'request body must be a JSON object')
+    const behavior = fields['behavior'] === 'allow' || fields['behavior'] === 'deny' || fields['behavior'] === 'ask'
+      ? fields['behavior']
+      : 'ask'
+    const source = fields['source'] === 'projectSettings' || fields['source'] === 'localSettings'
+      ? fields['source']
+      : 'userSettings'
+    const toolName = stringField(fields, 'toolName') ?? ''
+    const ruleContent = stringField(fields, 'ruleContent')
+    const rule: Record<string, unknown> = {
+      source,
+      behavior,
+      ruleString: ruleContent ?? toolName,
+      toolName,
+      ...(ruleContent !== undefined ? { ruleContent } : {}),
+    }
+    store.permissionRules.push(rule)
+    await writeSettingsFile(store)
+    return json(200, { ok: true, rule })
+  }
+  if (method === 'DELETE') {
+    const toolName = queryParam(search, 'toolName') ?? ''
+    const behavior = queryParam(search, 'behavior') ?? ''
+    const source = queryParam(search, 'source') ?? ''
+    store.permissionRules = store.permissionRules.filter(rule =>
+      !(rule['toolName'] === toolName && rule['behavior'] === behavior && rule['source'] === source))
+    await writeSettingsFile(store)
+    return json(200, { ok: true })
+  }
   return error(405, 'method not allowed')
+}
+
+async function effortRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  const defaultModel = services.agentDefaultModel()
+  if (defaultModel === undefined) return error(404, 'no default model service mounted')
+  if (method === 'GET') return json(200, { level: defaultModel.currentSelection().reasoningEffort ?? 'medium', available: VALID_EFFORT_LEVELS })
+  if (method === 'PUT') {
+    const fields = asRecord(body)
+    const level = fields === undefined ? 'medium' : stringField(fields, 'level') ?? 'medium'
+    if (!VALID_EFFORT_LEVELS.includes(level)) return error(400, 'invalid effort level')
+    const current = defaultModel.currentSelection()
+    try {
+      await defaultModel.saveSelection({ provider: current.provider, model: current.model, reasoningEffort: level })
+      return json(200, { ok: true, level })
+    } catch (err) {
+      return error(500, errorMessage(err))
+    }
+  }
+  return error(405, 'method not allowed')
+}
+
+function statusRoute(): JsonResponse {
+  return json(200, { status: 'ok', version: '0.1.0', uptime: Math.round(process.uptime()) })
+}
+
+async function adaptersRoute(method: string, body: unknown): Promise<JsonResponse> {
+  const path = join(rinConfigDir(), 'adapters.json')
+  if (method === 'GET') {
+    try {
+      return json(200, JSON.parse(await readFile(path, 'utf-8')))
+    } catch {
+      return json(200, {})
+    }
+  }
+  if (method === 'PUT') {
+    const fields = asRecord(body)
+    if (fields === undefined) return error(400, 'request body must be a JSON object')
+    await mkdir(dirname(path), { recursive: true }).catch(() => {})
+    await writeFile(path, JSON.stringify(fields, null, 2))
+    return json(200, fields)
+  }
+  return error(405, 'method not allowed')
+}
+
+async function cliLauncherRoute(method: string): Promise<JsonResponse> {
+  if (method !== 'GET') return error(405, 'method not allowed')
+  const binDir = join(homedir(), '.local', 'bin')
+  const launcherPath = join(binDir, 'rin')
+  let installed = false
+  try {
+    await access(launcherPath)
+    installed = true
+  } catch {
+    // Launcher not present is a normal, reportable state.
+  }
+  return json(200, {
+    supported: true,
+    command: 'rin',
+    installed,
+    launcherPath,
+    binDir,
+    pathConfigured: false,
+    pathInCurrentShell: false,
+    availableInNewTerminals: installed,
+    needsTerminalRestart: false,
+    configTarget: installed ? launcherPath : null,
+    lastError: installed ? null : 'rin CLI launcher is not installed',
+  })
 }
 
 async function modelsRoute(services: RinServiceRefs): Promise<JsonResponse> {
@@ -573,15 +728,32 @@ async function modelsRoute(services: RinServiceRefs): Promise<JsonResponse> {
   }
 }
 
-async function modelsCurrentRoute(services: RinServiceRefs): Promise<JsonResponse> {
+async function modelsCurrentRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  const defaultModel = services.agentDefaultModel()
   const llm = services.llm()
-  if (llm === undefined) return error(404, 'no llm service mounted')
-  const provider = llm.listProviders()[0]
-  if (provider === undefined) return error(404, 'no model configured')
-  const models = await llm.listModels(provider.id)
-  const model = models[0]
-  if (model === undefined) return error(404, 'no model configured')
-  return json(200, { model: { id: model.id, name: model.name, description: '', context: '0' } })
+  if (defaultModel === undefined) return error(404, 'no default model service mounted')
+
+  if (method === 'PUT') {
+    const fields = asRecord(body)
+    const modelId = fields === undefined ? undefined : stringField(fields, 'modelId')
+    if (modelId === undefined) return error(400, 'modelId is required')
+    const current = defaultModel.currentSelection()
+    try {
+      await defaultModel.saveSelection({
+        provider: current.provider,
+        model: modelId,
+        ...(current.reasoningEffort === undefined ? {} : { reasoningEffort: current.reasoningEffort }),
+      })
+      return json(200, { ok: true, model: modelId })
+    } catch (err) {
+      return error(500, errorMessage(err))
+    }
+  }
+
+  const selection = defaultModel.currentSelection()
+  const providerModels = llm === undefined ? [] : await llm.listModels(selection.provider)
+  const name = providerModels.find(model => model.id === selection.model)?.name ?? selection.model
+  return json(200, { model: { id: selection.model, name, description: '', context: '0' } })
 }
 
 
@@ -1453,7 +1625,15 @@ async function sessionsCreateRoute(
   const fields = asRecord(body)
   const workDir = fields === undefined ? undefined : stringField(fields, 'workDir')
   try {
-    const session = store.create(undefined, { meta: { cwd: workDir ?? process.cwd() } })
+    // Mint a globally-unique id instead of dsh's in-memory `session-<n>`
+    // counter: that counter resets on every host restart and collides with
+    // persisted logs still on disk (`refusing to materialize ... a log already
+    // exists`), which is fatal at createAgent time. `session-<uuid>` matches the
+    // id shape dsh's own web sessions use and cannot collide.
+    // Prepare, do not enter: dsh's agent factory prepares the session again
+    // when a chat message arrives (createAgent -> sessions.prepare), which
+    // throws "already exists" if this route entered it into the store first.
+    const session = store.prepare(`session-${randomUUID()}`, { meta: { cwd: workDir ?? process.cwd() } })
     return json(200, {
       sessionId: session.id,
       session: {

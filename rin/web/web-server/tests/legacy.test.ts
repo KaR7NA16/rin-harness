@@ -154,7 +154,7 @@ describe('legacy: sessions', () => {
   })
 
   test('create returns new session', async () => {
-    const s = makeServices({ sessions: () => ({ create() { return { id: 's-new-12345678', events: [] } } }) })
+    const s = makeServices({ sessions: () => ({ create() { return { id: 's-new-12345678', events: [] } }, prepare() { return { id: 's-new-12345678', events: [] } } }) })
     const res = await handle('/api/sessions', '', 'POST', { workDir: '/w' }, s, config)
     expect(res?.status).toBe(200)
     expect(res?.body.sessionId).toBe('s-new-12345678')
@@ -757,8 +757,21 @@ describe('legacy: settings/models/providers', () => {
     expect(await handle('/api/permissions/rules', '', 'DELETE', undefined, makeServices(), config)).toEqual({ status: 200, body: { ok: true } })
   })
 
-  test('effort returns fixed body', async () => {
-    expect(await handle('/api/effort', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 200, body: { level: 'medium', available: ['low', 'medium', 'high'] } })
+  test('effort reads the default model reasoning effort and saves it', async () => {
+    let saved: { provider: string; model: string; reasoningEffort?: string } | undefined
+    const s = makeServices({
+      agentDefaultModel: () => ({
+        currentSelection: () => ({ provider: 'p1', model: 'm1' }),
+        saveSelection: async (sel: { provider: string; model: string; reasoningEffort?: string }) => { saved = sel },
+      }),
+    })
+    expect(await handle('/api/effort', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { level: 'medium', available: ['low', 'medium', 'high', 'max'] } })
+    expect(await handle('/api/effort', '', 'PUT', { level: 'high' }, s, config)).toEqual({ status: 200, body: { ok: true, level: 'high' } })
+    expect(saved).toEqual({ provider: 'p1', model: 'm1', reasoningEffort: 'high' })
+  })
+
+  test('effort unmounted returns 404', async () => {
+    expect(await handle('/api/effort', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 404, body: { error: 'no default model service mounted' } })
   })
 
   test('models unmounted returns empty', async () => {
@@ -776,19 +789,38 @@ describe('legacy: settings/models/providers', () => {
     expect(await handle('/api/models', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { models: [], provider: null } })
   })
 
-  test('models current', async () => {
-    const s = makeServices({ llm: () => ({ listProviders: () => [{ id: 'p1', name: 'P1' }], listModels: async () => [{ id: 'm1', name: 'M1' }] }) })
+  test('models current reads the default model selection', async () => {
+    const s = makeServices({
+      agentDefaultModel: () => ({ currentSelection: () => ({ provider: 'p1', model: 'm1' }), saveSelection: async () => {} }),
+      llm: () => ({ listProviders: () => [{ id: 'p1', name: 'P1' }], listModels: async () => [{ id: 'm1', name: 'M1' }] }),
+    })
     const res = await handle('/api/models/current', '', 'GET', undefined, s, config)
     expect(res).toEqual({ status: 200, body: { model: { id: 'm1', name: 'M1', description: '', context: '0' } } })
   })
 
-  test('models current unmounted returns 404', async () => {
-    expect(await handle('/api/models/current', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 404, body: { error: 'no llm service mounted' } })
+  test('models current saves a new selection', async () => {
+    let saved: { provider: string; model: string; reasoningEffort?: string } | undefined
+    const s = makeServices({
+      agentDefaultModel: () => ({
+        currentSelection: () => ({ provider: 'p1', model: 'm1', reasoningEffort: 'low' }),
+        saveSelection: async (sel: { provider: string; model: string; reasoningEffort?: string }) => { saved = sel },
+      }),
+    })
+    expect(await handle('/api/models/current', '', 'PUT', { modelId: 'm2' }, s, config)).toEqual({ status: 200, body: { ok: true, model: 'm2' } })
+    expect(saved).toEqual({ provider: 'p1', model: 'm2', reasoningEffort: 'low' })
   })
 
-  test('models current no provider returns 404', async () => {
-    const s = makeServices({ llm: () => ({ listProviders: () => [] }) })
-    expect(await handle('/api/models/current', '', 'GET', undefined, s, config)).toEqual({ status: 404, body: { error: 'no model configured' } })
+  test('models current unmounted returns 404', async () => {
+    expect(await handle('/api/models/current', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 404, body: { error: 'no default model service mounted' } })
+  })
+
+  test('models current falls back to the model id when the llm has no name', async () => {
+    const s = makeServices({
+      agentDefaultModel: () => ({ currentSelection: () => ({ provider: 'p1', model: 'm1' }), saveSelection: async () => {} }),
+      llm: () => ({ listProviders: () => [], listModels: async () => [] }),
+    })
+    const res = await handle('/api/models/current', '', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 200, body: { model: { id: 'm1', name: 'm1', description: '', context: '0' } } })
   })
 
   test('providers presets', async () => {

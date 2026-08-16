@@ -57,6 +57,7 @@ export interface DshSessionStoreLike {
   list(): DshSessionLike[]
   get(id: string): DshSessionLike | undefined
   create(id?: string, options?: { meta?: { cwd?: string } }): DshSessionLike
+  prepare(id?: string, options?: { meta?: { cwd?: string } }): DshSessionLike
 }
 
 export interface DshSessionPersistenceLike {
@@ -85,7 +86,8 @@ export interface DshAgentRegistryLike {
 }
 
 export interface DshAgentDefaultModelLike {
-  currentSelection(): { provider: string; model: string }
+  currentSelection(): { provider: string; model: string; reasoningEffort?: string }
+  saveSelection(selection: { provider: string; model: string; reasoningEffort?: string }): Promise<void>
 }
 
 /** Minimal structural view of the dsh llm service used by the legacy model picker. */

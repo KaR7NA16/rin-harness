@@ -98,6 +98,22 @@ async function handleClientMessage(
   services: RinServiceRefs,
   agents: Map<string, Promise<DshAgentHandleLike>>,
 ): Promise<void> {
+  try {
+    await handleClientMessageInner(ws, sessionId, message, services, agents)
+  } catch (err) {
+    // A single client message must never take down the whole host: report the
+    // failure on the socket and keep serving.
+    send(ws, { type: 'error', message: err instanceof Error ? err.message : String(err), code: 'INTERNAL' })
+  }
+}
+
+async function handleClientMessageInner(
+  ws: WebSocket,
+  sessionId: string,
+  message: ClientMessage,
+  services: RinServiceRefs,
+  agents: Map<string, Promise<DshAgentHandleLike>>,
+): Promise<void> {
   if (message.type === 'ping') {
     send(ws, { type: 'pong' })
     return
