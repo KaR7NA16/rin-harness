@@ -20,6 +20,9 @@
 - id: environment
   name: '@rin/environment'
 
+- id: filesystem
+  name: '@rin/filesystem'
+
 - id: knowledge
   name: '@rin/knowledge'
   config:

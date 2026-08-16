@@ -21,6 +21,9 @@
       "path": "../../core/environment"
     },
     {
+      "path": "../../core/filesystem"
+    },
+    {
       "path": "../../memory/knowledge"
     },
     {

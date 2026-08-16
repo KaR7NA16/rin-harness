@@ -37,6 +37,7 @@ export const EXCLUDED_BUNDLE = '@deepseek-ai/dsh-web-app'
 export const RIN_HOST_PLUGINS = [
   '@rin/repository',
   '@rin/environment',
+  '@rin/filesystem',
   '@rin/knowledge',
   '@rin/prompt-memory',
   '@rin/skill-memory',

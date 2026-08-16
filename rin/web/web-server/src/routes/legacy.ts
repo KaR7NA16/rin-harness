@@ -15,6 +15,7 @@ import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { buildPromptMemoryInsights } from '@rin/prompt-memory'
 import type { DiscoveryInput, ProviderTestInput } from '@rin/provider-probe'
+import type { BrowseInput } from '@rin/filesystem'
 import type { Config, JsonResponse, ResponseStyle } from '../types.ts'
 import {
   asRecord,
@@ -187,7 +188,7 @@ export async function handle(
   // Features the migrated frontend calls that have no @rin backend service yet.
   // Return an explicit 501 so the UI reports "not available" instead of a bare 404.
   if (pathname.startsWith('/api/plugins')) return notImplemented(method, 'plugin lifecycle management is not implemented on this host')
-  if (pathname.startsWith('/api/filesystem')) return notImplemented(method, 'filesystem browsing is not implemented on this host')
+  if (pathname === '/api/filesystem/browse') return filesystemBrowseRoute(search, services)
   if (pathname.startsWith('/api/rin-oauth')) return notImplemented(method, 'rin OAuth pairing is not implemented on this host')
   if (pathname === '/api/sessions/backup' || pathname === '/api/sessions/backups'
     || pathname === '/api/sessions/backup/restore' || pathname === '/api/sessions/backup-settings'
@@ -821,6 +822,26 @@ function skillsConfigRoute(config: Config): JsonResponse {
 /** Honest 501 for a frontend feature the @rin backend does not implement yet. */
 function notImplemented(_method: string, message: string): JsonResponse {
   return error(501, message)
+}
+
+async function filesystemBrowseRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const filesystem = services.filesystem()
+  if (filesystem === undefined) return notMounted()
+  const input: BrowseInput = { includeFiles: queryParam(search, 'includeFiles') === 'true' }
+  const path = queryParam(search, 'path')
+  if (path !== undefined) input.path = path
+  const searchQuery = queryParam(search, 'search')
+  if (searchQuery !== undefined) input.search = searchQuery
+  const rawMax = Number(queryParam(search, 'maxResults') ?? '200')
+  if (Number.isFinite(rawMax)) input.maxResults = rawMax
+  try {
+    return json(200, await filesystem.browse(input))
+  } catch (err) {
+    const message = errorMessage(err)
+    if (message.includes('Access denied')) return error(403, message)
+    if (message.includes('Not a directory')) return error(400, message)
+    return error(500, message)
+  }
 }
 
 function statusRoute(): JsonResponse {

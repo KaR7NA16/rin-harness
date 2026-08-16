@@ -10,6 +10,7 @@
 
 import type { RepositoryStore } from '@rin/repository'
 import type { EnvironmentStore } from '@rin/environment'
+import type { FilesystemService } from '@rin/filesystem'
 import type { KnowledgeStore } from '@rin/knowledge'
 import type { SessionSearchStore } from '@rin/session-search'
 import type { PromptMemoryService } from '@rin/prompt-memory'
@@ -168,6 +169,7 @@ export interface DshShellLike {
 export interface RinServiceRefs {
   repository(): RepositoryStore | undefined
   environment(): EnvironmentStore | undefined
+  filesystem(): FilesystemService | undefined
   smartPruning(): SmartPruningRef | undefined
   knowledge(): KnowledgeStore | undefined
   sessionSearch(): SessionSearchStore | undefined

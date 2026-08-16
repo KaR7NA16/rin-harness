@@ -16,6 +16,7 @@ import { errorMessage } from './http.ts'
 import { createWebServer } from './server.ts'
 import type { AgentMigrationService } from '@rin/agent-migration'
 import type { ComputerUseService } from '@rin/computer-use'
+import type { FilesystemService } from '@rin/filesystem'
 import type { McpStore } from '@rin/mcp'
 import type { ProviderProbeService } from '@rin/provider-probe'
 import type { TaskStore } from '@rin/tasks'
@@ -89,6 +90,7 @@ export class WebServerService extends Service {
     const services: RinServiceRefs = {
       repository: () => ctx.get('repository'),
       environment: () => ctx.get('environment'),
+      filesystem: () => ctx.get('filesystem') as unknown as FilesystemService | undefined,
       smartPruning: () => ctx.get('smartPruning'),
       knowledge: () => ctx.get('knowledge'),
       sessionSearch: () => ctx.get('sessionSearch'),
