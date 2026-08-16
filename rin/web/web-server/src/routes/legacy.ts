@@ -129,12 +129,19 @@ export async function handle(
   if (pathname === '/api/providers') return providersRoute(method, body)
   if (pathname === '/api/providers/presets') return json(200, { presets: PROVIDER_PRESETS })
   if (pathname === '/api/providers/auth-status') return authStatusRoute(services)
-  if (pathname === '/api/providers/settings') return json(200, {})
+  if (pathname === '/api/providers/settings') return providersSettingsRoute(method, body)
+  if (pathname === '/api/providers/official') return providersOfficialRoute(method, body)
+  if (pathname === '/api/providers/test') return providersTestRoute(method, body)
+  if (pathname === '/api/providers/models/discover') return providersDiscoverRoute(method, body)
   const providerItem = /^\/api\/providers\/([^/]+)(\/([^/]+))?$/.exec(pathname)
   if (providerItem !== null && providerItem[1] !== undefined) {
     return providerItemRoute(providerItem[1], providerItem[3], method, body)
   }
-  if (pathname === '/api/mcp') return mcpListRoute(method, services)
+  if (pathname === '/api/mcp') return mcpListRoute(method, body, services)
+  const mcpItem = /^\/api\/mcp\/([^/]+)(\/([^/]+))?$/.exec(pathname)
+  if (mcpItem !== null && mcpItem[1] !== undefined) {
+    return mcpItemRoute(decodeURIComponent(mcpItem[1]), mcpItem[3], method, body, services)
+  }
 
   // A-class automation/collaboration surfaces over the new @rin services.
   if (pathname === '/api/teams') return teamsListRoute(method, services)
@@ -441,6 +448,54 @@ async function writeProviderStore(store: { activeId: string | null; providers: A
 function maskedApiKey(record: Record<string, unknown>): Record<string, unknown> {
   const apiKey = typeof record['apiKey'] === 'string' ? record['apiKey'] : ''
   return { ...record, apiKey: apiKey === '' ? '' : apiKey.slice(0, 6) + '••••••' }
+}
+
+async function providersSettingsRoute(method: string, body: unknown): Promise<JsonResponse> {
+  const path = join(rinConfigDir(), 'providers-settings.json')
+  if (method === 'GET') {
+    try {
+      return json(200, JSON.parse(await readFile(path, 'utf-8')))
+    } catch {
+      return json(200, {})
+    }
+  }
+  if (method === 'PUT') {
+    const fields = asRecord(body)
+    if (fields === undefined) return error(400, 'request body must be a JSON object')
+    await mkdir(dirname(path), { recursive: true }).catch(() => {})
+    await writeFile(path, JSON.stringify(fields, null, 2))
+    return json(200, { ok: true })
+  }
+  return error(405, 'method not allowed')
+}
+
+async function providersOfficialRoute(method: string, body: unknown): Promise<JsonResponse> {
+  void body
+  if (method !== 'POST') return error(405, 'method not allowed')
+  try {
+    const store = await readProviderStore()
+    store.activeId = null
+    await writeProviderStore(store)
+    return json(200, { ok: true })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function providersTestRoute(method: string, body: unknown): Promise<JsonResponse> {
+  void body
+  if (method !== 'POST') return error(405, 'method not allowed')
+  return json(200, {
+    result: {
+      connectivity: { success: false, latencyMs: 0, error: 'provider connectivity test is not implemented on this host yet' },
+    },
+  })
+}
+
+async function providersDiscoverRoute(method: string, body: unknown): Promise<JsonResponse> {
+  void body
+  if (method !== 'POST') return error(405, 'method not allowed')
+  return error(501, 'provider model discovery is not implemented on this host yet')
 }
 
 async function providersRoute(method: string, body: unknown): Promise<JsonResponse> {
@@ -1281,16 +1336,113 @@ async function teamsListRoute(method: string, services: RinServiceRefs): Promise
   }
 }
 
-async function mcpListRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
-  if (method !== 'GET') return error(405, 'method not allowed')
+async function mcpListRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'GET' && method !== 'POST') return error(405, 'method not allowed')
   const mcp = services.mcp()
-  if (mcp === undefined) return json(200, { servers: [] })
+  if (mcp === undefined) return method === 'GET' ? json(200, { servers: [] }) : error(500, 'mcp service is not mounted')
   try {
+    if (method === 'POST') {
+      const input = mcpInputFromBody(body)
+      if (input === undefined) return error(400, 'name and config.type are required')
+      return json(200, { server: mcpServerDto(await mcp.create(input)) })
+    }
     const servers = await mcp.list()
     return json(200, { servers: servers.map(mcpServerDto) })
   } catch (err) {
     return error(500, errorMessage(err))
   }
+}
+
+async function mcpItemRoute(
+  name: string,
+  action: string | undefined,
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  const mcp = services.mcp()
+  if (mcp === undefined) return notMounted()
+  try {
+    if (action === 'status') {
+      if (method !== 'GET') return error(405, 'method not allowed')
+      const server = await mcp.get(name)
+      if (server === null) return error(404, 'mcp server not found')
+      return json(200, { server: mcpServerDto(server) })
+    }
+    if (action === 'toggle') {
+      if (method !== 'POST') return error(405, 'method not allowed')
+      const server = await mcp.get(name)
+      if (server === null) return error(404, 'mcp server not found')
+      const next = server.status === 'disabled' ? 'checking' : 'disabled'
+      return json(200, { server: mcpServerDto(await mcp.update(name, { status: next })) })
+    }
+    if (action === 'reconnect') {
+      if (method !== 'POST') return error(405, 'method not allowed')
+      const server = await mcp.get(name)
+      if (server === null) return error(404, 'mcp server not found')
+      return json(200, { server: mcpServerDto(await mcp.update(name, { status: 'checking' })) })
+    }
+    if (action !== undefined) return error(404, 'unknown mcp action')
+    if (method === 'PUT') {
+      const input = mcpInputFromBody(body)
+      if (input === undefined) return error(400, 'config.type is required')
+      const { name: _ignored, ...patch } = input
+      void _ignored
+      return json(200, { server: mcpServerDto(await mcp.update(name, patch)) })
+    }
+    if (method === 'DELETE') {
+      await mcp.remove(name)
+      return json(200, { ok: true })
+    }
+    return error(405, 'method not allowed')
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+type McpTransportLike = 'stdio' | 'http' | 'sse'
+
+interface McpInputShape {
+  name: string
+  transport: McpTransportLike
+  command: string
+  args: string[]
+  env: Record<string, string>
+  url?: string
+  headers?: Record<string, string>
+}
+
+/** Project the desktop upsert payload into a store input, or undefined when invalid. */
+function mcpInputFromBody(body: unknown): McpInputShape | undefined {
+  const fields = asRecord(body)
+  if (fields === undefined) return undefined
+  const name = stringField(fields, 'name')
+  if (name === undefined) return undefined
+  const config = fields['config'] === undefined ? undefined : asRecord(fields['config'])
+  const transport = config === undefined ? undefined : stringField(config, 'type')
+  if (transport === undefined) return undefined
+  const normalized: McpTransportLike = transport === 'http' || transport === 'sse' ? transport : 'stdio'
+  const env = config === undefined ? undefined : asRecord(config['env'])
+  const stringEnv: Record<string, string> = {}
+  if (normalized === 'stdio' && env !== undefined) {
+    for (const [key, value] of Object.entries(env)) {
+      if (typeof value === 'string') stringEnv[key] = value
+    }
+  }
+  const headers = config !== undefined ? asRecord(config['headers']) : undefined
+  const stringHeaders: Record<string, string> | undefined = headers === undefined ? undefined : Object.fromEntries(
+    Object.entries(headers).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
+  const url = normalized !== 'stdio' && config !== undefined ? stringField(config, 'url') : undefined
+  const input: McpInputShape = {
+    name,
+    transport: normalized,
+    command: normalized === 'stdio' ? stringField(config ?? {}, 'command') ?? '' : '',
+    args: normalized === 'stdio' && Array.isArray(config?.['args']) ? config['args'].filter((v): v is string => typeof v === 'string') : [],
+    env: stringEnv,
+  }
+  if (url !== undefined) input.url = url
+  if (stringHeaders !== undefined) input.headers = stringHeaders
+  return input
 }
 
 /** The @rin/mcp store fields the route layer projects a desktop DTO from. */
@@ -1306,21 +1458,23 @@ interface McpServerConfigLike {
 }
 
 function mcpServerDto(server: McpServerConfigLike): Record<string, unknown> {
+  const isStdio = server.transport === 'stdio'
   return {
     name: server.name,
     scope: 'user',
     transport: server.transport,
-    command: server.command,
-    args: server.args,
-    env: server.env,
-    ...(server.url !== undefined ? { url: server.url } : {}),
-    ...(server.headers !== undefined ? { headers: server.headers } : {}),
-    status: server.status,
     enabled: server.status !== 'disabled',
+    status: server.status,
     statusLabel: mcpStatusLabel(server.status),
     configLocation: '~/.rin/mcp/servers.json',
     summary: mcpServerSummary(server),
     canEdit: true,
+    canRemove: true,
+    canReconnect: !isStdio,
+    canToggle: true,
+    config: isStdio
+      ? { type: 'stdio', command: server.command, args: server.args, env: server.env }
+      : { type: server.transport, url: server.url ?? '', headers: server.headers ?? {} },
   }
 }
 

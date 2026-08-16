@@ -943,7 +943,11 @@ describe('legacy: mcp', () => {
   })
 
   test('wrong method returns 405', async () => {
-    expect(await handle('/api/mcp', '', 'POST', {}, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
+    expect(await handle('/api/mcp', '', 'PUT', {}, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
+  })
+
+  test('create requires the mcp service', async () => {
+    expect(await handle('/api/mcp', '', 'POST', { name: 'srv', config: { type: 'stdio', command: 'x' } }, makeServices(), config)).toEqual({ status: 500, body: { error: 'mcp service is not mounted' } })
   })
 })
 
