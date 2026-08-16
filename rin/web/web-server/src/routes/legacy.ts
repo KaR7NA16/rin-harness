@@ -120,6 +120,10 @@ export async function handle(
 
   // Agents (legacy desktop paths over @rin/agents)
   if (pathname === '/api/agents') return agentsListRoute(search, services, config)
+  const agentProposal = /^\/api\/agents\/repositories\/([^/]+)\/proposals(?:\/([^/]+)\/(approve|reject))?$/.exec(pathname)
+  if (agentProposal !== null && agentProposal[1] !== undefined) {
+    return agentProposalRoute(agentProposal[1], agentProposal[2], agentProposal[3], method, body, services)
+  }
   const agentRepo = /^\/api\/agents\/repositories\/([^/]+)(\/([^/]+))?$/.exec(pathname)
   if (agentRepo !== null && agentRepo[1] !== undefined) {
     return agentsRepositoryRoute(agentRepo[1], agentRepo[3], method, body, services, config)
@@ -211,8 +215,6 @@ export async function handle(
     || pathname.endsWith('/resolve-environment')) {
     return notImplemented(method, 'repository manifest/install management is not implemented on this host')
   }
-  if (pathname.includes('/proposals')) return notImplemented(method, 'agent proposal approval is not implemented on this host')
-
   return null
 }
 
@@ -339,6 +341,44 @@ async function sandboxesItemRoute(
 }
 
 /* ----------------------------- agents legacy ----------------------------- */
+
+async function agentProposalRoute(
+  repositoryId: string,
+  proposalId: string | undefined,
+  action: string | undefined,
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  const agents = services.agents()
+  if (agents === undefined) return notMounted()
+  try {
+    if (proposalId !== undefined && action !== undefined) {
+      if (method !== 'POST') return error(405, 'method not allowed')
+      if (action === 'approve') {
+        const fields = asRecord(body)
+        const acknowledge = fields?.['acknowledgeBypassRisk'] === true
+        return json(200, { proposal: await agents.approveProposal(proposalId, { acknowledgeBypassRisk: acknowledge }) })
+      }
+      return json(200, { proposal: await agents.rejectProposal(proposalId) })
+    }
+    if (method === 'GET') return json(200, { proposals: await agents.listProposals(repositoryId) })
+    if (method === 'POST') {
+      const fields = asRecord(body)
+      if (fields === undefined) return error(400, 'request body must be a JSON object')
+      const instructions = stringField(fields, 'instructions')
+      if (instructions === undefined) return error(400, 'instructions is required')
+      const request: { instructions: string; currentName?: string } = { instructions }
+      const currentName = fields['currentName'] === undefined ? undefined : stringField(fields, 'currentName')
+      if (currentName !== undefined) request.currentName = currentName
+      const proposal = await agents.prepareProposal(repositoryId, request)
+      return json(200, { proposal })
+    }
+    return error(405, 'method not allowed')
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
 
 async function agentsListRoute(
   search: string,

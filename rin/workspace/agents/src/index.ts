@@ -10,6 +10,7 @@
  * @module @rin/agents
  */
 
+import { randomUUID } from 'node:crypto'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { writableRoot, type PresetRoot } from '@deepseek-ai/dsh-agent-presets'
 import {
@@ -28,6 +29,12 @@ import {
 } from './runtime-agents.ts'
 import { projectRepositoryAgents as projectRepositoryAgentsToRoot } from './projection.ts'
 import { proposeAgent as proposeAgentCore } from './proposal.ts'
+import {
+  loadProposals,
+  proposalStorePath,
+  upsertProposal,
+  type StoredProposal,
+} from './proposal-store.ts'
 import { registerAgentsSeam, type AgentsSeam } from './seam.ts'
 import { expandHome, resolveDefaultPresetRoot } from './paths.ts'
 import type {
@@ -130,6 +137,12 @@ export abstract class AgentStore extends Service {
 
   abstract projectRepositoryAgents(repositoryRoot?: string, options?: ProjectOptions): Promise<ProjectionResult>
   abstract proposeAgent(instructions: string, generate?: AgentGenerate): Promise<AgentProposal>
+
+  abstract listProposals(repositoryId: string): Promise<StoredProposal[]>
+  abstract getProposal(id: string): Promise<StoredProposal | undefined>
+  abstract prepareProposal(repositoryId: string, request: { instructions: string; draft?: RepositoryAgentInput; currentName?: string }): Promise<StoredProposal>
+  abstract approveProposal(id: string, options?: { acknowledgeBypassRisk?: boolean }): Promise<StoredProposal>
+  abstract rejectProposal(id: string): Promise<StoredProposal>
 }
 
 /** File-backed implementation delegating to the smoke-testable modules. */
@@ -197,6 +210,96 @@ export class FileAgentStore extends AgentStore {
     return proposeAgentCore(instructions, adapter)
   }
 
+  override async listProposals(repositoryId: string): Promise<StoredProposal[]> {
+    return (await loadProposals(this.proposalsPath()))
+      .filter(item => item.repositoryId === repositoryId)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  }
+
+  override async getProposal(id: string): Promise<StoredProposal | undefined> {
+    return (await loadProposals(this.proposalsPath())).find(item => item.id === id)
+  }
+
+  override async prepareProposal(repositoryId: string, request: { instructions: string; draft?: RepositoryAgentInput; currentName?: string }): Promise<StoredProposal> {
+    const currentName = request.currentName
+    const currentRecord = currentName === undefined
+      ? undefined
+      : await this.getRepositoryAgent(this.requireRepositoryRoot(undefined), currentName)
+    const candidate = await this.proposeAgent(request.instructions)
+    const validationIssues = validateProposalCandidate(candidate)
+    const now = new Date().toISOString()
+    const proposal: StoredProposal = {
+      id: randomUUID().slice(0, 12),
+      repositoryId,
+      ...(currentName === undefined ? {} : { currentName }),
+      instructions: request.instructions.trim(),
+      candidate,
+      baseRevision: currentRecord?.revision ?? null,
+      validationIssues,
+      status: validationIssues.length > 0 ? 'blocked' : 'proposed',
+      createdAt: now,
+      updatedAt: now,
+    }
+    await upsertProposal(this.proposalsPath(), proposal)
+    return proposal
+  }
+
+  override async approveProposal(id: string, options?: { acknowledgeBypassRisk?: boolean }): Promise<StoredProposal> {
+    const proposal = await this.getProposal(id)
+    if (proposal === undefined) throw new Error(`rin agents: proposal not found: ${id}`)
+    if (proposal.status !== 'proposed') throw new Error('rin agents: only proposed changes can be approved')
+    if (proposal.candidate.permissionMode === 'danger-full-access' && options?.acknowledgeBypassRisk !== true) {
+      throw new Error('rin agents: danger-full-access permission mode requires explicit risk acknowledgement')
+    }
+    const root = this.requireRepositoryRoot(undefined)
+    const targetName = proposal.currentName ?? proposal.candidate.name
+    const currentRecord = await this.getRepositoryAgent(root, targetName)
+    const sourceChanged = proposal.currentName !== undefined
+      ? currentRecord === undefined || currentRecord.revision !== proposal.baseRevision
+      : currentRecord !== undefined
+    if (sourceChanged) {
+      proposal.validationIssues = [...proposal.validationIssues.filter(issue => issue !== 'Agent changed after this proposal was generated'), 'Agent changed after this proposal was generated']
+      proposal.status = 'stale'
+      proposal.updatedAt = new Date().toISOString()
+      await upsertProposal(this.proposalsPath(), proposal)
+      return proposal
+    }
+    const validationIssues = validateProposalCandidate(proposal.candidate)
+    if (validationIssues.length > 0) {
+      proposal.validationIssues = validationIssues
+      proposal.status = 'blocked'
+      proposal.updatedAt = new Date().toISOString()
+      await upsertProposal(this.proposalsPath(), proposal)
+      return proposal
+    }
+    if (proposal.currentName !== undefined) {
+      await this.updateRepositoryAgent(root, proposal.currentName, proposal.candidate)
+    } else {
+      await this.createRepositoryAgent(root, proposal.candidate)
+    }
+    proposal.status = 'approved'
+    proposal.updatedAt = new Date().toISOString()
+    await upsertProposal(this.proposalsPath(), proposal)
+    return proposal
+  }
+
+  override async rejectProposal(id: string): Promise<StoredProposal> {
+    const proposal = await this.getProposal(id)
+    if (proposal === undefined) throw new Error(`rin agents: proposal not found: ${id}`)
+    if (proposal.status !== 'proposed' && proposal.status !== 'blocked') {
+      throw new Error('rin agents: only pending changes can be rejected')
+    }
+    proposal.status = 'rejected'
+    proposal.updatedAt = new Date().toISOString()
+    await upsertProposal(this.proposalsPath(), proposal)
+    return proposal
+  }
+
+  /** Resolve the proposal store path under the agents home. */
+  private proposalsPath(): string {
+    return proposalStorePath(expandHome(this.config.agentsHome))
+  }
+
   /** Resolve the repository root from the argument or the configured default. */
   private requireRepositoryRoot(repositoryRoot: string | undefined): string {
     const root = repositoryRoot ?? this.config.defaultRepositoryRoot
@@ -236,6 +339,15 @@ export class FileAgentStore extends AgentStore {
       return text.join('')
     }
   }
+}
+
+/** Validate a proposal candidate's required fields. */
+function validateProposalCandidate(candidate: RepositoryAgentInput): string[] {
+  const issues: string[] = []
+  if (candidate.name.trim() === '') issues.push('Agent name is required')
+  if (candidate.description.trim() === '') issues.push('Agent description is required')
+  if (candidate.systemPrompt.trim() === '') issues.push('Agent system prompt is required')
+  return issues
 }
 
 export const name = 'agents'
