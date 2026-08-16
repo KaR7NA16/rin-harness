@@ -210,8 +210,10 @@ export function AgentWorkspace() {
     return <div className="flex h-full items-center justify-center"><LoaderCircle className="animate-spin text-[var(--color-text-tertiary)]" /></div>
   }
 
-  const skills = repository?.manifest.categories.find(category => category.id === 'skills')?.packages ?? []
-  const workflows = repository?.manifest.categories.find(category => category.id === 'workflows')?.packages ?? []
+  // Skills and workflows live in separate rin stores (skill-memory / workspace),
+  // not in the repository manifest; wiring those stores here is a separate task.
+  const skills: RepositoryPackage[] = []
+  const workflows: RepositoryPackage[] = []
   const canSave = Boolean(draft.name.trim() && draft.description.trim() && draft.systemPrompt.trim())
   const selectedRuntimeAgent = selectedName
     ? runtimeAgents.find(agent =>

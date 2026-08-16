@@ -1105,13 +1105,21 @@ async function repositoriesCreateRoute(method: string, body: unknown, services: 
 }
 
 /** Project a connected repository onto the legacy desktop DTO. */
-function repositoryConnectionDto(connection: { id: string; name: string; rootPath: string; createdAt: string; updatedAt: string }): Record<string, unknown> {
+function repositoryConnectionDto(connection: {
+  id: string
+  name: string
+  rootPath: string
+  createdAt: string
+  updatedAt: string
+  environmentPackages: unknown[]
+  environmentProfiles: unknown[]
+}): Record<string, unknown> {
   return {
     id: connection.id,
     name: connection.name,
     rootPath: connection.rootPath,
-    manifest: { version: 1, name: connection.name, categories: [] },
-    storage: { mode: 'connected', workingPath: connection.rootPath, localModificationCount: 0 },
+    environmentPackages: connection.environmentPackages,
+    environmentProfiles: connection.environmentProfiles,
     createdAt: connection.createdAt,
     updatedAt: connection.updatedAt,
   }

@@ -1,18 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Bot,
-  Check,
-  Database,
-  FileOutput,
   FolderGit2,
   FolderOpen,
   LoaderCircle,
   Package,
   Plus,
   RefreshCw,
-  Sparkles,
-  Wrench,
-  Workflow,
 } from 'lucide-react'
 import { repositoriesApi, type RepositoryConnection, type RepositoryPackage, type RepositoryPackageEcosystem } from '../api/repositories'
 import { Button } from '../components/shared/Button'
@@ -23,22 +16,10 @@ import { useTranslation } from '../i18n'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useUIStore } from '../stores/uiStore'
 
-type CategoryId = 'environment' | 'tools' | 'knowledge' | 'outputs' | 'skills' | 'workflows' | 'agents'
 type ConnectionDialogMode = 'connect' | 'create'
 type EnvironmentEcosystem = 'python' | 'r' | 'system' | 'node' | 'latex'
 
-const CATEGORY_IDS: CategoryId[] = ['environment', 'tools', 'knowledge', 'outputs', 'skills', 'workflows', 'agents']
 const ENVIRONMENT_ECOSYSTEMS: EnvironmentEcosystem[] = ['python', 'r', 'system', 'node', 'latex']
-
-function categoryIcon(id: string) {
-  if (id === 'environment') return Package
-  if (id === 'tools') return Wrench
-  if (id === 'knowledge') return Database
-  if (id === 'skills') return Sparkles
-  if (id === 'workflows') return Workflow
-  if (id === 'agents') return Bot
-  return FileOutput
-}
 
 function replaceRepository(list: RepositoryConnection[], next: RepositoryConnection) {
   return list.map(item => item.id === next.id ? next : item)
@@ -50,7 +31,6 @@ export function RepositoryWorkspace() {
   const addToast = useUIStore(state => state.addToast)
   const [repositories, setRepositories] = useState<RepositoryConnection[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [categoryId, setCategoryId] = useState<CategoryId>('environment')
   const [ecosystem, setEcosystem] = useState<EnvironmentEcosystem>('python')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -129,11 +109,9 @@ export function RepositoryWorkspace() {
     return <div className="flex h-full items-center justify-center"><LoaderCircle size={24} className="animate-spin text-[var(--color-text-tertiary)]" /></div>
   }
 
-  const category = selected?.manifest.categories.find(item => item.id === categoryId)
-  const categoryPackages = category?.packages ?? []
-  const visiblePackages = categoryId === 'environment'
-    ? categoryPackages.filter(pkg => pkg.ecosystem === ecosystem)
-    : []
+  const packages = selected?.environmentPackages ?? []
+  const visiblePackages = packages.filter(pkg => pkg.ecosystem === ecosystem)
+  const profiles = selected?.environmentProfiles ?? []
 
   return (
     <div className="h-full overflow-y-auto bg-[var(--color-background)] p-[24px]">
@@ -170,102 +148,50 @@ export function RepositoryWorkspace() {
             </div>
           </div>
         ) : (
-          <div className="grid min-h-[520px] grid-cols-[238px_minmax(0,1fr)] overflow-hidden rounded-[16px] border border-[var(--color-border-separator)] bg-[var(--color-surface)] shadow-[0_16px_36px_rgba(0,0,0,0.05)]">
-            <aside className="border-r border-[var(--color-border-separator)] bg-[var(--color-surface-container-low)] p-3">
-              <div className="mb-3 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+          <div className="flex flex-col gap-[18px]">
+            <section className="overflow-hidden rounded-[16px] border border-[var(--color-border-separator)] bg-[var(--color-surface)]">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border-separator)] px-[20px] py-[14px]">
                 <div className="flex items-center gap-2">
                   <FolderGit2 size={17} className="text-[var(--color-signal)]" />
-                  <span className="truncate text-[13px] font-semibold text-[var(--color-text-primary)]">{selected.name}</span>
+                  <span className="text-[15px] font-semibold text-[var(--color-text-primary)]">{selected.name}</span>
+                  <span className="rounded-full bg-[var(--color-surface-container-low)] px-2 py-0.5 text-[10px] font-mono text-[var(--color-text-tertiary)]">
+                    {t('repository.configuredPackages', { count: packages.length })}
+                  </span>
                 </div>
-                <div className="mt-2 inline-flex rounded-full bg-[var(--color-surface-container-low)] px-2 py-1 text-[10px] font-semibold text-[var(--color-text-secondary)]">
-                  {storageModeLabel(t, selected.storage.mode)}
-                </div>
-                <dl className="mt-2 space-y-2 text-[10.5px] leading-4">
-                  {selected.storage.seedPath && selected.storage.seedPath !== selected.storage.workingPath && (
-                    <div>
-                      <dt className="font-semibold text-[var(--color-text-secondary)]">{t('repository.seedPath')}</dt>
-                      <dd className="break-all font-mono text-[var(--color-text-tertiary)]">{selected.storage.seedPath}</dd>
-                    </div>
-                  )}
-                  <div>
-                    <dt className="font-semibold text-[var(--color-text-secondary)]">{t('repository.workingPath')}</dt>
-                    <dd className="break-all font-mono text-[var(--color-text-tertiary)]">{selected.storage.workingPath}</dd>
-                  </div>
-                </dl>
-                <div className={`mt-2 text-[10.5px] font-medium ${selected.storage.localModificationCount > 0 ? 'text-[var(--color-warning)]' : 'text-[var(--color-text-tertiary)]'}`}>
-                  {t('repository.localChanges', { count: selected.storage.localModificationCount })}
-                </div>
+                <span className="text-[12px] text-[var(--color-text-tertiary)]">{t('repository.root')}: <code className="font-mono">{selected.rootPath}</code></span>
               </div>
-              <div className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">{t('repository.title')}</div>
-              <div className="flex flex-col gap-1">
-                {CATEGORY_IDS.map(id => {
-                  const item = selected.manifest.categories.find(categoryItem => categoryItem.id === id)
-                  const Icon = categoryIcon(id)
-                  const count = item?.packages.length ?? 0
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setCategoryId(id)}
-                      className={`flex items-center gap-2 rounded-[9px] px-3 py-2.5 text-left text-[12.5px] transition-colors ${categoryId === id ? 'bg-[var(--color-surface-selected)] font-semibold text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'}`}
-                    >
-                      <Icon size={15} />
-                      <span className="flex-1">{categoryLabel(t, id)}</span>
-                      <span className="font-mono text-[10px] text-[var(--color-text-tertiary)]">{count}</span>
+
+              <div className="px-[20px] py-[16px]">
+                <h2 className="text-[13px] font-semibold text-[var(--color-text-primary)]">{t('repository.environment')}</h2>
+                <p className="mt-1 text-[12px] text-[var(--color-text-tertiary)]">{t('repository.environmentDetail')}</p>
+
+                <div className="mt-4 flex gap-1 rounded-[10px] bg-[var(--color-surface-container-low)] p-1">
+                  {ENVIRONMENT_ECOSYSTEMS.map(item => (
+                    <button key={item} type="button" onClick={() => setEcosystem(item)} className={`rounded-[8px] px-3 py-1.5 text-[12px] font-semibold ${ecosystem === item ? 'bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)]'}`}>
+                      {ecosystemLabel(t, item)}
                     </button>
-                  )
-                })}
-              </div>
-            </aside>
+                  ))}
+                </div>
 
-            <main className="min-w-0 p-[22px]">
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--color-border-separator)] pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-[17px] font-semibold text-[var(--color-text-primary)]">{categoryLabel(t, categoryId)}</h2>
-                    <span className="rounded-full bg-[var(--color-surface-container-low)] px-2 py-0.5 text-[10px] font-mono text-[var(--color-text-tertiary)]">{t('repository.configuredPackages', { count: category?.packages.length ?? 0 })}</span>
-                  </div>
-                  {categoryId === 'environment' && <p className="mt-1 text-[12px] text-[var(--color-text-tertiary)]">{t('repository.environmentDetail')}</p>}
+                <div className="mt-4 flex flex-col gap-2">
+                  {visiblePackages.length === 0 ? (
+                    <div className="rounded-[12px] border border-dashed border-[var(--color-border)] px-4 py-12 text-center text-[12px] text-[var(--color-text-tertiary)]">{t('repository.noPackages')}</div>
+                  ) : visiblePackages.map(pkg => <PackageRow key={pkg.id} packageItem={pkg} />)}
                 </div>
               </div>
+            </section>
 
-              {categoryId === 'environment' ? (
-                <>
-                  <div className="mt-4 flex gap-1 rounded-[10px] bg-[var(--color-surface-container-low)] p-1">
-                      {ENVIRONMENT_ECOSYSTEMS.map(item => (
-                      <button key={item} type="button" onClick={() => setEcosystem(item)} className={`rounded-[8px] px-3 py-1.5 text-[12px] font-semibold ${ecosystem === item ? 'bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-tertiary)]'}`}>
-                        {ecosystemLabel(t, item)}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 flex flex-col gap-2">
-                    {visiblePackages.length === 0 ? (
-                      <div className="rounded-[12px] border border-dashed border-[var(--color-border)] px-4 py-12 text-center text-[12px] text-[var(--color-text-tertiary)]">{t('repository.noPackages')}</div>
-                    ) : visiblePackages.map(pkg => <PackageRow key={pkg.id} packageItem={pkg} />)}
-                  </div>
-                </>
-              ) : categoryId === 'agents' ? (
-                <div className="mt-8 rounded-[12px] border border-dashed border-[var(--color-border)] px-4 py-14 text-center">
-                  <Bot size={28} className="mx-auto mb-3 text-[var(--color-signal)]" />
-                  <p className="text-[13px] text-[var(--color-text-secondary)]">{locale === 'zh' ? 'Agent 配置保存在该仓库的 agents 文件夹中。' : 'Agent configurations are stored in this repository\'s agents folder.'}</p>
-                  <Button className="mt-4" size="sm" onClick={() => useUIStore.getState().openWorkspaceView('agents')}>
-                    {t('sidebar.agentConfiguration')}
-                  </Button>
-                </div>
-              ) : (
-                <div className="mt-8 rounded-[12px] border border-dashed border-[var(--color-border)] px-4 py-16 text-center">
-                  <Check size={26} className="mx-auto mb-3 text-[var(--color-text-tertiary)]" />
-                  <p className="text-[13px] text-[var(--color-text-tertiary)]">{categoryLabel(t, categoryId)} {t('repository.noPackages')}</p>
-                </div>
-              )}
-
-              <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[var(--color-border-separator)] pt-4 text-[11px] text-[var(--color-text-tertiary)]">
-                <span>{t('repository.root')}: <code className="font-mono">{selected.rootPath}</code></span>
-                <span className="mx-1">·</span>
-                <span>{t('repository.linked')}</span>
+            <section className="overflow-hidden rounded-[16px] border border-[var(--color-border-separator)] bg-[var(--color-surface)]">
+              <div className="border-b border-[var(--color-border-separator)] px-[20px] py-[14px]">
+                <h2 className="text-[13px] font-semibold text-[var(--color-text-primary)]">{t('repository.profiles')}</h2>
+                <p className="mt-1 text-[12px] text-[var(--color-text-tertiary)]">{t('repository.profilesHint')}</p>
               </div>
-            </main>
+              <div className="flex flex-col p-[8px]">
+                {profiles.length === 0 ? (
+                  <div className="px-[12px] py-[16px] text-center text-[12px] text-[var(--color-text-tertiary)]">{t('repository.noProfiles')}</div>
+                ) : profiles.map(profile => <ProfileRow key={profile.metadata.id} profile={profile} />)}
+              </div>
+            </section>
           </div>
         )}
       </div>
@@ -274,13 +200,13 @@ export function RepositoryWorkspace() {
         <div className="flex flex-col gap-4">
           {dialogMode === 'connect' ? (
             <div className="flex gap-2">
-              <Input label={t('repository.path')} value={path} onChange={event => setPath(event.target.value)} placeholder="E:\\projects\\research-repository" className="flex-1" />
+              <Input label={t('repository.path')} value={path} onChange={event => setPath(event.target.value)} placeholder="E:/projects/research-repository" className="flex-1" />
               {isTauriRuntime() && <Button size="sm" variant="secondary" className="mt-[24px]" onClick={() => void chooseFolder(setPath)}><FolderOpen size={14} /></Button>}
             </div>
           ) : (
             <>
               <div className="flex gap-2">
-                <Input label={t('repository.parentDir')} value={parentDir} onChange={event => setParentDir(event.target.value)} placeholder="E:\\projects" className="flex-1" />
+                <Input label={t('repository.parentDir')} value={parentDir} onChange={event => setParentDir(event.target.value)} placeholder="E:/projects" className="flex-1" />
                 {isTauriRuntime() && <Button size="sm" variant="secondary" className="mt-[24px]" onClick={() => void chooseFolder(setParentDir)}><FolderOpen size={14} /></Button>}
               </div>
               <Input label={t('repository.name')} value={repositoryName} onChange={event => setRepositoryName(event.target.value)} placeholder="research-repository" />
@@ -297,28 +223,12 @@ export function RepositoryWorkspace() {
   )
 }
 
-function categoryLabel(t: ReturnType<typeof useTranslation>, id: string) {
-  if (id === 'environment') return t('repository.environment')
-  if (id === 'tools') return t('repository.tools')
-  if (id === 'knowledge') return t('repository.knowledge')
-  if (id === 'skills') return t('repository.skills')
-  if (id === 'workflows') return t('repository.workflows')
-  if (id === 'agents') return t('sidebar.agentConfiguration')
-  return t('repository.outputs')
-}
-
 function ecosystemLabel(t: ReturnType<typeof useTranslation>, ecosystem: EnvironmentEcosystem) {
   if (ecosystem === 'python') return t('repository.python')
   if (ecosystem === 'r') return t('repository.r')
   if (ecosystem === 'system') return t('repository.system')
   if (ecosystem === 'node') return t('repository.node')
   return t('repository.latex')
-}
-
-function storageModeLabel(t: ReturnType<typeof useTranslation>, mode: RepositoryConnection['storage']['mode']) {
-  if (mode === 'working') return t('repository.storageWorking')
-  if (mode === 'development') return t('repository.storageDevelopment')
-  return t('repository.storageConnected')
 }
 
 function PackageRow({ packageItem }: { packageItem: RepositoryPackage }) {
@@ -331,6 +241,21 @@ function PackageRow({ packageItem }: { packageItem: RepositoryPackage }) {
           {packageItem.version && <code className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px] text-[var(--color-text-tertiary)]">{packageItem.version}</code>}
         </div>
         {packageItem.description && <div className="mt-1 truncate text-[11px] text-[var(--color-text-tertiary)]">{packageItem.description}</div>}
+      </div>
+    </div>
+  )
+}
+
+function ProfileRow({ profile }: { profile: RepositoryConnection['environmentProfiles'][number] }) {
+  return (
+    <div className="flex items-center gap-3 rounded-[11px] px-[12px] py-[10px]">
+      <Package size={16} className="shrink-0 text-[var(--color-signal)]" />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">{profile.metadata.name}</span>
+          <span className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px] text-[var(--color-text-tertiary)]">v{profile.metadata.version}</span>
+        </div>
+        <div className="mt-1 truncate text-[11px] text-[var(--color-text-tertiary)]">{profile.spec.packages.join(', ') || '—'}</div>
       </div>
     </div>
   )

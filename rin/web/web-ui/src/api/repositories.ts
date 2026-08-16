@@ -10,30 +10,12 @@ export type RepositoryPackage = {
   description?: string
 }
 
-export type RepositoryCategory = {
-  id: string
-  name: string
-  packages: RepositoryPackage[]
-}
-
-export type RepositoryManifest = {
-  version: 1
-  name: string
-  categories: RepositoryCategory[]
-}
-
 export type RepositoryConnection = {
   id: string
   name: string
   rootPath: string
-  manifest: RepositoryManifest
-  storage: {
-    mode: 'development' | 'working' | 'connected'
-    seedPath?: string
-    workingPath: string
-    seedStatus?: 'development' | 'initialized' | 'upgraded'
-    localModificationCount: number
-  }
+  environmentPackages: RepositoryPackage[]
+  environmentProfiles: EnvironmentProfile[]
   createdAt: string
   updatedAt: string
 }

@@ -20,30 +20,18 @@ const repository: RepositoryConnection = {
   rootPath: 'E:/research-repo',
   createdAt: '2026-08-13T00:00:00.000Z',
   updatedAt: '2026-08-13T00:00:00.000Z',
-  storage: {
-    mode: 'working',
-    seedPath: 'E:/Cyberpsychosis/resources/repository',
-    workingPath: 'E:/Cyberpsychosis/data/repository',
-    seedStatus: 'upgraded',
-    localModificationCount: 2,
-  },
-  manifest: {
-    version: 1,
-    name: 'Research repo',
-    categories: [
-      {
-        id: 'environment',
-        name: 'Environment',
-        packages: [
-          { id: 'numpy', name: 'numpy', ecosystem: 'python', version: '2.0.0' },
-          { id: 'ggplot2', name: 'ggplot2', ecosystem: 'r' },
-        ],
-      },
-      { id: 'tools', name: 'Tools', packages: [] },
-      { id: 'knowledge', name: 'Knowledge', packages: [] },
-      { id: 'outputs', name: 'Outputs', packages: [] },
-    ],
-  },
+  environmentPackages: [
+    { id: 'numpy', name: 'numpy', ecosystem: 'python', version: '2.0.0' },
+    { id: 'ggplot2', name: 'ggplot2', ecosystem: 'r' },
+  ],
+  environmentProfiles: [
+    {
+      apiVersion: 'rin.dev/v1',
+      kind: 'EnvironmentProfile',
+      metadata: { id: 'sci', name: 'Scientific', version: '1.0.0' },
+      spec: { packages: ['numpy'] },
+    },
+  ],
 }
 
 describe('RepositoryWorkspace', () => {
@@ -52,18 +40,14 @@ describe('RepositoryWorkspace', () => {
     vi.mocked(repositoriesApi.list).mockResolvedValue({ repositories: [repository] })
   })
 
-  it('shows the connected repository and separates environment packages from empty future categories', async () => {
+  it('shows the connected repository packages and environment profiles', async () => {
     render(<RepositoryWorkspace />)
 
     await waitFor(() => expect(screen.getByText('Research repo')).toBeInTheDocument())
     expect(screen.getAllByText('E:/research-repo').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('Writable working repository')).toBeInTheDocument()
-    expect(screen.getByText('E:/Cyberpsychosis/data/repository')).toBeInTheDocument()
-    expect(screen.getByText('2 local changes')).toBeInTheDocument()
-    expect(screen.getByText('numpy')).toBeInTheDocument()
+    expect(screen.getAllByText('numpy').length).toBeGreaterThanOrEqual(1)
     fireEvent.click(screen.getByRole('button', { name: 'R' }))
     expect(screen.getByText('ggplot2')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Tools/ })).toBeInTheDocument()
-    expect(screen.queryByText('Ask AI to configure sandbox')).not.toBeInTheDocument()
+    expect(screen.getByText('Scientific')).toBeInTheDocument()
   })
 })

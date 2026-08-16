@@ -27,8 +27,8 @@ const repository: RepositoryConnection = {
   rootPath: 'E:/research-repo',
   createdAt: '2026-08-13T00:00:00.000Z',
   updatedAt: '2026-08-13T00:00:00.000Z',
-  storage: { mode: 'development', workingPath: 'E:/research-repo', seedStatus: 'development', localModificationCount: 0 },
-  manifest: { version: 1, name: 'Research repo', categories: [] },
+  environmentPackages: [],
+  environmentProfiles: [],
 }
 
 const profile: SandboxProfile = {

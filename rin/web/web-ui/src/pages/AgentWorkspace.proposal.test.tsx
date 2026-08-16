@@ -19,11 +19,9 @@ vi.mock('../api/repositories', () => ({
 
 const repository: RepositoryConnection = {
   id: 'repo-1', name: 'Research repo', rootPath: 'E:/research-repo',
-  createdAt: '', updatedAt: '', storage: { mode: 'development', workingPath: 'E:/research-repo', localModificationCount: 0 },
-  manifest: {
-    version: 1, name: 'Research repo',
-    categories: [{ id: 'environment', name: 'Environment', packages: [{ id: 'numpy', name: 'numpy', ecosystem: 'python' }] }],
-  },
+  createdAt: '', updatedAt: '',
+  environmentPackages: [{ id: 'numpy', name: 'numpy', ecosystem: 'python' }],
+  environmentProfiles: [],
 }
 
 const candidate = {
