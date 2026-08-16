@@ -27,6 +27,12 @@
       "path": "../../core/session-backup"
     },
     {
+      "path": "../../core/monitor"
+    },
+    {
+      "path": "../../core/doctor"
+    },
+    {
       "path": "../../memory/knowledge"
     },
     {

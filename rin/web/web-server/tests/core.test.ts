@@ -27,6 +27,7 @@ function services(overrides: Record<string, () => unknown> = {}) {
     mcp: () => undefined,
     computerUse: () => undefined,
     agentMigration: () => undefined,
+    doctor: () => undefined,
   }
   return { ...base, ...overrides }
 }
@@ -82,6 +83,7 @@ describe('core: /api/health', () => {
       mcp: false,
       computerUse: false,
       agentMigration: false,
+      doctor: false,
     })
   })
 })

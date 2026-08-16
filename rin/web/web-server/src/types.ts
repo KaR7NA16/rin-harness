@@ -64,6 +64,7 @@ export interface HealthServices {
   mcp: boolean
   computerUse: boolean
   agentMigration: boolean
+  doctor: boolean
 }
 
 /** GET /api/health response body. */

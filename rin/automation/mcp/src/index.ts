@@ -12,6 +12,7 @@
 
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
+import type { McpChangeListener } from './store.ts'
 import type { McpServerConfig, McpServerInput, McpServerPatch } from './types.ts'
 import { FileMcpStore, resolveMcpStoreRoot } from './store.ts'
 
@@ -22,7 +23,7 @@ export {
   resolveMcpStoreRoot,
   SERVERS_FILENAME,
 } from './store.ts'
-export type { McpStoreOptions } from './store.ts'
+export type { McpChangeListener, McpStoreOptions } from './store.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -63,6 +64,15 @@ export class McpStore extends Service {
   /** @param name - the server name. @returns true when the server was removed. */
   remove(name: string): Promise<boolean> {
     return this.store.remove(name)
+  }
+
+  /**
+   * Subscribe to store mutations (create/update/remove).
+   * @param listener - the change listener; receives no payload, re-read the store.
+   * @returns a disposer that unsubscribes the listener.
+   */
+  onChange(listener: McpChangeListener): () => void {
+    return this.store.onChange(listener)
   }
 }
 

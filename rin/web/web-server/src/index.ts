@@ -15,6 +15,8 @@ import type { Config as RinWebConfig, SmartPruningRef, TokenOptimizationRef } fr
 import { errorMessage } from './http.ts'
 import { createWebServer } from './server.ts'
 import type { AgentMigrationService } from '@rin/agent-migration'
+import type { MonitorService } from '@rin/monitor'
+import type { DoctorService } from '@rin/doctor'
 import type { ComputerUseService } from '@rin/computer-use'
 import type { FilesystemService } from '@rin/filesystem'
 import type { McpStore } from '@rin/mcp'
@@ -24,9 +26,12 @@ import type { PluginService } from '@rin/plugins'
 import type { ProviderProbeService } from '@rin/provider-probe'
 import type { TaskStore } from '@rin/tasks'
 import type { TeamStore } from '@rin/teams'
-import type { DshAgentDefaultModelLike, DshAgentRegistryLike, DshCommandsLike, DshCredentialsLike, DshLlmLike, DshPermissionPresetsLike, DshSessionPersistenceLike, DshSessionProjectionsLike, DshSessionStoreLike, DshSettingsLike, DshShellLike, DshTokenMeterLike, DshWorkspaceRegistryLike, RinServiceRefs } from './routes.ts'
+import type { DshAgentDefaultModelLike, DshAgentRegistryLike, DshCommandsLike, DshCredentialsLike, DshLlmLike, DshPermissionPresetsLike, DshSessionPersistenceLike, DshSessionProjectionsLike, DshSessionStoreLike, DshSettingsLike, DshShellLike, DshSubprocessLike, DshTokenMeterLike, DshWorkspaceRegistryLike, RinServiceRefs } from './routes.ts'
 
 export type * from './types.ts'
+// The monitor snapshot types now live in @rin/monitor (the owning service);
+// re-exported here so existing web-server consumers keep a stable surface.
+export type { ContainerMetrics, HostMetrics, MonitorService, MonitorSnapshot, ProcessMetrics } from '@rin/monitor'
 export { createWebServer } from './server.ts'
 export type { RinWebServer } from './server.ts'
 export {
@@ -119,6 +124,7 @@ export class WebServerService extends Service {
       tokenMeter: () => ctx.get('tokenMeter') as unknown as DshTokenMeterLike | undefined,
       sessionProjections: () => ctx.get('sessionProjections') as unknown as DshSessionProjectionsLike | undefined,
       shell: () => ctx.get('shell') as unknown as DshShellLike | undefined,
+      subprocess: () => ctx.get('subprocess') as unknown as DshSubprocessLike | undefined,
       mcp: () => ctx.get('mcp') as unknown as McpStore | undefined,
       providerProbe: () => ctx.get('providerProbe') as unknown as ProviderProbeService | undefined,
       plugins: () => ctx.get('plugins') as unknown as PluginService | undefined,
@@ -127,6 +133,8 @@ export class WebServerService extends Service {
       tasks: () => ctx.get('tasks') as unknown as TaskStore | undefined,
       computerUse: () => ctx.get('computerUse') as unknown as ComputerUseService | undefined,
       agentMigration: () => ctx.get('agentMigration') as unknown as AgentMigrationService | undefined,
+      monitorSnapshot: () => ctx.get('monitor') as MonitorService | undefined,
+      doctor: () => ctx.get('doctor') as DoctorService | undefined,
     }
     const server = createWebServer(config, services)
     ctx.effect(() => () => server.close(), 'web-server.close')

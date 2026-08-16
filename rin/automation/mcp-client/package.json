@@ -1,0 +1,46 @@
+{
+  "name": "@rin/mcp-client",
+  "description": "rin mcp-client: bridges the @rin/mcp config store to @deepseek-ai/dsh-mcp-client, mounting one MCP client per configured server so their tools reach the model as mcp__<server>__<tool>",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-name/rin-harness.git"
+  },
+  "homepage": "https://github.com/your-name/rin-harness",
+  "bugs": {
+    "url": "https://github.com/your-name/rin-harness/issues"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "main": "lib/types/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/types/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/types/**/*"
+  ],
+  "dependencies": {
+    "@deepseek-ai/dsh-mcp-client": "workspace:^",
+    "@rin/mcp": "workspace:^"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/schemastery": "workspace:^",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

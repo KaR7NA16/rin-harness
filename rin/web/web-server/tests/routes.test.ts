@@ -38,6 +38,7 @@ function services(overrides: Record<string, () => unknown> = {}) {
     tasks: () => undefined,
     computerUse: () => undefined,
     agentMigration: () => undefined,
+    doctor: () => undefined,
   }
   return { ...base, ...overrides }
 }

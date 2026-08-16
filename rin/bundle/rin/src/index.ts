@@ -33,7 +33,7 @@ export const BASE_BUNDLE = '@deepseek-ai/dsh-base'
 /** The dsh Web bundle rin deliberately leaves out (MIGRATION.md §8 decision 10). */
 export const EXCLUDED_BUNDLE = '@deepseek-ai/dsh-web-app'
 
-/** The twenty-two @rin host plugins, in assembly order. */
+/** The twenty-seven @rin host plugins, in assembly order. */
 export const RIN_HOST_PLUGINS = [
   '@rin/repository',
   '@rin/environment',
@@ -53,16 +53,21 @@ export const RIN_HOST_PLUGINS = [
   '@rin/sandboxes',
   '@rin/tasks',
   '@rin/mcp',
+  '@rin/mcp-client',
   '@rin/provider-probe',
   '@rin/computer-use',
   '@rin/agent-migration',
   '@rin/teams',
+  '@rin/brief',
+  '@rin/review',
+  '@rin/monitor',
+  '@rin/doctor',
 ] as const
 
 /** The rin Web server plugin (the independent 8320 surface). */
 export const RIN_WEB_SERVER = '@rin/web-server' as const
 
-/** All twenty-three @rin plugins this assembly mounts. */
+/** All twenty-eight @rin plugins this assembly mounts. */
 export const RIN_PLUGINS = [...RIN_HOST_PLUGINS, RIN_WEB_SERVER] as const
 
 /** The full assembly roster: dsh-base first, then every @rin plugin. */

@@ -30,6 +30,9 @@
     "paths": {
       "@rin/repository": ["./rin/core/repository/src"],
       "@rin/environment": ["./rin/core/environment/src"],
+      // rin extension — merge point: @rin paths
+      "@rin/monitor": ["./rin/core/monitor/src"],
+      "@rin/doctor": ["./rin/core/doctor/src"],
       "@rin/knowledge": ["./rin/memory/knowledge/src"],
       "@rin/prompt-memory": ["./rin/memory/prompt-memory/src"],
       "@rin/skill-memory": ["./rin/memory/skill-memory/src"],
@@ -49,10 +52,13 @@
     "@rin/cli": ["./rin/cli/rin/src"],
       "@rin/tasks": ["./rin/automation/tasks/src"],
       "@rin/mcp": ["./rin/automation/mcp/src"],
+      "@rin/mcp-client": ["./rin/automation/mcp-client/src"],
       "@rin/provider-probe": ["./rin/automation/provider-probe/src"],
       "@rin/computer-use": ["./rin/automation/computer-use/src"],
       "@rin/agent-migration": ["./rin/automation/agent-migration/src"],
       "@rin/teams": ["./rin/collaboration/teams/src"],
+      "@rin/brief": ["./rin/capability/brief/src"],
+      "@rin/review": ["./rin/capability/review/src"],
       "@deepseek-ai/cordis": ["./vendor/cordis/src"],
       "@deepseek-ai/cosmokit": ["./vendor/cosmokit/src"],
       "@deepseek-ai/schemastery": ["./vendor/schemastery/src"],

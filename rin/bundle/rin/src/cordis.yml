@@ -125,6 +125,12 @@
   config:
     storeRoot: !!js rinHome('mcp')
 
+# The MCP client bridge: mounts one @deepseek-ai/dsh-mcp-client instance per
+# configured non-disabled server in the store above, so their tools reach the
+# model as mcp__<server>__<tool>. Requires the dsh tools registry (in dsh-base).
+- id: mcp-client
+  name: '@rin/mcp-client'
+
 - id: provider-probe
   name: '@rin/provider-probe'
 
@@ -142,6 +148,25 @@
   name: '@rin/teams'
   config:
     teamsHome: !!js rinHome('teams')
+
+# LLM-driven session/artifact capabilities: the brief tool + /brief command
+# and the review_artifact tool + /review + /security-review commands, all over
+# the dsh llm seam (dsh-base).
+- id: brief
+  name: '@rin/brief'
+
+- id: review
+  name: '@rin/review'
+
+# Host performance snapshot service (ctx.monitor) + the monitor_snapshot tool;
+# the web-server route reads it through ctx.get('monitor') at request time.
+- id: monitor
+  name: '@rin/monitor'
+
+# Host self-diagnostic service (ctx.doctor) + the doctor tool; the web-server
+# /api/doctor route reads it through ctx.get('doctor') at request time.
+- id: doctor
+  name: '@rin/doctor'
 
 # recent-projects data source (D spec §6): the workspace registry rides the
 # storage hub + json backend. storage-domain routes `backend: json`; workspace
@@ -176,3 +201,61 @@
     skillMemoryRoots:
       globalConfigRoot: !!js rinHome('skill-memory')
       projectConfigRoot: !!js rinHome()
+
+# ── rin extension — dsh model tools ──────────────────────────────────────────
+# Model-facing dsh tool capabilities composed over the dsh-base seam services
+# (tools / systemPrompt / agents / sessions / sessionPersistence / subprocess /
+# sandboxPolicy / fs / sessionQuery). Rows are ordered per group: the capability
+# Service first, then its providers, then the tool consumer.
+#
+# lsp-stdio requires a non-empty `servers` table naming the language servers to
+# run, and no deployment-neutral default exists (see lsp-stdio Config), so the
+# backend row is disabled by default to keep the host bootable. A deployment
+# enables LSP by re-stating this row (disabled: false) plus a `servers` table
+# in a later patch layer (dsh precedent: examples/headless-agent/e2b.cordis.yml).
+#
+# code-runtime backs the run_code transport: the launcher sets the dsh tools row
+# to mode 'both' (host.ts override), and this worker-thread provider registers
+# the ctx.codeRuntime that mode requires. The abstract Service Definition
+# (@deepseek-ai/dsh-code-runtime) is a dependency, never a row — Cordis
+# instantiates service-class rows, so an abstract class cannot be mounted (dsh
+# precedent: the headless and web bundles mount the provider only).
+#
+# time-context injects the dsh-base agents registry and stamps the model's
+# wall-clock reading into each eligible pre-step request; defaults suffice.
+- id: code-runtime
+  name: '@deepseek-ai/dsh-code-runtime-worker-thread'
+
+- id: time-context
+  name: '@deepseek-ai/dsh-time-context'
+
+- id: terminal
+  name: '@deepseek-ai/dsh-terminal'
+
+- id: terminal-bash
+  name: '@deepseek-ai/dsh-terminal-bash'
+
+- id: tool-terminal
+  name: '@deepseek-ai/dsh-tool-terminal'
+
+# Persistent bash over the terminal chain: registers the same `bash` tool name
+# as the dsh-base tool-bash row, so the launcher disables that row (host.ts
+# override) and only this persistent variant is mounted.
+- id: tool-bash-persistent
+  name: '@deepseek-ai/dsh-tool-bash-persistent'
+
+- id: lsp
+  name: '@deepseek-ai/dsh-lsp'
+
+- id: lsp-stdio
+  name: '@deepseek-ai/dsh-lsp-stdio'
+  disabled: true
+
+- id: tool-lsp
+  name: '@deepseek-ai/dsh-tool-lsp'
+
+- id: schedule
+  name: '@deepseek-ai/dsh-schedule'
+
+- id: tool-session-query
+  name: '@deepseek-ai/dsh-tool-session-query'

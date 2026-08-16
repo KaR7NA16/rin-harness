@@ -36,6 +36,7 @@ function emptyServices(): RinServiceRefs {
     tokenMeter: absent,
     sessionProjections: absent,
     shell: absent,
+    subprocess: absent,
     mcp: absent,
     providerProbe: absent,
     plugins: absent,
@@ -44,6 +45,8 @@ function emptyServices(): RinServiceRefs {
     tasks: absent,
     computerUse: absent,
     agentMigration: absent,
+    monitorSnapshot: absent,
+    doctor: absent,
   }
 }
 

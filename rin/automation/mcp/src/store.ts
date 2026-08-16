@@ -57,9 +57,17 @@ export interface McpStoreOptions {
   storeRoot: string
 }
 
+/** A store-change listener: synchronous, no payload. */
+export type McpChangeListener = () => void
+
 /** Whether an error is a missing-file (ENOENT) error. */
 function isMissingFile(error: unknown): boolean {
   return Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT')
+}
+
+/** Render an error as a log-line string. */
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 /** Require a non-empty server name and return it trimmed. */
@@ -207,9 +215,34 @@ export class FileMcpStore {
   private readonly storeRoot: string
   private cache: McpServerConfig[] | null = null
 
+  private readonly changeListeners = new Set<McpChangeListener>()
+
   /** @param options - the store-root directory. */
   constructor(options: McpStoreOptions) {
     this.storeRoot = resolve(options.storeRoot)
+  }
+
+  /**
+   * Subscribe to store mutations.
+   * @param listener - the change listener.
+   * @returns a disposer that unsubscribes the listener.
+   */
+  onChange(listener: McpChangeListener): () => void {
+    this.changeListeners.add(listener)
+    return () => {
+      this.changeListeners.delete(listener)
+    }
+  }
+
+  /** Notify every subscribed listener after a successful mutation. */
+  private notifyChange(): void {
+    for (const listener of this.changeListeners) {
+      try {
+        listener()
+      } catch (error: unknown) {
+        console.error('rin mcp: change listener failed: ' + describeError(error))
+      }
+    }
   }
 
   /** @returns the absolute servers.json path. */
@@ -248,6 +281,7 @@ export class FileMcpStore {
       throw new Error('rin mcp: server already exists: ' + server.name)
     }
     await this.save([...servers, server])
+    this.notifyChange()
     return cloneServer(server)
   }
 
@@ -264,6 +298,7 @@ export class FileMcpStore {
     const next = [...servers]
     next[index] = applyPatch(next[index]!, patch)
     await this.save(next)
+    this.notifyChange()
     return cloneServer(next[index]!)
   }
 
@@ -276,6 +311,7 @@ export class FileMcpStore {
     const servers = await this.load()
     if (!servers.some(entry => entry.name === name)) return false
     await this.save(servers.filter(entry => entry.name !== name))
+    this.notifyChange()
     return true
   }
 

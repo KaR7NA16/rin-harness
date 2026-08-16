@@ -8,6 +8,7 @@
  * @module @rin/web-server
  */
 
+import type { Readable } from 'node:stream'
 import type { RepositoryStore } from '@rin/repository'
 import type { EnvironmentStore } from '@rin/environment'
 import type { FilesystemService } from '@rin/filesystem'
@@ -29,6 +30,8 @@ import type { ComputerUseService } from '@rin/computer-use'
 import type { AgentMigrationService } from '@rin/agent-migration'
 import type { TeamStore } from '@rin/teams'
 import type { Config, JsonResponse, SmartPruningRef, TokenOptimizationRef } from './types.ts'
+import type { MonitorService } from '@rin/monitor'
+import type { DoctorService } from '@rin/doctor'
 import { handle as handleCore } from './routes/core.ts'
 import { handle as handleKnowledge } from './routes/knowledge.ts'
 import { handle as handleSessions } from './routes/sessions.ts'
@@ -181,6 +184,35 @@ export interface DshShellLike {
   run(spec: unknown): Promise<{ exitCode: number | null; stdout: { text: string } }>
 }
 
+/** Signals the terminal protocol accepts (member-identical to the dsh terminal union). */
+export type TerminalSignal = 'SIGINT' | 'SIGTERM' | 'SIGKILL' | 'SIGTSTP' | 'SIGHUP'
+
+/** Exit facts of one terminal process, wire-shaped for the terminal WebSocket protocol. */
+export interface TerminalExitLike {
+  exitCode: number | null
+  signal: string | null
+}
+
+/**
+ * Minimal structural view of one live dsh terminal process. Mirrors
+ * SubprocessTerminalHandle in the dsh subprocess package; deliberately
+ * carries no resize method because the seam has none (fixed v1 geometry).
+ */
+export interface TerminalHandleLike {
+  readonly pid: number
+  readonly output: Readable
+  readonly done: Promise<TerminalExitLike>
+  write(data: string): Promise<void>
+  inspectForeground(): Promise<{ processGroupId: number; inputWaiting: boolean } | undefined>
+  signalForeground(signal: TerminalSignal): Promise<number>
+  terminate(): Promise<void>
+}
+
+/** Minimal structural view of the dsh subprocess provider terminal primitive. */
+export interface DshSubprocessLike {
+  spawnTerminal(spec: unknown): Promise<TerminalHandleLike>
+}
+
 /** Lazily-read optional @rin services, resolved at request time. */
 export interface RinServiceRefs {
   repository(): RepositoryStore | undefined
@@ -211,6 +243,7 @@ export interface RinServiceRefs {
   tokenMeter(): DshTokenMeterLike | undefined
   sessionProjections(): DshSessionProjectionsLike | undefined
   shell(): DshShellLike | undefined
+  subprocess(): DshSubprocessLike | undefined
   mcp(): McpStore | undefined
   providerProbe(): ProviderProbeService | undefined
   plugins(): PluginService | undefined
@@ -219,6 +252,8 @@ export interface RinServiceRefs {
   tasks(): TaskStore | undefined
   computerUse(): ComputerUseService | undefined
   agentMigration(): AgentMigrationService | undefined
+  monitorSnapshot(): MonitorService | undefined
+  doctor(): DoctorService | undefined
 }
 
 /**

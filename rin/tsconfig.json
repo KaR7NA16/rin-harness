@@ -4,6 +4,8 @@
   "references": [
     { "path": "./core/repository" },
     { "path": "./core/environment" },
+    { "path": "./core/monitor" },
+    { "path": "./core/doctor" },
     { "path": "./memory/knowledge" },
     { "path": "./memory/prompt-memory" },
     { "path": "./memory/skill-memory" },
@@ -15,10 +17,13 @@
     { "path": "./workspace/agents" },
     { "path": "./workspace/sandboxes" },
     { "path": "./notes/notes" },
+    { "path": "./capability/brief" },
+    { "path": "./capability/review" },
     { "path": "./bundle/rin" },
     { "path": "./cli/rin" },
     { "path": "./automation/tasks" },
     { "path": "./automation/mcp" },
+    { "path": "./automation/mcp-client" },
     { "path": "./automation/computer-use" },
     { "path": "./automation/agent-migration" },
     { "path": "./collaboration/teams" }

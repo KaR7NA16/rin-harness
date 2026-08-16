@@ -36,6 +36,17 @@ const root = await mkdtemp(join(tmpdir(), 'rin-mcp-smoke-'))
 try {
   const store = new FileMcpStore({ storeRoot: root })
 
+  // onChange fires once per successful mutation and unsubscribes via disposer
+  let changeCount = 0
+  const off = store.onChange(() => {
+    changeCount += 1
+  })
+  await store.create({ name: 'watched', command: 'node' })
+  check(changeCount === 1, 'onChange fires after create')
+  off()
+  await store.remove('watched')
+  check(changeCount === 1, 'onChange disposer unsubscribes')
+
   // create a stdio server (transport defaults to 'stdio', status to 'checking')
   const stdio = await store.create({
     name: 'local-fs',

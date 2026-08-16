@@ -78,6 +78,7 @@ function healthRoute(services: RinServiceRefs): JsonResponse {
     mcp: services.mcp() !== undefined,
     computerUse: services.computerUse() !== undefined,
     agentMigration: services.agentMigration() !== undefined,
+    doctor: services.doctor() !== undefined,
   })
 }
 

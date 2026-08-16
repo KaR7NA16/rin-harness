@@ -21,7 +21,15 @@ import type { Context } from '@deepseek-ai/cordis'
 // await mcp.create(input)          // McpServerConfig
 // await mcp.update(name, patch)    // McpServerConfig
 // await mcp.remove(name)           // boolean
+// mcp.onChange(listener)           // () => void (disposer)
 ```
+
+`onChange(listener)` subscribes to store mutations: it fires synchronously
+and without a payload after every successful `create` / `update` / `remove`
+(the returned disposer unsubscribes). Subscribers re-read the store (for
+example via `list()`) to observe the new state; the payload-free contract
+keeps the notification race-free against concurrent mutations. The bridge
+package `@rin/mcp-client` consumes this to hot-apply config edits.
 
 `name` is the immutable key. `stdio` servers require `command` and carry
 `args` / `env`; `http` / `sse` servers require `url` and carry optional
@@ -65,4 +73,6 @@ Independent — no interaction with the model prefix.
   `status` field.
 - **No host preflight or live reconnect.** The legacy API probed the host
   command and reconnected on toggle. Those runtime behaviors are deferred
-  alongside the connection layer.
+  alongside the connection layer. The connection layer itself (protocol
+  client + tool forwarding) now lives in `@rin/mcp-client`, which subscribes
+  through the `onChange` notification added for it.

@@ -27,6 +27,7 @@ import {
   queryParam,
   stringField,
 } from '../http.ts'
+import { isMonitorSupported } from '@rin/monitor'
 import type { DshShellLike, RinServiceRefs } from '../routes.ts'
 
 const NOTE_PATH_RE = /^\/api\/notes\/note\/(.+)$/
@@ -214,10 +215,60 @@ export async function handle(
     return notImplemented(method, 'session project-folders is not implemented on this host yet')
   }
 
+  // Monitor (legacy desktop path over the in-package host metrics service)
+  if (pathname === '/api/monitor/snapshot') return monitorSnapshotRoute(method, services)
+
+  // Doctor (host self-diagnostic over ctx.doctor)
+  if (pathname === '/api/doctor') return doctorRoute(method, services)
+
   if (pathname === '/api/notes/assets') return notesAssetUploadRoute(method, body, services)
   return null
 }
 
+
+/* --------------------------- monitor --------------------------- */
+
+/**
+ * GET /api/monitor/snapshot: one host performance snapshot from the monitor
+ * service. GET only; non-Linux hosts get an explicit 501 since the service
+ * reads /proc.
+ * @param method - the request method.
+ * @param services - the lazy service refs.
+ * @returns the shaped response.
+ */
+async function monitorSnapshotRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'GET') return error(405, 'method not allowed')
+  if (!isMonitorSupported()) return error(501, 'performance monitor requires Linux (/proc)')
+  const monitor = services.monitorSnapshot()
+  if (monitor === undefined) return notMounted()
+  try {
+    return json(200, await monitor.snapshot())
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+/* --------------------------- doctor --------------------------- */
+
+/**
+ * GET /api/doctor: one host diagnostic report from the doctor service. GET
+ * only; an unmounted doctor service gets an explicit 501 (this capability is
+ * the entire point of the route, so "not mounted" must not look like a
+ * healthy empty answer).
+ * @param method - the request method.
+ * @param services - the lazy service refs.
+ * @returns the shaped response.
+ */
+async function doctorRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'GET') return error(405, 'method not allowed')
+  const doctor = services.doctor()
+  if (doctor === undefined) return error(501, 'doctor service is not mounted')
+  try {
+    return json(200, await doctor.runDiagnostics())
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
 
 /* --------------------------- sandboxes legacy --------------------------- */
 

@@ -18,6 +18,9 @@
       "path": "../../core/environment"
     },
     {
+      "path": "../../core/monitor"
+    },
+    {
       "path": "../../memory/knowledge"
     },
     {
