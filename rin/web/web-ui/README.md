@@ -42,8 +42,13 @@ pnpm --filter @rin/web-ui run dev   # vite dev，port 5173，/api 代理到 http
 pnpm run rin                 # 启动 host：http://127.0.0.1:8320 伺服 dist/（@rin/bundle staticRoot）
 ```
 
+## 加载策略
+
+Settings、workspace 页面、Terminal、Mermaid、Shiki 代码高亮与 DiffViewer 均按需懒加载（Suspense 边界见 `src/components/chat/lazyRenderers.tsx`、`ContentRouter.tsx` 与 `SettingsPanel.tsx`），避免把重型依赖打进首屏主包。
+
 ## Known Limitations and Deferred Work
 
+- `motion-dom` / `motion-utils` 虽无源码直接 import，但 `preserveSymlinks` 下 TypeScript 需要它们作为直接依赖才能解析 `framer-motion` 的类型；不要仅凭 import 扫描删除。
 - 沙箱无法构建本包：vite build 被 spawn 拦截，且 react 等外部依赖需要联网 `pnpm install`。真机 `pnpm --filter @rin/web-ui run build` 验证。
 - `src/types.ts` 手抄了 server 的领域类型（AgentRecord / SandboxProfile / NoteMeta / InstallRun 等）：**server 领域类型变了必须同步这里**，否则页面字段名漂移。
 - Sandboxes 的 aiConfigure、AgentWorkspace 的 AI 提案默认 LLM 适配器需要真机（dsh llm seam / sandbox provider）验证；MVP 未接入 aiConfigure。
