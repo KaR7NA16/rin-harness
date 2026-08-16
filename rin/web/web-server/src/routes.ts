@@ -63,6 +63,7 @@ export interface DshSessionStoreLike {
   get(id: string): DshSessionLike | undefined
   create(id?: string, options?: { meta?: { cwd?: string } }): DshSessionLike
   prepare(id?: string, options?: { meta?: { cwd?: string } }): DshSessionLike
+  fork?(sourceId: string, boundary?: number, childId?: string): DshSessionLike
 }
 
 export interface DshSessionPersistenceLike {

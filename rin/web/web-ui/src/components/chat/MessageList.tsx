@@ -769,8 +769,12 @@ export function MessageList({ sessionId, projectPath, isActive = true, bottomOve
         userMessageOffsetFromEnd: rewindTarget.userMessageOffsetFromEnd,
         expectedContent: rewindTarget.content,
       }, { projectPath })
-      await reloadHistory(resolvedSessionId, projectPath)
-      queueComposerPrefill(resolvedSessionId, {
+      const nextSessionId = result.sessionId ?? resolvedSessionId
+      if (result.session) {
+        useTabStore.getState().openTab(nextSessionId, result.session.title, 'session', result.session.projectPath)
+      }
+      await reloadHistory(nextSessionId, projectPath)
+      queueComposerPrefill(nextSessionId, {
         text: rewindTarget.content,
         attachments: rewindTarget.attachments,
       })

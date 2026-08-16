@@ -241,9 +241,9 @@ describe('legacy: sessions', () => {
     expect(res).toEqual({ status: 200, body: { active: false, status: { sessionId: 's1', workDir: '', permissionMode: 'default' } } })
   })
 
-  test('item rewind/branch return 501', async () => {
-    expect(await handle('/api/sessions/s1/rewind', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 501, body: { error: 'session rewind is not available on this host yet' } })
-    expect(await handle('/api/sessions/s1/branch', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 501, body: { error: 'session branch is not available on this host yet' } })
+  test('item rewind/branch require POST', async () => {
+    expect(await handle('/api/sessions/s1/rewind', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
+    expect(await handle('/api/sessions/s1/branch', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
   })
 
   test('item unknown action returns 404', async () => {
@@ -1051,6 +1051,57 @@ describe('legacy: A/B/D services', () => {
 
   test('teams wrong method returns 405', async () => {
     expect(await handle('/api/teams', '', 'POST', {}, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
+  })
+
+  test('team members list/add/remove', async () => {
+    const base = [{ agentId: 'm1', name: 'Member 1', role: 'member', status: 'idle', joinedAt: 0, cwd: '' }]
+    const s = makeServices({ teams: () => ({
+      async listMembers() { return base },
+      async addMember(_name: string, input: unknown) { return { name: _name, members: [...base, input] } },
+      async removeMember(_name: string, agentId: string) { return { name: _name, members: base.filter(m => m.agentId !== agentId) } },
+    }) })
+    expect(await handle('/api/teams/t1/members', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { members: base } })
+    expect(await handle('/api/teams/t1/members', '', 'POST', { agentId: 'm2', name: 'M2' }, s, config)).toEqual({ status: 200, body: { detail: { name: 't1', members: [...base, { agentId: 'm2', name: 'M2' }] } } })
+    expect(await handle('/api/teams/t1/members/m1', '', 'DELETE', undefined, s, config)).toEqual({ status: 200, body: { detail: { name: 't1', members: [] } } })
+  })
+
+  test('session branch forks from an assistant message', async () => {
+    const child = { id: 'session-child', events: [], header: { cwd: '/w' } }
+    const source = { id: 's1', events: [
+      { type: 'turn/start', seq: 0, time: 1, data: {} },
+      { type: 'user/message', seq: 1, time: 2, data: { content: 'hi' } },
+      { type: 'assistant/message', seq: 2, time: 3, data: { message: { content: [] } } },
+      { type: 'turn/end', seq: 3, time: 4, data: {} },
+    ], header: { cwd: '/w' } }
+    let forkedBoundary: number | undefined
+    const s = makeServices({ sessions: () => ({ get: () => source, fork: (_id: string, boundary?: number) => { forkedBoundary = boundary; return child } }) })
+    const res = await handle('/api/sessions/s1/branch', '', 'POST', { targetAssistantMessageId: 'evt-2' }, s, config)
+    expect(res?.status).toBe(201)
+    expect(res?.body.sessionId).toBe('session-child')
+    expect(res?.body.sourceSessionId).toBe('s1')
+    expect(forkedBoundary).toBe(3)
+  })
+
+  test('session rewind preview and fork', async () => {
+    const child = { id: 'session-rewound', events: [], header: { cwd: '/w' } }
+    const source = { id: 's1', events: [
+      { type: 'turn/start', seq: 0, time: 1, data: {} },
+      { type: 'user/message', seq: 1, time: 2, data: { content: 'first' } },
+      { type: 'assistant/message', seq: 2, time: 3, data: { message: { content: [] } } },
+      { type: 'turn/end', seq: 3, time: 4, data: {} },
+      { type: 'turn/start', seq: 4, time: 5, data: {} },
+      { type: 'user/message', seq: 5, time: 6, data: { content: 'second' } },
+      { type: 'assistant/message', seq: 6, time: 7, data: { message: { content: [] } } },
+      { type: 'turn/end', seq: 7, time: 8, data: {} },
+    ], header: { cwd: '/w' } }
+    const s = makeServices({ sessions: () => ({ get: () => source, fork: () => child }) })
+    const preview = await handle('/api/sessions/s1/rewind', '', 'POST', { targetUserMessageId: 'evt-5', dryRun: true }, s, config)
+    expect(preview?.status).toBe(200)
+    expect(preview?.body.conversation.messagesRemoved).toBe(2)
+    expect(preview?.body.code.available).toBe(false)
+    const executed = await handle('/api/sessions/s1/rewind', '', 'POST', { targetUserMessageId: 'evt-5' }, s, config)
+    expect(executed?.status).toBe(200)
+    expect(executed?.body.sessionId).toBe('session-rewound')
   })
 
   test('tasks wrong method returns 405', async () => {

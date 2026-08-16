@@ -26,6 +26,8 @@ const DEFAULT_STATIC_ROOT = fileURLToPath(new URL('../static/', import.meta.url)
 
 /** Upper bound on a POST /api/* JSON body. */
 const MAX_BODY_BYTES = 1024 * 1024
+/** Maximum accepted binary session-import body (64 MiB). */
+const MAX_IMPORT_BODY_BYTES = 64 * 1024 * 1024
 
 /** A startable HTTP server handle owned by the plugin. */
 export interface RinWebServer {
@@ -135,6 +137,40 @@ async function handleRequest(
   }
 
   if ((method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') && isApi) {
+    // Binary session export/import bypass the JSON route system.
+    if (method === 'POST' && url.pathname === '/api/sessions/export') {
+      const exportBody = await readJsonBody(req)
+      if (!exportBody.ok) {
+        respondError(res, exportBody.status, exportBody.message)
+        return
+      }
+      const backup = services.sessionBackup()
+      if (backup === undefined) {
+        respondError(res, 500, 'session backup service is not mounted')
+        return
+      }
+      try {
+        respondBinary(res, await backup.exportSessions(), 'application/gzip')
+      } catch (err) {
+        respondError(res, 500, err instanceof Error ? err.message : String(err))
+      }
+      return
+    }
+    if (method === 'POST' && url.pathname === '/api/sessions/import') {
+      const backup = services.sessionBackup()
+      if (backup === undefined) {
+        respondError(res, 500, 'session backup service is not mounted')
+        return
+      }
+      try {
+        const buffer = await readRawBody(req)
+        respondJson(res, { status: 200, body: await backup.importSessions(buffer) }, false)
+      } catch (err) {
+        const status = err instanceof Error && (err as { statusCode?: unknown }).statusCode === 413 ? 413 : 400
+        respondError(res, status, err instanceof Error ? err.message : String(err))
+      }
+      return
+    }
     const bodyResult = await readJsonBody(req)
     if (!bodyResult.ok) {
       respondError(res, bodyResult.status, bodyResult.message)
@@ -173,6 +209,32 @@ async function readJsonBody(
   } catch {
     return { ok: false, status: 400, message: 'invalid JSON body' }
   }
+}
+
+/** Read a raw request body as a Buffer, enforcing the import cap. */
+async function readRawBody(req: IncomingMessage): Promise<Buffer> {
+  const chunks: Buffer[] = []
+  let total = 0
+  for await (const chunk of req) {
+    const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
+    total += buffer.length
+    if (total > MAX_IMPORT_BODY_BYTES) {
+      const error = new Error('request body exceeds 64 MiB') as Error & { statusCode?: number }
+      error.statusCode = 413
+      throw error
+    }
+    chunks.push(buffer)
+  }
+  return Buffer.concat(chunks)
+}
+
+/** Respond with a raw binary body. */
+function respondBinary(res: ServerResponse, buffer: Buffer, contentType: string): void {
+  res.writeHead(200, {
+    'content-type': contentType,
+    'content-length': buffer.length,
+  })
+  res.end(buffer)
 }
 
 function respondJson(res: ServerResponse, response: JsonResponse, headOnly: boolean): void {

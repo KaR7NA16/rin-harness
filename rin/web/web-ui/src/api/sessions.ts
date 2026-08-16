@@ -23,6 +23,9 @@ export type SessionRewindResponse = {
     insertions: number
     deletions: number
   }
+  /** Present after an execute (not dry-run): the forked session the UI should switch to. */
+  sessionId?: string
+  session?: SessionListItem
 }
 
 export type SessionBranchResponse = {

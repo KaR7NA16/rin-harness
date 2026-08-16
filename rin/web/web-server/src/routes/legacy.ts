@@ -158,6 +158,10 @@ export async function handle(
 
   // A-class automation/collaboration surfaces over the new @rin services.
   if (pathname === '/api/teams') return teamsListRoute(method, services)
+  const teamsMembers = /^\/api\/teams\/([^/]+)\/members(?:\/([^/]+))?$/.exec(pathname)
+  if (teamsMembers !== null && teamsMembers[1] !== undefined) {
+    return teamsMembersRoute(decodeURIComponent(teamsMembers[1]), teamsMembers[2] === undefined ? undefined : decodeURIComponent(teamsMembers[2]), method, body, services)
+  }
   const teamsItem = /^\/api\/teams\/([^/]+)(?:\/members\/([^/]+)\/(transcript|messages))?$/.exec(pathname)
   if (teamsItem !== null && teamsItem[1] !== undefined) {
     return teamsItemRoute(decodeURIComponent(teamsItem[1]), teamsItem[2] === undefined ? undefined : decodeURIComponent(teamsItem[2]), teamsItem[3], method, body, services)
@@ -206,9 +210,8 @@ export async function handle(
   if (pathname === '/api/plugins/detail') return pluginsDetailRoute(search, services)
   if (pathname === '/api/plugins/enable' || pathname === '/api/plugins/disable') return pluginsSetEnabledRoute(pathname, method, body, services)
   if (pathname === '/api/filesystem/browse') return filesystemBrowseRoute(search, services)
-  if (pathname === '/api/sessions/export' || pathname === '/api/sessions/import'
-    || pathname === '/api/sessions/project-folders') {
-    return notImplemented(method, 'session export/import (raw binary) is not implemented on this host yet')
+  if (pathname === '/api/sessions/project-folders') {
+    return notImplemented(method, 'session project-folders is not implemented on this host yet')
   }
 
   if (pathname === '/api/notes/assets') {
@@ -1632,6 +1635,38 @@ async function taskListsRoute(method: string, services: RinServiceRefs): Promise
   }
 }
 
+async function teamsMembersRoute(
+  name: string,
+  agentId: string | undefined,
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  const teams = services.teams()
+  if (teams === undefined) return notMounted()
+  try {
+    if (agentId === undefined) {
+      if (method === 'GET') return json(200, { members: await teams.listMembers(name) })
+      if (method === 'POST') {
+        const fields = asRecord(body)
+        const memberAgentId = fields === undefined ? undefined : stringField(fields, 'agentId')
+        const memberName = fields === undefined ? undefined : stringField(fields, 'name')
+        if (memberAgentId === undefined || memberName === undefined) return error(400, 'agentId and name are required')
+        const detail = await teams.addMember(name, { agentId: memberAgentId, name: memberName })
+        return json(200, { detail })
+      }
+      return error(405, 'method not allowed')
+    }
+    if (method === 'DELETE') {
+      const detail = await teams.removeMember(name, agentId)
+      return json(200, { detail })
+    }
+    return error(405, 'method not allowed')
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
 async function teamsListRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
   if (method !== 'GET') return error(405, 'method not allowed')
   const teams = services.teams()
@@ -2363,7 +2398,7 @@ async function sessionsItemRoute(
   action: string | undefined,
   _search: string,
   method: string,
-  _body: unknown,
+  body: unknown,
   services: RinServiceRefs,
 ): Promise<JsonResponse> {
   let id: string
@@ -2404,11 +2439,146 @@ async function sessionsItemRoute(
     return error(405, 'method not allowed')
   }
 
-  if (action === 'rewind' || action === 'branch') {
-    return error(501, 'session ' + action + ' is not available on this host yet')
-  }
+  if (action === 'rewind') return sessionRewindRoute(id, method, body, services)
+  if (action === 'branch') return sessionBranchRoute(id, method, body, services)
 
   return error(404, 'unknown session action')
+}
+
+/** Parse a legacy message id (`evt-<seq>`) into its event seq. */
+function seqFromMessageId(id: string): number | null {
+  const match = /^evt-(\d+)$/.exec(id)
+  if (match === null) return null
+  const seq = Number(match[1])
+  return Number.isSafeInteger(seq) ? seq : null
+}
+
+/** Resolve a rewind target user-message seq from id/index/offset selectors. */
+function resolveUserSeq(session: { events: readonly { type: string; seq: number }[] }, fields: Record<string, unknown>): number | null {
+  const id = stringField(fields, 'targetUserMessageId')
+  if (id !== undefined) {
+    const seq = seqFromMessageId(id)
+    if (seq !== null && session.events.some(event => event.seq === seq && event.type === 'user/message')) return seq
+    return null
+  }
+  const userSeqs = session.events.filter(event => event.type === 'user/message').map(event => event.seq)
+  const index = fields['userMessageIndex']
+  if (typeof index === 'number' && Number.isInteger(index) && index >= 0 && index < userSeqs.length) {
+    return userSeqs[index]!
+  }
+  const offset = fields['userMessageOffsetFromEnd']
+  if (typeof offset === 'number' && Number.isInteger(offset) && offset >= 0) {
+    const indexFromEnd = userSeqs.length - 1 - offset
+    if (indexFromEnd >= 0) return userSeqs[indexFromEnd]!
+  }
+  return null
+}
+
+/** The inclusive fork boundary ending a branch/rewind at a turn boundary. */
+function forkBoundaryFor(events: readonly { type: string; seq: number }[], targetSeq: number, mode: 'branch' | 'rewind'): number | null {
+  const turnEndSeqs = events.filter(event => event.type === 'turn/end').map(event => event.seq)
+  if (mode === 'branch') {
+    return turnEndSeqs.find(seq => seq >= targetSeq) ?? null
+  }
+  for (let i = turnEndSeqs.length - 1; i >= 0; i--) {
+    const seq = turnEndSeqs[i]!
+    if (seq < targetSeq) return seq
+  }
+  return null
+}
+
+/** Build a legacy session-list row for a live dsh session. */
+function sessionListItemDto(session: { id: string; events: readonly { type: string; time: number }[] }, workDir: string | null): Record<string, unknown> {
+  const events = session.events
+  return {
+    id: session.id,
+    title: `Session ${session.id.slice(-8)}`,
+    lastMessage: '',
+    createdAt: new Date(events[0]?.time ?? Date.now()).toISOString(),
+    modifiedAt: new Date(events[events.length - 1]?.time ?? Date.now()).toISOString(),
+    messageCount: events.length,
+    projectPath: workDir ?? '',
+    workDir,
+    workDirExists: true,
+    isTemporary: false,
+  }
+}
+
+/** Ensure a persisted session is live, returning its store entry or undefined. */
+async function ensureLiveSession(id: string, services: RinServiceRefs): Promise<ReturnType<RinServiceRefs['sessions']> extends undefined ? never : { id: string; events: readonly { type: string; seq: number; time: number; data: unknown }[]; header?: { cwd?: string } } | undefined> {
+  const store = services.sessions()
+  const persistence = services.sessionPersistence()
+  let session = store?.get(id)
+  if (session === undefined && persistence !== undefined) {
+    await persistence.prepare(id)
+    session = store?.get(id)
+  }
+  return session as { id: string; events: readonly { type: string; seq: number; time: number; data: unknown }[]; header?: { cwd?: string } } | undefined
+}
+
+/** Fork a session from a selected assistant message. */
+async function sessionBranchRoute(id: string, method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const store = services.sessions()
+  if (store === undefined) return error(500, 'session service is not mounted')
+  if (store.fork === undefined) return error(501, 'session fork is not available on this host')
+  const fields = asRecord(body)
+  const targetAssistantMessageId = fields === undefined ? undefined : stringField(fields, 'targetAssistantMessageId')
+  if (targetAssistantMessageId === undefined) return error(400, 'targetAssistantMessageId is required')
+  const session = await ensureLiveSession(id, services)
+  if (session === undefined) return error(404, 'session not found')
+  const targetSeq = seqFromMessageId(targetAssistantMessageId)
+  if (targetSeq === null || targetSeq >= session.events.length) return error(400, 'invalid targetAssistantMessageId')
+  const boundary = forkBoundaryFor(session.events, targetSeq, 'branch')
+  if (boundary === null) return error(409, 'branch target is inside an open turn')
+  try {
+    const child = store.fork(id, boundary)
+    return json(201, {
+      sessionId: child.id,
+      sourceSessionId: id,
+      targetAssistantMessageId,
+      session: sessionListItemDto(child, session.header?.cwd ?? null),
+    })
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
+}
+
+/** Rewind a session to a selected user message (fork semantics; code revert is deferred). */
+async function sessionRewindRoute(id: string, method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const store = services.sessions()
+  if (store === undefined) return error(500, 'session service is not mounted')
+  if (store.fork === undefined) return error(501, 'session fork is not available on this host')
+  const fields = asRecord(body)
+  if (fields === undefined) return error(400, 'a rewind target is required')
+  const session = await ensureLiveSession(id, services)
+  if (session === undefined) return error(404, 'session not found')
+
+  const targetSeq = resolveUserSeq(session, fields)
+  if (targetSeq === null) return error(400, 'a valid target user message is required')
+
+  const userSeqs = session.events.filter(event => event.type === 'user/message').map(event => event.seq)
+  const userMessageIndex = userSeqs.indexOf(targetSeq)
+  const removed = session.events.filter(event => (event.type === 'user/message' || event.type === 'assistant/message') && event.seq >= targetSeq)
+  const targetUserMessageId = 'evt-' + targetSeq
+  const result = {
+    target: { targetUserMessageId, userMessageIndex, userMessageCount: userSeqs.length },
+    conversation: { messagesRemoved: removed.length, removedMessageIds: removed.map(event => 'evt-' + event.seq) },
+    code: { available: false, reason: 'code revert is not implemented on this host', filesChanged: [], insertions: 0, deletions: 0 },
+  }
+
+  if (fields['dryRun'] === true) return json(200, result)
+
+  const boundary = forkBoundaryFor(session.events, targetSeq, 'rewind')
+  try {
+    const child = boundary === null
+      ? store.create(undefined, { meta: { ...(session.header?.cwd !== undefined ? { cwd: session.header.cwd } : {}) } })
+      : store.fork(id, boundary)
+    return json(200, { ...result, sessionId: child.id, session: sessionListItemDto(child, session.header?.cwd ?? null) })
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
 }
 
 /**
