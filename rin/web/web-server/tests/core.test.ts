@@ -7,6 +7,8 @@ function services(overrides: Record<string, () => unknown> = {}) {
   const base: Record<string, () => unknown> = {
     repository: () => undefined,
     environment: () => undefined,
+    filesystem: () => undefined,
+    sessionBackup: () => undefined,
     smartPruning: () => undefined,
     knowledge: () => undefined,
     sessionSearch: () => undefined,
@@ -17,6 +19,14 @@ function services(overrides: Record<string, () => unknown> = {}) {
     notes: () => undefined,
     sandboxes: () => undefined,
     tokenOptimization: () => undefined,
+    codegraph: () => undefined,
+    plugins: () => undefined,
+    providerProbe: () => undefined,
+    teams: () => undefined,
+    tasks: () => undefined,
+    mcp: () => undefined,
+    computerUse: () => undefined,
+    agentMigration: () => undefined,
   }
   return { ...base, ...overrides }
 }
@@ -52,6 +62,8 @@ describe('core: /api/health', () => {
     expect(res?.body.services).toEqual({
       repository: true,
       environment: false,
+      filesystem: false,
+      sessionBackup: false,
       smartPruning: true,
       knowledge: true,
       sessionSearch: false,
@@ -62,6 +74,14 @@ describe('core: /api/health', () => {
       notes: false,
       sandboxes: false,
       tokenOptimization: true,
+      codegraph: false,
+      plugins: false,
+      providerProbe: false,
+      teams: false,
+      tasks: false,
+      mcp: false,
+      computerUse: false,
+      agentMigration: false,
     })
   })
 })

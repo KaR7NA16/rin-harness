@@ -11,6 +11,7 @@ examples/*/*.jsonl
 .sessions/
 examples/*/.sessions/
 coverage/
+.codegraph/
 .doc-typecheck-*/
 .node-next-types-*/
 .oxlint-contract-*/

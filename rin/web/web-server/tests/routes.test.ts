@@ -7,6 +7,8 @@ function services(overrides: Record<string, () => unknown> = {}) {
   const base: Record<string, () => unknown> = {
     repository: () => undefined,
     environment: () => undefined,
+    filesystem: () => undefined,
+    sessionBackup: () => undefined,
     smartPruning: () => undefined,
     knowledge: () => undefined,
     sessionSearch: () => undefined,
@@ -17,6 +19,9 @@ function services(overrides: Record<string, () => unknown> = {}) {
     notes: () => undefined,
     sandboxes: () => undefined,
     tokenOptimization: () => undefined,
+    codegraph: () => undefined,
+    plugins: () => undefined,
+    providerProbe: () => undefined,
     sessions: () => undefined,
     sessionPersistence: () => undefined,
     dshAgents: () => undefined,

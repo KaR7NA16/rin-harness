@@ -116,6 +116,8 @@ describe('response shaping', () => {
     expect(healthResponse({
       repository: true,
       environment: false,
+      filesystem: true,
+      sessionBackup: false,
       smartPruning: true,
       knowledge: false,
       sessionSearch: true,
@@ -126,6 +128,14 @@ describe('response shaping', () => {
       notes: true,
       sandboxes: false,
       tokenOptimization: true,
+      codegraph: true,
+      plugins: false,
+      providerProbe: true,
+      teams: false,
+      tasks: true,
+      mcp: false,
+      computerUse: true,
+      agentMigration: false,
     })).toEqual({
       status: 200,
       body: {
@@ -135,6 +145,8 @@ describe('response shaping', () => {
         services: {
           repository: true,
           environment: false,
+          filesystem: true,
+          sessionBackup: false,
           smartPruning: true,
           knowledge: false,
           sessionSearch: true,
@@ -145,6 +157,14 @@ describe('response shaping', () => {
           notes: true,
           sandboxes: false,
           tokenOptimization: true,
+          codegraph: true,
+          plugins: false,
+          providerProbe: true,
+          teams: false,
+          tasks: true,
+          mcp: false,
+          computerUse: true,
+          agentMigration: false,
         },
       },
     })

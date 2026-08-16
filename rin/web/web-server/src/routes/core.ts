@@ -58,6 +58,8 @@ function healthRoute(services: RinServiceRefs): JsonResponse {
   return healthResponse({
     repository: services.repository() !== undefined,
     environment: services.environment() !== undefined,
+    filesystem: services.filesystem() !== undefined,
+    sessionBackup: services.sessionBackup() !== undefined,
     smartPruning: services.smartPruning() !== undefined,
     knowledge: services.knowledge() !== undefined,
     sessionSearch: services.sessionSearch() !== undefined,
@@ -68,6 +70,14 @@ function healthRoute(services: RinServiceRefs): JsonResponse {
     notes: services.notes() !== undefined,
     sandboxes: services.sandboxes() !== undefined,
     tokenOptimization: services.tokenOptimization() !== undefined,
+    codegraph: services.codegraph() !== undefined,
+    plugins: services.plugins() !== undefined,
+    providerProbe: services.providerProbe() !== undefined,
+    teams: services.teams() !== undefined,
+    tasks: services.tasks() !== undefined,
+    mcp: services.mcp() !== undefined,
+    computerUse: services.computerUse() !== undefined,
+    agentMigration: services.agentMigration() !== undefined,
   })
 }
 

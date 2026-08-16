@@ -44,6 +44,8 @@ export type PromptMemoryTarget = 'soul' | 'brief' | 'user'
 export interface HealthServices {
   repository: boolean
   environment: boolean
+  filesystem: boolean
+  sessionBackup: boolean
   smartPruning: boolean
   knowledge: boolean
   sessionSearch: boolean
@@ -54,6 +56,14 @@ export interface HealthServices {
   notes: boolean
   sandboxes: boolean
   tokenOptimization: boolean
+  codegraph: boolean
+  plugins: boolean
+  providerProbe: boolean
+  teams: boolean
+  tasks: boolean
+  mcp: boolean
+  computerUse: boolean
+  agentMigration: boolean
 }
 
 /** GET /api/health response body. */
