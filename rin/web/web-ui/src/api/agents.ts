@@ -45,7 +45,7 @@ export type RepositoryAgentConfiguration = {
   description: string
   systemPrompt: string
   model?: string
-  permissionMode?: 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions'
+  permissionMode?: 'read-only' | 'workspace-write' | 'danger-full-access'
   tools: string[]
   resources: AgentResourceReferences
 }

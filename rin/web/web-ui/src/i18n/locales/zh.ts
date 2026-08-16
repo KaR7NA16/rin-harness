@@ -269,6 +269,12 @@ export const zh: Record<TranslationKey, string> = {
   'settings.permissions.confirmBypassTitle': '启用跳过全部权限？',
   'settings.permissions.confirmBypassBody': '启用后操作可以绕过权限检查。请确认你理解并接受相关风险。',
   'settings.permissions.confirmBypass': '启用跳过全部',
+  'settings.permissions.readOnly': '只读',
+  'settings.permissions.readOnlyDesc': '只读，不写文件',
+  'settings.permissions.workspaceWrite': '工作区可写',
+  'settings.permissions.workspaceWriteDesc': '可在工作区内写文件，越界需审批',
+  'settings.permissions.dangerFullAccess': '完全访问',
+  'settings.permissions.dangerFullAccessDesc': '无审批的全量文件与命令访问',
 
   // Settings > Adapters
   'settings.tab.adapters': 'IM 接入',
@@ -1307,6 +1313,15 @@ export const zh: Record<TranslationKey, string> = {
   'permMode.label.plan': '计划模式',
   'permMode.label.bypassPermissions': '跳过',
   'permMode.label.dontAsk': '不询问',
+  'permMode.readOnly': '只读',
+  'permMode.readOnlyDesc': '只读，不写文件',
+  'permMode.workspaceWrite': '工作区可写',
+  'permMode.workspaceWriteDesc': '工作区内可写，越界需询问',
+  'permMode.dangerFullAccess': '完全访问',
+  'permMode.dangerFullAccessDesc': '无审批的全量访问',
+  'permMode.label.readOnly': '只读',
+  'permMode.label.workspaceWrite': '工作区可写',
+  'permMode.label.dangerFullAccess': '完全访问',
 
   // ─── Model Selector ──────────────────────────────────────
   'model.selectModel': '选择模型',

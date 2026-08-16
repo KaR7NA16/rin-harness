@@ -746,32 +746,23 @@ async function settingsUserRoute(method: string, body: unknown): Promise<JsonRes
 }
 
 const PERMISSION_NAMESPACE = 'permission'
-
-/** Map a cyberpsychosis permission mode onto a dsh permission preset. */
-const MODE_TO_PRESET: Record<string, string> = {
-  bypassPermissions: 'danger-full-access',
-  dontAsk: 'danger-full-access',
-  default: 'workspace-write',
-  acceptEdits: 'workspace-write',
-  plan: 'workspace-write',
-}
+const PERMISSION_PRESETS_FALLBACK = ['read-only', 'workspace-write', 'danger-full-access']
 
 async function permissionsModeRoute(method: string, body: unknown, services: RinServiceRefs): Promise<JsonResponse> {
+  const presets = services.permissionPresets()
   const settings = services.settings()
   if (method === 'GET') {
-    if (settings === undefined) return json(200, { mode: 'default' })
-    const value = settings.get(PERMISSION_NAMESPACE) as { defaultPreset?: string } | undefined
-    const preset = value?.defaultPreset ?? 'workspace-write'
-    return json(200, { mode: preset === 'danger-full-access' ? 'bypassPermissions' : 'default' })
+    if (presets === undefined) return json(200, { mode: 'workspace-write', available: PERMISSION_PRESETS_FALLBACK })
+    return json(200, { mode: presets.defaultPreset, available: [...presets.names] })
   }
   if (method === 'PUT') {
     const fields = asRecord(body)
-    const mode = fields === undefined ? 'default' : stringField(fields, 'mode') ?? 'default'
-    const preset = MODE_TO_PRESET[mode]
-    if (preset === undefined) return error(400, 'invalid permission mode')
+    const mode = fields === undefined ? undefined : stringField(fields, 'mode')
+    if (mode === undefined) return error(400, 'mode is required')
+    if (presets !== undefined && !presets.names.includes(mode)) return error(400, 'invalid permission mode')
     if (settings === undefined) return error(500, 'settings service is not mounted')
     try {
-      await settings.update(PERMISSION_NAMESPACE, { defaultPreset: preset })
+      await settings.update(PERMISSION_NAMESPACE, { defaultPreset: mode })
       return json(200, { ok: true, mode })
     } catch (err) {
       return error(500, errorMessage(err))

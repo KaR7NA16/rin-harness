@@ -25,7 +25,7 @@ const EMPTY_DRAFT: RepositoryAgentInput = {
   description: '',
   systemPrompt: '',
   model: 'inherit',
-  permissionMode: 'plan',
+  permissionMode: 'workspace-write',
   tools: [],
   resources: { skillIds: [], workflowIds: [] },
 }
@@ -95,7 +95,7 @@ export function AgentWorkspace() {
       description: agent.description,
       systemPrompt: agent.systemPrompt,
       model: agent.model ?? 'inherit',
-      permissionMode: agent.permissionMode ?? 'plan',
+      permissionMode: agent.permissionMode ?? 'workspace-write',
       tools: agent.tools,
       resources: agent.resources,
     })
@@ -130,7 +130,7 @@ export function AgentWorkspace() {
 
   const saveAgent = async () => {
     if (!repositoryId) return
-    if (draft.permissionMode === 'bypassPermissions' && !manualBypassAcknowledged) {
+    if (draft.permissionMode === 'danger-full-access' && !manualBypassAcknowledged) {
       addToast({ type: 'error', message: copy('请先确认绕过权限模式的风险', 'Acknowledge bypass permission risk before saving') })
       return
     }
@@ -289,12 +289,12 @@ export function AgentWorkspace() {
                 <label className="flex flex-col gap-1 text-[13px] font-medium text-[var(--color-text-primary)]">
                   {copy('权限模式', 'Permission mode')}
                   <select value={draft.permissionMode} onChange={event => { setDraft({ ...draft, permissionMode: event.target.value as RepositoryAgentInput['permissionMode'] }); setManualBypassAcknowledged(false) }} className="h-[40px] rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-container-low)] px-3 text-[13px]">
-                    <option value="plan">Plan</option><option value="default">Default</option><option value="acceptEdits">Accept edits</option><option value="bypassPermissions">Bypass permissions</option>
+                    <option value="read-only">Read only</option><option value="workspace-write">Workspace write</option><option value="danger-full-access">Full access</option>
                   </select>
                 </label>
               </div>
 
-              {draft.permissionMode === 'bypassPermissions' && (
+              {draft.permissionMode === 'danger-full-access' && (
                 <label className="mt-4 flex items-start gap-2 border-l-2 border-[var(--color-danger)] px-3 py-2 text-[12px] text-[var(--color-text-secondary)]">
                   <input type="checkbox" checked={manualBypassAcknowledged} onChange={event => setManualBypassAcknowledged(event.target.checked)} />
                   {copy('我理解该模式可能绕过文件与命令确认，仅为此 Agent 显式启用。', 'I understand this mode may bypass file and command confirmations and explicitly enable it for this Agent.')}
@@ -344,7 +344,7 @@ export function AgentWorkspace() {
                   </div>
                 ))}
               </div>
-              {proposal.candidate.permissionMode === 'bypassPermissions' && proposal.status === 'proposed' && (
+              {proposal.candidate.permissionMode === 'danger-full-access' && proposal.status === 'proposed' && (
                 <label className="flex items-start gap-2 border-l-2 border-[var(--color-danger)] px-3 py-2 text-[12px] text-[var(--color-text-secondary)]">
                   <input type="checkbox" checked={acknowledgeBypassRisk} onChange={event => setAcknowledgeBypassRisk(event.target.checked)} />
                   {copy('我确认批准提案中的绕过权限模式。', 'I explicitly acknowledge the bypass permission mode in this proposal.')}
@@ -353,7 +353,7 @@ export function AgentWorkspace() {
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => setProposalOpen(false)}>{copy('关闭', 'Close')}</Button>
                 {proposal.status === 'proposed' && (
-                  <Button onClick={() => void approveProposal()} loading={proposalBusy} disabled={proposal.candidate.permissionMode === 'bypassPermissions' && !acknowledgeBypassRisk}>{copy('批准变更', 'Approve changes')}</Button>
+                  <Button onClick={() => void approveProposal()} loading={proposalBusy} disabled={proposal.candidate.permissionMode === 'danger-full-access' && !acknowledgeBypassRisk}>{copy('批准变更', 'Approve changes')}</Button>
                 )}
               </div>
             </>

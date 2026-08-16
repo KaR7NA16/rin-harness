@@ -82,7 +82,7 @@ export function PromptEditor({
         </div>
 
         {/* Bypass + no folder warning */}
-        {permissionMode === 'bypassPermissions' && (
+        {permissionMode === 'danger-full-access' && (
           <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-[var(--color-error)]/8 text-[10px] text-[var(--color-error)]">
             <Icon name="warning" size={12} />
             {t('promptEditor.bypassWarning')}{folderPath ? ` ${t('promptEditor.within')} ${folderPath}` : ` ${t('promptEditor.selectFolder')}`}.

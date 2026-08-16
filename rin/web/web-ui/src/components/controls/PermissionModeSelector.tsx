@@ -2,11 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import {
   Check,
   ChevronUp,
-  ClipboardList,
   Shield,
   ShieldAlert,
   ShieldCheck,
-  Zap,
   type LucideIcon,
 } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -19,11 +17,9 @@ import { ConfirmDialog } from '../shared/ConfirmDialog'
 import { Tooltip } from '../shared/Tooltip'
 
 const MODE_ICONS: Record<PermissionMode, LucideIcon> = {
-  default: Shield,
-  acceptEdits: Zap,
-  plan: ClipboardList,
-  bypassPermissions: ShieldAlert,
-  dontAsk: ShieldAlert,
+  'read-only': Shield,
+  'workspace-write': ShieldCheck,
+  'danger-full-access': ShieldAlert,
 }
 
 type Props = {
@@ -58,45 +54,36 @@ export function PermissionModeSelector({ workDir: workDirProp, value, onChange, 
     color?: string
   }> = [
     {
-      value: 'default',
-      label: t('permMode.askPermissions'),
-      description: t('permMode.askPermDesc'),
+      value: 'read-only',
+      label: t('permMode.readOnly'),
+      description: t('permMode.readOnlyDesc'),
       icon: Shield,
     },
     {
-      value: 'acceptEdits',
-      label: t('permMode.autoAccept'),
-      description: t('permMode.autoAcceptDesc'),
-      icon: Zap,
+      value: 'workspace-write',
+      label: t('permMode.workspaceWrite'),
+      description: t('permMode.workspaceWriteDesc'),
+      icon: ShieldCheck,
     },
     {
-      value: 'plan',
-      label: t('permMode.planMode'),
-      description: t('permMode.planModeDesc'),
-      icon: ClipboardList,
-      color: 'text-[var(--color-text-tertiary)]',
-    },
-    {
-      value: 'bypassPermissions',
-      label: t('permMode.bypass'),
-      description: t('permMode.bypassDesc'),
+      value: 'danger-full-access',
+      label: t('permMode.dangerFullAccess'),
+      description: t('permMode.dangerFullAccessDesc'),
       icon: ShieldAlert,
       color: 'text-[var(--color-error)]',
     },
   ]
 
   const MODE_LABELS: Record<PermissionMode, string> = {
-    default: t('permMode.label.default'),
-    acceptEdits: t('permMode.label.acceptEdits'),
-    plan: t('permMode.label.plan'),
-    bypassPermissions: t('permMode.label.bypassPermissions'),
-    dontAsk: t('permMode.label.dontAsk'),
+    'read-only': t('permMode.label.readOnly'),
+    'workspace-write': t('permMode.label.workspaceWrite'),
+    'danger-full-access': t('permMode.label.dangerFullAccess'),
   }
 
   const activeSession = sessions.find((s) => s.id === activeSessionId)
   const workDir = workDirProp || activeSession?.workDir || '~'
   const CurrentModeIcon = MODE_ICONS[currentMode] ?? ShieldCheck
-  const isDangerMode = currentMode === 'bypassPermissions' || currentMode === 'dontAsk'
+  const isDangerMode = currentMode === 'danger-full-access'
 
   useEffect(() => {
     if (!open) return
@@ -166,7 +153,7 @@ export function PermissionModeSelector({ workDir: workDirProp, value, onChange, 
                 <button
                   key={item.value}
                   onClick={() => {
-                    if (item.value === 'bypassPermissions') {
+                    if (item.value === 'danger-full-access') {
                       setOpen(false)
                       setConfirmDialog(true)
                       return
@@ -212,10 +199,10 @@ export function PermissionModeSelector({ workDir: workDirProp, value, onChange, 
         onClose={() => setConfirmDialog(false)}
         onConfirm={() => {
           if (isControlled) {
-            onChange?.('bypassPermissions')
+            onChange?.('danger-full-access')
           } else {
-            void setPermissionMode('bypassPermissions')
-            if (activeTabId) setSessionPermissionMode(activeTabId, 'bypassPermissions')
+            void setPermissionMode('danger-full-access')
+            if (activeTabId) setSessionPermissionMode(activeTabId, 'danger-full-access')
           }
           setConfirmDialog(false)
         }}

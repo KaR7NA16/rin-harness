@@ -99,6 +99,12 @@ export interface DshLlmLike {
   listModels(provider: string): Promise<Array<{ id: string; name: string }>>
 }
 
+/** Minimal structural view of the dsh permission-presets service. */
+export interface DshPermissionPresetsLike {
+  readonly names: readonly string[]
+  readonly defaultPreset: string
+}
+
 /** Minimal structural view of the dsh settings provider. */
 export interface DshSettingsLike {
   get(ns: string): unknown
@@ -193,6 +199,7 @@ export interface RinServiceRefs {
   dshAgents(): DshAgentRegistryLike | undefined
   agentDefaultModel(): DshAgentDefaultModelLike | undefined
   settings(): DshSettingsLike | undefined
+  permissionPresets(): DshPermissionPresetsLike | undefined
   llm(): DshLlmLike | undefined
   credentials(): DshCredentialsLike | undefined
   workspaceRegistry(): DshWorkspaceRegistryLike | undefined

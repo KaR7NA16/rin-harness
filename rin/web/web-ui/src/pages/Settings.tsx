@@ -117,7 +117,7 @@ function SettingsOverviewPage({ onSelect }: { onSelect: (tab: SettingsTab) => vo
   const { currentModel, permissionMode } = useSettingsStore()
   const desktopRuntime = isTauriRuntime()
   const modelReady = Boolean(currentModel)
-  const permissionLabelKey = permissionMode === 'bypassPermissions' ? 'settings.permissions.bypass' : `settings.permissions.${permissionMode}`
+  const permissionLabelKey = permissionMode === 'danger-full-access' ? 'settings.permissions.dangerFullAccess' : `settings.permissions.${permissionMode}`
   const permissionLabel = t(permissionLabelKey as never) as string
   const statusCards = [
     !modelReady ? {
@@ -127,7 +127,7 @@ function SettingsOverviewPage({ onSelect }: { onSelect: (tab: SettingsTab) => vo
       tone: 'warning' as const,
       tab: 'providers',
     } : null,
-    permissionMode === 'bypassPermissions' ? {
+    permissionMode === 'danger-full-access' ? {
       label: t('settings.overview.status.permissions'),
       value: permissionLabel,
       detail: t('settings.overview.status.permissionsDetail'),
@@ -1540,10 +1540,9 @@ export function PermissionSettings() {
   const [pendingPermissionMode, setPendingPermissionMode] = useState<PermissionMode | null>(null)
 
   const MODES: Array<{ mode: PermissionMode; icon: string; label: string; desc: string }> = [
-    { mode: 'default', icon: 'verified_user', label: t('settings.permissions.default'), desc: t('settings.permissions.defaultDesc') },
-    { mode: 'acceptEdits', icon: 'edit_note', label: t('settings.permissions.acceptEdits'), desc: t('settings.permissions.acceptEditsDesc') },
-    { mode: 'plan', icon: 'architecture', label: t('settings.permissions.plan'), desc: t('settings.permissions.planDesc') },
-    { mode: 'bypassPermissions', icon: 'bolt', label: t('settings.permissions.bypass'), desc: t('settings.permissions.bypassDesc') },
+    { mode: 'read-only', icon: 'verified_user', label: t('settings.permissions.readOnly'), desc: t('settings.permissions.readOnlyDesc') },
+    { mode: 'workspace-write', icon: 'edit_note', label: t('settings.permissions.workspaceWrite'), desc: t('settings.permissions.workspaceWriteDesc') },
+    { mode: 'danger-full-access', icon: 'bolt', label: t('settings.permissions.dangerFullAccess'), desc: t('settings.permissions.dangerFullAccessDesc') },
   ]
 
   return (
@@ -1556,11 +1555,11 @@ export function PermissionSettings() {
               icon={icon}
               label={label}
               description={desc}
-              risk={mode === 'bypassPermissions' ? 'danger' : mode === 'acceptEdits' ? 'balanced' : 'safe'}
-              riskLabel={t(`settings.permissions.risk.${mode === 'bypassPermissions' ? 'danger' : mode === 'acceptEdits' ? 'balanced' : 'safe'}` as never)}
+              risk={mode === 'danger-full-access' ? 'danger' : mode === 'workspace-write' ? 'balanced' : 'safe'}
+              riskLabel={t(`settings.permissions.risk.${mode === 'danger-full-access' ? 'danger' : mode === 'workspace-write' ? 'balanced' : 'safe'}` as never)}
               selected={permissionMode === mode}
               onSelect={() => {
-                if (mode === 'bypassPermissions') {
+                if (mode === 'danger-full-access') {
                   setPendingPermissionMode(mode)
                   return
                 }
@@ -1592,10 +1591,10 @@ export function PermissionSettings() {
         </SettingsRow>
       </SettingsSection>
       <ConfirmDialog
-        open={pendingPermissionMode === 'bypassPermissions'}
+        open={pendingPermissionMode === 'danger-full-access'}
         onClose={() => setPendingPermissionMode(null)}
         onConfirm={async () => {
-          await setPermissionMode('bypassPermissions')
+          await setPermissionMode('danger-full-access')
           setPendingPermissionMode(null)
         }}
         title={t('settings.permissions.confirmBypassTitle')}

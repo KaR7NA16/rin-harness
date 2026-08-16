@@ -60,7 +60,7 @@ type SettingsStore = {
 }
 
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
-  permissionMode: 'bypassPermissions',
+  permissionMode: 'workspace-write',
   currentModel: null,
   effortLevel: 'medium',
   availableModels: [],

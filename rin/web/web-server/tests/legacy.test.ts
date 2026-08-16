@@ -35,6 +35,7 @@ function makeServices(overrides: Record<string, () => unknown> = {}) {
     dshAgents: () => undefined,
     agentDefaultModel: () => undefined,
     settings: () => undefined,
+    permissionPresets: () => undefined,
     llm: () => undefined,
     credentials: () => undefined,
     workspaceRegistry: () => undefined,
@@ -749,17 +750,17 @@ describe('legacy: settings/models/providers', () => {
 
   test('permissions mode reads and writes the dsh permission preset', async () => {
     let saved: object | undefined
-    const s = makeServices({ settings: () => ({
-      get: () => ({ defaultPreset: 'workspace-write' }),
-      update: async (_ns: string, patch: object) => { saved = patch },
-    }) })
-    expect(await handle('/api/permissions/mode', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { mode: 'default' } })
-    expect(await handle('/api/permissions/mode', '', 'PUT', { mode: 'bypassPermissions' }, s, config)).toEqual({ status: 200, body: { ok: true, mode: 'bypassPermissions' } })
+    const s = makeServices({
+      permissionPresets: () => ({ names: ['read-only', 'workspace-write', 'danger-full-access'], defaultPreset: 'workspace-write' }),
+      settings: () => ({ get: () => ({ defaultPreset: 'workspace-write' }), update: async (_ns: string, patch: object) => { saved = patch } }),
+    })
+    expect(await handle('/api/permissions/mode', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { mode: 'workspace-write', available: ['read-only', 'workspace-write', 'danger-full-access'] } })
+    expect(await handle('/api/permissions/mode', '', 'PUT', { mode: 'danger-full-access' }, s, config)).toEqual({ status: 200, body: { ok: true, mode: 'danger-full-access' } })
     expect(saved).toEqual({ defaultPreset: 'danger-full-access' })
   })
 
-  test('permissions mode unmounted defaults to default', async () => {
-    expect(await handle('/api/permissions/mode', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 200, body: { mode: 'default' } })
+  test('permissions mode unmounted falls back to workspace-write', async () => {
+    expect(await handle('/api/permissions/mode', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 200, body: { mode: 'workspace-write', available: ['read-only', 'workspace-write', 'danger-full-access'] } })
   })
 
   test('permissions rules GET/POST/DELETE', async () => {

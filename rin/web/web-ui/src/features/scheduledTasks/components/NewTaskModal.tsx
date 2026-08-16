@@ -101,7 +101,7 @@ export function NewTaskModal({ open, onClose, editTask }: Props) {
   const [contextWindow, setContextWindow] = useState<number | undefined>(
     typeof editTask?.contextWindow === 'number' ? editTask.contextWindow : undefined,
   )
-  const [permissionMode, setPermissionMode] = useState<PermissionMode>((editTask?.permissionMode as PermissionMode) || 'default')
+  const [permissionMode, setPermissionMode] = useState<PermissionMode>((editTask?.permissionMode as PermissionMode) || 'workspace-write')
   const [folderPath, setFolderPath] = useState(editTask?.folderPath || defaultWorkDir)
   const [useWorktree, setUseWorktree] = useState(editTask?.useWorktree || false)
   const [notifyEnabled, setNotifyEnabled] = useState(editTask?.notification?.enabled || false)
@@ -156,7 +156,7 @@ export function NewTaskModal({ open, onClose, editTask }: Props) {
         model: model || undefined,
         providerId: providerId ?? null,
         contextWindow: normalizedContextWindow ?? null,
-        permissionMode: permissionMode !== 'default' ? permissionMode : undefined,
+        permissionMode: permissionMode !== 'workspace-write' ? permissionMode : undefined,
         folderPath: folderPath.trim() || undefined,
         useWorktree: useWorktree || undefined,
         notification: notifyEnabled && notifyChannels.length > 0

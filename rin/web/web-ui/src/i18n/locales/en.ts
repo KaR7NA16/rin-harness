@@ -267,6 +267,12 @@ export const en = {
    'settings.permissions.confirmBypassTitle': 'Enable bypass permissions?',
    'settings.permissions.confirmBypassBody': 'This allows actions to run without permission checks. Only enable it when you understand the risk.',
    'settings.permissions.confirmBypass': 'Enable bypass',
+  'settings.permissions.readOnly': 'Read only',
+  'settings.permissions.readOnlyDesc': 'No file writes; reads only',
+  'settings.permissions.workspaceWrite': 'Workspace write',
+  'settings.permissions.workspaceWriteDesc': 'Write inside the workspace; wider changes require approval',
+  'settings.permissions.dangerFullAccess': 'Full access',
+  'settings.permissions.dangerFullAccessDesc': 'Unrestricted file and command access without approval',
 
   // Settings > Adapters
   'settings.tab.adapters': 'IM Adapters',
@@ -1305,6 +1311,15 @@ export const en = {
   'permMode.label.plan': 'Plan mode',
   'permMode.label.bypassPermissions': 'Bypass',
   'permMode.label.dontAsk': "Don't ask",
+  'permMode.readOnly': 'Read only',
+  'permMode.readOnlyDesc': 'No file writes',
+  'permMode.workspaceWrite': 'Workspace write',
+  'permMode.workspaceWriteDesc': 'Write in the workspace, ask for wider',
+  'permMode.dangerFullAccess': 'Full access',
+  'permMode.dangerFullAccessDesc': 'Unrestricted access without approval',
+  'permMode.label.readOnly': 'Read only',
+  'permMode.label.workspaceWrite': 'Workspace write',
+  'permMode.label.dangerFullAccess': 'Full access',
 
   // ─── Model Selector ──────────────────────────────────────
   'model.selectModel': 'Select model',

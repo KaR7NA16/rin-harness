@@ -1,6 +1,6 @@
 // Source: src/server/api/models.ts, src/server/api/settings.ts
 
-export type PermissionMode = 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions' | 'dontAsk'
+export type PermissionMode = 'read-only' | 'workspace-write' | 'danger-full-access'
 
 export type EffortLevel = 'low' | 'medium' | 'high' | 'max'
 export type ThemeMode = 'light' | 'dark'
