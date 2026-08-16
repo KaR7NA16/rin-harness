@@ -47,7 +47,7 @@ vi.mock('../components/codegraph/CodeGraphVisualization', () => ({
   ),
 }))
 
-const projectPath = '/tmp/cybercode-project'
+const projectPath = '/tmp/rin-project'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -113,7 +113,7 @@ describe('TokenOptimization', () => {
         createdAt: '2026-07-12T00:00:00.000Z',
         modifiedAt: '2026-07-12T00:00:00.000Z',
         messageCount: 0,
-        projectPath: '-tmp-cybercode-project',
+        projectPath: '-tmp-rin-project',
         workDir: projectPath,
         workDirExists: true,
         isTemporary: false,
@@ -125,7 +125,7 @@ describe('TokenOptimization', () => {
     useTabStore.setState({
       tabs: [{
         sessionId: 'session-1',
-        projectPath: '-tmp-cybercode-project',
+        projectPath: '-tmp-rin-project',
         title: 'Project',
         type: 'session',
         status: 'idle',
@@ -806,7 +806,7 @@ describe('TokenOptimization', () => {
 
   it('opens a ready current-project graph directly from the rail entry', async () => {
     vi.mocked(tokenOptimizationApi.status).mockResolvedValue(status({
-      projectPath: '/private/tmp/cybercode-project',
+      projectPath: '/private/tmp/rin-project',
       enabled: true,
       state: 'ready',
       stats: {
@@ -902,7 +902,7 @@ describe('TokenOptimization', () => {
 
   it('ignores a stale status response after the current project changes', async () => {
     const oldProjectStatus = deferred<CodeGraphStatus>()
-    const nextProjectPath = '/tmp/cybercode-next-project'
+    const nextProjectPath = '/tmp/rin-next-project'
     vi.mocked(tokenOptimizationApi.status).mockImplementation((requestedPath) => {
       if (requestedPath === projectPath) return oldProjectStatus.promise
       return Promise.resolve(status({
@@ -947,7 +947,7 @@ describe('TokenOptimization', () => {
 
   it('ignores stale graph data after the current project changes', async () => {
     const oldProjectGraph = deferred<CodeGraphData>()
-    const nextProjectPath = '/tmp/cybercode-next-project'
+    const nextProjectPath = '/tmp/rin-next-project'
     vi.mocked(tokenOptimizationApi.status).mockImplementation((requestedPath) => Promise.resolve(status({
       projectPath: requestedPath,
       enabled: true,
@@ -989,7 +989,7 @@ describe('TokenOptimization', () => {
 
   it('does not apply an enable response to a project selected while enabling', async () => {
     const enableResult = deferred<CodeGraphStatus>()
-    const nextProjectPath = '/tmp/cybercode-next-project'
+    const nextProjectPath = '/tmp/rin-next-project'
     vi.mocked(tokenOptimizationApi.status).mockImplementation((requestedPath) => Promise.resolve(status({
       projectPath: requestedPath,
       enabled: false,
@@ -1034,7 +1034,7 @@ describe('TokenOptimization', () => {
 
   it('refreshes the selected project after an earlier project enables Code Graph globally', async () => {
     const enableResult = deferred<CodeGraphStatus>()
-    const nextProjectPath = '/tmp/cybercode-next-project'
+    const nextProjectPath = '/tmp/rin-next-project'
     let globallyEnabled = false
     vi.mocked(tokenOptimizationApi.status).mockImplementation((requestedPath) => Promise.resolve(status({
       projectPath: requestedPath,
@@ -1078,7 +1078,7 @@ describe('TokenOptimization', () => {
 
   it('does not apply a rebuild response to a newly selected project', async () => {
     const rebuildResult = deferred<CodeGraphStatus>()
-    const nextProjectPath = '/tmp/cybercode-next-project'
+    const nextProjectPath = '/tmp/rin-next-project'
     vi.mocked(tokenOptimizationApi.codeGraphGlobalStatus).mockResolvedValue({ enabled: true })
     vi.mocked(tokenOptimizationApi.status).mockImplementation((requestedPath) => Promise.resolve(status({
       projectPath: requestedPath,

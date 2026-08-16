@@ -337,7 +337,7 @@ describe('chatStore history mapping', () => {
       {
         type: 'image',
         name: 'mockup.png',
-        path: '/Users/wang/Pictures/mockup.png',
+        path: '/home/rin/Pictures/mockup.png',
         previewUrl: 'asset://localhost/%2FUsers%2Fwang%2FPictures%2Fmockup.png',
         mimeType: 'image/png',
       },
@@ -351,7 +351,7 @@ describe('chatStore history mapping', () => {
           {
             type: 'image',
             name: 'mockup.png',
-            path: '/Users/wang/Pictures/mockup.png',
+            path: '/home/rin/Pictures/mockup.png',
             previewUrl: 'asset://localhost/%2FUsers%2Fwang%2FPictures%2Fmockup.png',
             mimeType: 'image/png',
           },
@@ -363,7 +363,7 @@ describe('chatStore history mapping', () => {
     expect(payload.attachments?.[0]).toMatchObject({
       type: 'image',
       name: 'mockup.png',
-      path: '/Users/wang/Pictures/mockup.png',
+      path: '/home/rin/Pictures/mockup.png',
       mimeType: 'image/png',
     })
     expect(payload.attachments?.[0]).not.toHaveProperty('previewUrl')

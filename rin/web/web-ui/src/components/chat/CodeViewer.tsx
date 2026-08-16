@@ -13,7 +13,7 @@ type Props = {
 
 /**
  * Custom warm-toned TextMate theme — uses VS Code-quality tokenization
- * while harmonizing with the app's cream/terra-cotta design system.
+ * while harmonizing with the app's neutral surface tokens.
  */
 const warmCodeTheme = {
   name: 'warm-code',

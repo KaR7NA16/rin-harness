@@ -40,7 +40,7 @@ vi.mock('../lib/desktopRuntime', () => ({
   isTauriRuntime: () => false,
 }))
 
-const projectPath = '/tmp/cybercode-project'
+const projectPath = '/tmp/rin-project'
 
 const source: KnowledgeSource = {
   id: 'source-1',
@@ -113,7 +113,7 @@ describe('KnowledgeSpace', () => {
         createdAt: '2026-07-19T00:00:00.000Z',
         modifiedAt: '2026-07-19T00:00:00.000Z',
         messageCount: 0,
-        projectPath: '-tmp-cybercode-project',
+        projectPath: '-tmp-rin-project',
         workDir: projectPath,
         workDirExists: true,
         isTemporary: false,
@@ -125,7 +125,7 @@ describe('KnowledgeSpace', () => {
     useTabStore.setState({
       tabs: [{
         sessionId: 'session-1',
-        projectPath: '-tmp-cybercode-project',
+        projectPath: '-tmp-rin-project',
         title: 'Project',
         type: 'session',
         status: 'idle',

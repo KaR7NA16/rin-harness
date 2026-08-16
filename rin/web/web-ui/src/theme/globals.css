@@ -2,8 +2,8 @@
 @import "@vscode/codicons/dist/codicon.css";
 @plugin "@tailwindcss/typography";
 
-/* Wire Tailwind's `dark:` modifier to cybercode's data-attribute scheme so we
-   can use spacex-codex's exact class composition (e.g. `dark:bg-white/[0.03]`). */
+/* Wire Tailwind's `dark:` modifier to rin's data-attribute theme so the
+   light/dark tokens switch on <html data-theme="...">. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* The upstream TTF is rejected by Chromium's font sanitizer in some WebView
@@ -40,14 +40,6 @@
   font-display: swap;
   src: url('/fonts/GeistMono-Variable.woff2') format('woff2-variations'),
        url('/fonts/GeistMono-Variable.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Archivo';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/Archivo-Variable.ttf') format('truetype-variations');
 }
 
 @font-face {
@@ -206,8 +198,14 @@
   }
 }
 
-/* ─── Tailwind Theme — macOS Refined palette ──────────────── */
+/* ─── Tailwind Theme — rin neutral palette ────────────────── */
 @theme {
+  /* Brand palette derived from public/app-icon.svg (seal navy + mist). */
+  --color-rin-ink: #16233d;
+  --color-rin-deep: #0a101f;
+  --color-rin-mist: #f2f6fa;
+  --color-rin-blue: #9fb6dc;
+
   /* Neutral grey scale (kept compatible with components that already use it) */
   --color-gray-50: #f9f9f9;
   --color-gray-100: #ececec;
@@ -221,9 +219,6 @@
   --color-gray-850: #262626;
   --color-gray-900: #171717;
   --color-gray-950: #0d0d0d;
-
-  /* Accent — monochrome base (overridden per-theme for brand color) */
-  --color-spacex-accent: #1c1c1e;
 
   /* Light-mode default values (overridden in [data-theme="dark"]) */
   --color-primary: #1c1c1e;
@@ -265,11 +260,11 @@
   --color-inverse-on-surface: #f5f5f7;
   --color-inverse-primary: #f8f9fa;
 
-  --color-success: #777777;
+  --color-success: #2f9e6e;
   --color-warning: #ffbd2e;
 
-  /* Fonts — exact Tailwind `font-sans` stack used by cybercode-refined */
-  --font-sans: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  /* Fonts — self-hosted Geist for UI, system CJK fallback, JetBrains Mono for code. */
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   --font-display: var(--font-sans);
   --font-headline: var(--font-sans);
   --font-body: var(--font-sans);
@@ -296,7 +291,7 @@
   --text-4xl--line-height: 1.1;
 }
 
-/* ─── Semantic Aliases — Light theme (macOS Refined) ──────── */
+/* ─── Semantic Aliases — Light theme (rin neutral) ─────────── */
 :root,
 [data-theme="light"] {
   color-scheme: light;
@@ -312,29 +307,10 @@
   --motion-route-easing: cubic-bezier(0.16, 1, 0.3, 1);
   --motion-panel-duration: 180ms;
 
-  /* mac glass tokens */
-  --mac-bg: #f5f5f7;
-  --mac-text: #1d1d1f;
-  --mac-sidebar: rgba(255, 255, 255, 0.6);
-  --mac-glass-bg: rgba(255, 255, 255, 0.7);
-  --mac-border: rgba(0, 0, 0, 0.08);
-  --mac-shadow: rgba(0, 0, 0, 0.10);
-
   /* Surface aliases */
   --color-surface-sidebar: #fafafa;
   --color-surface-hover: rgba(0, 0, 0, 0.05);
   --color-surface-selected: rgba(0, 0, 0, 0.06);
-  --color-model-option-selected-bg: rgba(0, 122, 255, 0.10);
-  --color-model-option-selected-border: rgba(0, 122, 255, 0.35);
-  --color-sidebar-filter-bg: rgba(0, 0, 0, 0.04);
-  --color-sidebar-filter-border: rgba(0, 0, 0, 0.06);
-  --color-sidebar-filter-icon-bg: transparent;
-  --color-sidebar-search-bg: rgba(0, 0, 0, 0.04);
-  --color-sidebar-search-border: rgba(0, 0, 0, 0.06);
-  --color-sidebar-item-hover: rgba(0, 0, 0, 0.04);
-  --color-sidebar-item-active: var(--color-spacex-accent);
-  --color-sidebar-item-active-border: rgba(0, 122, 255, 0.40);
-  --sidebar-panel-bg-image: none;
 
   /* Border aliases */
   --color-border: rgba(0, 0, 0, 0.22);
@@ -359,50 +335,43 @@
   --color-signal-soft: rgba(13, 158, 138, 0.15);
   --color-signal-glow: rgba(13, 158, 138, 0.35);
 
-  --color-brand: #000000;
-  --color-text-accent: #000000;
-  --color-spacex-accent: #000000;
+  --color-brand: var(--color-rin-ink);
+  --color-text-accent: var(--color-rin-ink);
 
-  /* WeChat message bubble colors */
-  --color-message-user-bg: #000000;
-  --color-message-user-fg: #ffffff;
+  /* Chat bubble colors — rin navy user bubbles, mist text. */
+  --color-message-user-bg: var(--color-rin-ink);
+  --color-message-user-fg: var(--color-rin-mist);
   --color-message-assistant-bg: #ffffff;
   --color-chat-bg: #ffffff;
 
-  /* Accent glow tokens — macOS blue for light mode */
-  --color-accent-glow: rgba(0, 122, 255, 0.15);
-  --color-accent-glow-strong: rgba(0, 122, 255, 0.30);
-  --shadow-accent-glow: 0 0 20px rgba(0, 122, 255, 0.12);
+  /* Accent glow tokens — seal navy for light mode. */
+  --color-accent-glow: rgba(22, 35, 61, 0.10);
+  --color-accent-glow-strong: rgba(22, 35, 61, 0.18);
+  --shadow-accent-glow: 0 0 20px rgba(22, 35, 61, 0.12);
 
   /* Scan line effect for loading states */
-  --color-scan-line: rgba(0, 122, 255, 0.08);
-
-  /* Noise texture overlay opacity (off in light mode) */
-  --noise-opacity: 0;
+  --color-scan-line: rgba(22, 35, 61, 0.06);
 
   /* Shadows — soft, refined */
   --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.08);
   --shadow-window: 0 30px 70px -20px rgba(0, 0, 0, 0.30), 0 12px 30px -8px rgba(0, 0, 0, 0.18);
-  --shadow-sidebar-filter: none;
   /* Focus ring — accent glow */
-  --shadow-focus-ring: 0 0 0 1px rgba(0, 122, 255, 0.35), 0 0 12px rgba(0, 122, 255, 0.10);
+  --shadow-focus-ring: 0 0 0 1px rgba(22, 35, 61, 0.30), 0 0 12px rgba(22, 35, 61, 0.10);
   --shadow-error-ring: 0 0 0 2px rgba(255, 59, 48, 0.22);
-  --shadow-button-primary: 0 4px 12px rgba(0, 122, 255, 0.18);
+  --shadow-button-primary: 0 4px 12px rgba(22, 35, 61, 0.18);
 
-  --color-btn-primary-bg: var(--color-primary);
-  --color-btn-primary-bg-hover: var(--color-primary-container);
-  --color-btn-primary-fg: var(--color-on-primary);
+  --color-btn-primary-bg: var(--color-rin-ink);
+  --color-btn-primary-bg-hover: #243b61;
+  --color-btn-primary-fg: var(--color-rin-mist);
   --color-btn-danger-fg: #ffffff;
   --gradient-btn-primary: linear-gradient(135deg, var(--color-btn-primary-bg), var(--color-btn-primary-bg-hover));
   --gradient-btn-primary-hover: linear-gradient(135deg, var(--color-btn-primary-bg-hover), var(--color-btn-primary-bg));
 
   /* User message bubble */
-  --color-surface-user-msg: rgba(0, 122, 255, 0.08);
+  --color-surface-user-msg: rgba(22, 35, 61, 0.06);
 
   /* Glass / overlays */
   --color-overlay-scrim: rgba(0, 0, 0, 0.45);
-  --color-surface-glass: rgba(255, 255, 255, 0.78);
-  --color-surface-glass-border: rgba(0, 0, 0, 0.06);
 
   /* Code + diff */
   --color-code-bg: #f9f9f9;
@@ -474,11 +443,10 @@
   --radius-full: 9999px;
 }
 
-/* ─── Semantic Aliases — Dark theme (macOS Refined graphite) ── */
+/* ─── Semantic Aliases — Dark theme (rin deep) ─────────────── */
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --color-spacex-accent: #f4f4f5;
   --color-primary: #f4f4f5;
   --color-primary-container: #d4d4d8;
   --color-primary-fixed: #23262a;
@@ -518,32 +486,13 @@
   --color-inverse-on-surface: #111315;
   --color-inverse-primary: #f8f9fa;
 
-  --color-success: #8a8f98;
+  --color-success: #5fd4a2;
   --color-warning: #ffbd2e;
-
-  /* mac glass tokens */
-  --mac-bg: #111315;
-  --mac-text: #f4f4f5;
-  --mac-sidebar: #15181c;
-  --mac-glass-bg: #191c20;
-  --mac-border: rgba(244, 244, 245, 0.10);
-  --mac-shadow: rgba(0, 0, 0, 0.42);
 
   /* Surface aliases */
   --color-surface-sidebar: #15181c;
   --color-surface-hover: rgba(244, 244, 245, 0.06);
   --color-surface-selected: rgba(244, 244, 245, 0.10);
-  --color-model-option-selected-bg: rgba(244, 244, 245, 0.08);
-  --color-model-option-selected-border: rgba(244, 244, 245, 0.22);
-  --color-sidebar-filter-bg: #1a1e23;
-  --color-sidebar-filter-border: rgba(244, 244, 245, 0.09);
-  --color-sidebar-filter-icon-bg: transparent;
-  --color-sidebar-search-bg: #1a1e23;
-  --color-sidebar-search-border: rgba(244, 244, 245, 0.10);
-  --color-sidebar-item-hover: rgba(244, 244, 245, 0.06);
-  --color-sidebar-item-active: var(--color-spacex-accent);
-  --color-sidebar-item-active-border: rgba(244, 244, 245, 0.22);
-  --sidebar-panel-bg-image: none;
 
   /* Borders */
   --color-border: rgba(244, 244, 245, 0.16);
@@ -568,8 +517,8 @@
   --color-signal-soft: rgba(69, 225, 188, 0.15);
   --color-signal-glow: rgba(69, 225, 188, 0.35);
 
-  --color-brand: #f4f4f5;
-  --color-text-accent: #f4f4f5;
+  --color-brand: var(--color-rin-blue);
+  --color-text-accent: var(--color-rin-blue);
 
   /* Chat colors - dark mode */
   --color-message-user-bg: #f4f4f5;
@@ -577,24 +526,19 @@
   --color-message-assistant-bg: #191c20;
   --color-chat-bg: #111315;
 
-  /* Accent glow tokens — intentionally muted in dark mode to avoid
-     expensive glow repaints on icon-heavy surfaces. */
-  --color-accent-glow: rgba(244, 244, 245, 0.08);
-  --color-accent-glow-strong: rgba(244, 244, 245, 0.14);
-  --shadow-accent-glow: none;
+  /* Accent glow tokens — mist-blue in dark mode. */
+  --color-accent-glow: rgba(159, 182, 220, 0.10);
+  --color-accent-glow-strong: rgba(159, 182, 220, 0.16);
+  --shadow-accent-glow: 0 0 18px rgba(159, 182, 220, 0.10);
 
   /* Scan line effect for loading states */
-  --color-scan-line: rgba(244, 244, 245, 0.06);
-
-  /* Noise texture overlay opacity */
-  --noise-opacity: 0;
+  --color-scan-line: rgba(159, 182, 220, 0.06);
 
   /* Shadows */
   --shadow-dropdown: 0 10px 28px rgba(0, 0, 0, 0.28);
   --shadow-window: 0 28px 70px rgba(0, 0, 0, 0.42), 0 10px 28px rgba(0, 0, 0, 0.24);
-  --shadow-sidebar-filter: none;
   /* Focus ring — accent glow */
-  --shadow-focus-ring: 0 0 0 2px rgba(244, 244, 245, 0.12);
+  --shadow-focus-ring: 0 0 0 2px rgba(159, 182, 220, 0.20);
   --shadow-error-ring: 0 0 0 2px rgba(255, 69, 58, 0.32);
   --shadow-button-primary: none;
 
@@ -608,8 +552,6 @@
   --color-surface-user-msg: rgba(244, 244, 245, 0.08);
 
   --color-overlay-scrim: rgba(0, 0, 0, 0.52);
-  --color-surface-glass: #191c20;
-  --color-surface-glass-border: rgba(244, 244, 245, 0.09);
 
   /* Code + diff */
   --color-code-bg: #050505;
@@ -763,10 +705,10 @@ html[data-runtime="tauri"] #root {
   --color-border: rgba(0, 0, 0, 0.10);
   --color-border-focus: rgba(0, 0, 0, 0.28);
   --color-border-separator: rgba(0, 0, 0, 0.08);
-  --color-brand: #000000;
-  --color-text-accent: #000000;
-  --shadow-accent-glow: 0 0 0 3px rgba(0, 0, 0, 0.045);
-  --shadow-focus-ring: 0 0 0 2px rgba(0, 0, 0, 0.08);
+  --color-brand: var(--color-rin-ink);
+  --color-text-accent: var(--color-rin-ink);
+  --shadow-accent-glow: 0 0 0 3px rgba(22, 35, 61, 0.06);
+  --shadow-focus-ring: 0 0 0 2px rgba(22, 35, 61, 0.14);
   --shadow-window: 0 28px 80px rgba(0, 0, 0, 0.18), 0 10px 28px rgba(0, 0, 0, 0.10);
   font-family: var(--font-sans);
 }
@@ -787,7 +729,7 @@ html[data-runtime="tauri"] #root {
   --color-brand: #f4f4f5;
   --color-text-accent: #f4f4f5;
   --shadow-accent-glow: none;
-  --shadow-focus-ring: 0 0 0 2px rgba(244, 244, 245, 0.12);
+  --shadow-focus-ring: 0 0 0 2px rgba(159, 182, 220, 0.20);
   --shadow-window: 0 28px 70px rgba(0, 0, 0, 0.42), 0 10px 28px rgba(0, 0, 0, 0.24);
 }
 
@@ -829,53 +771,7 @@ h6 { font-size: 12px; line-height: 1.4; }
 
 /* ─── Typography utilities ─────────────────────────────────────── */
 
-/* Tiny tracker label — uppercase, wide tracking, mono.
-   Used for "STATUS_NOMINAL", "FLEET_MANIFEST", category badges. */
-.text-stencil {
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-weight: 700;
-  font-family: var(--font-mono);
-}
-
-.text-stencil-tight {
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.text-stencil-wide {
-  text-transform: uppercase;
-  letter-spacing: 0.24em;
-  font-weight: 700;
-  font-family: var(--font-mono);
-}
-
-.heading-display {
-  font-family: var(--font-headline);
-  font-size: clamp(28px, 4vw, 44px);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-}
-
-.heading-section {
-  font-family: var(--font-headline);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-}
-
-.heading-card {
-  font-family: var(--font-headline);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0;
-  line-height: 1.2;
-}
-
+/* Tiny tracker label — uppercase, wide tracking, mono. */
 .label-micro {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -914,13 +810,6 @@ h6 { font-size: 12px; line-height: 1.4; }
 }
 
 /* ─── Layout primitives ────────────────────────────────────────── */
-
-.mac-glass {
-  background-color: var(--mac-glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--mac-border);
-}
 
 .icon-rail-glass {
   background: rgba(255, 255, 255, 0.72);
@@ -978,23 +867,6 @@ button, input, textarea, select, a, [role="button"] {
 .tab-bar-hit-area,
 .tab-bar-hit-area * {
   -webkit-app-region: no-drag;
-}
-
-.custom-shadow {
-  box-shadow: var(--shadow-dropdown);
-}
-
-.glass-panel {
-  background: var(--color-surface-glass);
-  border: 1px solid var(--color-surface-glass-border);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  box-shadow: var(--shadow-dropdown);
-  border-radius: var(--radius-xl);
-}
-
-.glass-panel:focus-within {
-  box-shadow: var(--shadow-focus-ring), var(--shadow-dropdown);
 }
 
 .content-route-panel {
@@ -1774,7 +1646,6 @@ button, input, textarea, select, a, [role="button"] {
 }
 
 .sidebar-panel {
-  background-image: var(--sidebar-panel-bg-image);
   background-repeat: no-repeat;
   transition:
     background-color var(--motion-sidebar-duration) var(--motion-sidebar-easing),
@@ -1872,7 +1743,7 @@ button, input, textarea, select, a, [role="button"] {
   background: rgba(255, 255, 255, calc(0.22 * var(--sidebar-thumb-alpha)));
 }
 
-/* ─── Animations — macOS Refined ──────────────────────────── */
+/* ─── Animations — rin neutral ────────────────────────────── */
 
 /* Scan line — terminal-style loading indicator */
 @keyframes scan-line {
@@ -2029,121 +1900,11 @@ button, input, textarea, select, a, [role="button"] {
   animation: shimmer-slide 1.6s ease-in-out infinite;
 }
 
-/* ─── WeChat Mac Theme Styles ───────────────────────── */
+/* ─── Chat surface ───────────────────────────────────────────── */
 
-/* WeChat chat background */
-.wechat-chat-bg {
+.rin-chat-bg {
   background-color: var(--color-chat-bg);
   background-image: none;
-}
-
-/* WeChat message bubble */
-.wechat-message-bubble {
-  position: relative;
-  max-width: 70%;
-  padding: 10px 14px;
-  border-radius: 6px;
-  font-size: 15px;
-  line-height: 1.6;
-  word-wrap: break-word;
-  word-break: break-word;
-}
-
-/* Assistant message (left side) */
-.wechat-message-assistant {
-  background-color: var(--color-message-assistant-bg);
-  border-radius: 0 6px 6px 6px;
-  box-shadow: none;
-}
-
-/* User message (right side) */
-.wechat-message-user {
-  background-color: var(--color-message-user-bg);
-  border-radius: 6px 0 6px 6px;
-  box-shadow: none;
-}
-
-/* Bubble tail for assistant */
-.wechat-message-assistant::before {
-  content: '';
-  position: absolute;
-  left: -8px;
-  top: 12px;
-  width: 0;
-  height: 0;
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-  border-right: 8px solid var(--color-message-assistant-bg);
-}
-
-/* Bubble tail for user */
-.wechat-message-user::before {
-  content: '';
-  position: absolute;
-  right: -8px;
-  top: 12px;
-  width: 0;
-  height: 0;
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-  border-left: 8px solid var(--color-message-user-bg);
-}
-
-/* WeChat avatar */
-.wechat-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 500;
-}
-
-.wechat-avatar-user {
-  background: linear-gradient(135deg, #555555, #444444);
-  color: white;
-}
-
-.wechat-avatar-assistant {
-  background: linear-gradient(135deg, #5c6bc0, #3f51b5);
-  color: white;
-}
-
-/* WeChat input area */
-.wechat-input-container {
-  background-color: transparent;
-}
-
-[data-theme="dark"] .wechat-input-container {
-  background-color: transparent;
-}
-
-/* WeChat sidebar style */
-.wechat-sidebar {
-  background-color: var(--color-surface-sidebar);
-  border-right: 1px solid var(--color-border-separator);
-}
-
-[data-theme="dark"] .wechat-sidebar {
-  background-color: var(--color-surface-sidebar);
-  border-right-color: var(--color-border-separator);
-}
-
-/* WeChat scrollbar - thinner */
-.wechat-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.wechat-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-}
-
-[data-theme="dark"] .wechat-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
 }
 
 .scrollbar-no-track::-webkit-scrollbar {

@@ -910,7 +910,7 @@ describe('MessageList nested tool calls', () => {
       expect(useUIStore.getState().toasts).toContainEqual(
         expect.objectContaining({
           type: 'error',
-          message: 'The desktop service is out of date. Restart Cyberpsychosis and try again.',
+          message: 'The desktop service is out of date. Restart rin and try again.',
         }),
       )
     })
@@ -1348,7 +1348,7 @@ describe('MessageList nested tool calls', () => {
               type: 'error',
               code: 'CLI_START_FAILED',
               message:
-                'CLI exited during startup (code 1): Cyberpsychosis on Windows requires git-bash (https://git-scm.com/downloads/win).',
+                'CLI exited during startup (code 1): rin on Windows requires git-bash (https://git-scm.com/downloads/win).',
               timestamp: 1,
             },
           ],
@@ -1361,7 +1361,7 @@ describe('MessageList nested tool calls', () => {
     expect(screen.getByText('Failed to start CLI process.')).toBeTruthy()
     expect(
       screen.getByText(
-        'CLI exited during startup (code 1): Cyberpsychosis on Windows requires git-bash (https://git-scm.com/downloads/win).',
+        'CLI exited during startup (code 1): rin on Windows requires git-bash (https://git-scm.com/downloads/win).',
       ),
     ).toBeTruthy()
     expect(container.querySelector('[data-message-shell="error"]')?.className).toContain('max-w-[878px]')

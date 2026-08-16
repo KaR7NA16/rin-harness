@@ -26,15 +26,15 @@ describe('SkillsConfigBrowser', () => {
     useSettingsStore.setState({ locale: 'en' })
     vi.clearAllMocks()
     mockConfig.mockResolvedValue({
-      config: { userSkillsDir: '/Users/wang/.cyber/skills', displayPath: '~/.cyber/skills' },
+      config: { userSkillsDir: '/home/rin/.rin/skill-memory', displayPath: '~/.rin/skill-memory' },
     })
     mockBrowse.mockResolvedValue({
-      currentPath: '/Users/wang/.cyber/skills',
-      parentPath: '/Users/wang/.cyber',
+      currentPath: '/home/rin/.rin/skill-memory',
+      parentPath: '/home/rin/.rin',
       entries: [
-        { name: 'alpha', path: '/Users/wang/.cyber/skills/alpha', isDirectory: true },
-        { name: 'beta', path: '/Users/wang/.cyber/skills/beta', isDirectory: true },
-        { name: 'SKILL.md', path: '/Users/wang/.cyber/skills/SKILL.md', isDirectory: false },
+        { name: 'alpha', path: '/home/rin/.rin/skill-memory/alpha', isDirectory: true },
+        { name: 'beta', path: '/home/rin/.rin/skill-memory/beta', isDirectory: true },
+        { name: 'SKILL.md', path: '/home/rin/.rin/skill-memory/SKILL.md', isDirectory: false },
       ],
     })
   })
@@ -45,7 +45,7 @@ describe('SkillsConfigBrowser', () => {
     expect(await screen.findByText('alpha')).toBeInTheDocument()
     expect(screen.getByText('beta')).toBeInTheDocument()
     expect(screen.getByText('SKILL.md')).toBeInTheDocument()
-    expect(mockBrowse).toHaveBeenCalledWith('/Users/wang/.cyber/skills', { includeFiles: true })
+    expect(mockBrowse).toHaveBeenCalledWith('/home/rin/.rin/skill-memory', { includeFiles: true })
   })
 
   it('navigates into a subdirectory and back to the parent', async () => {
@@ -53,27 +53,27 @@ describe('SkillsConfigBrowser', () => {
     await screen.findByText('alpha')
 
     mockBrowse.mockResolvedValueOnce({
-      currentPath: '/Users/wang/.cyber/skills/alpha',
-      parentPath: '/Users/wang/.cyber/skills',
-      entries: [{ name: 'SKILL.md', path: '/Users/wang/.cyber/skills/alpha/SKILL.md', isDirectory: false }],
+      currentPath: '/home/rin/.rin/skill-memory/alpha',
+      parentPath: '/home/rin/.rin/skill-memory',
+      entries: [{ name: 'SKILL.md', path: '/home/rin/.rin/skill-memory/alpha/SKILL.md', isDirectory: false }],
     })
     fireEvent.click(screen.getByText('alpha'))
 
     expect(await screen.findByText('SKILL.md')).toBeInTheDocument()
-    expect(mockBrowse).toHaveBeenLastCalledWith('/Users/wang/.cyber/skills/alpha', { includeFiles: true })
+    expect(mockBrowse).toHaveBeenLastCalledWith('/home/rin/.rin/skill-memory/alpha', { includeFiles: true })
 
     mockBrowse.mockResolvedValueOnce({
-      currentPath: '/Users/wang/.cyber/skills',
-      parentPath: '/Users/wang/.cyber',
+      currentPath: '/home/rin/.rin/skill-memory',
+      parentPath: '/home/rin/.rin',
       entries: [
-        { name: 'alpha', path: '/Users/wang/.cyber/skills/alpha', isDirectory: true },
-        { name: 'beta', path: '/Users/wang/.cyber/skills/beta', isDirectory: true },
+        { name: 'alpha', path: '/home/rin/.rin/skill-memory/alpha', isDirectory: true },
+        { name: 'beta', path: '/home/rin/.rin/skill-memory/beta', isDirectory: true },
       ],
     })
     fireEvent.click(screen.getByRole('button', { name: 'Up' }))
 
     expect(await screen.findByText('beta')).toBeInTheDocument()
-    expect(mockBrowse).toHaveBeenLastCalledWith('/Users/wang/.cyber/skills', { includeFiles: true })
+    expect(mockBrowse).toHaveBeenLastCalledWith('/home/rin/.rin/skill-memory', { includeFiles: true })
   })
 
   it('shows an error with a retry action when the directory cannot be loaded', async () => {

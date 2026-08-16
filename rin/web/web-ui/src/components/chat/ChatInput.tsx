@@ -77,12 +77,15 @@ function isTauriRuntime() {
   return typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)
 }
 
-const COMPOSER_DRAFT_KEY_PREFIX = 'cybercode-composer-draft:'
+const COMPOSER_DRAFT_KEY_PREFIX = 'rin-composer-draft:'
+const LEGACY_COMPOSER_DRAFT_KEY_PREFIX = 'cybercode-composer-draft:'
 const COMPOSER_DRAFT_SAVE_DELAY_MS = 500
 
 function readComposerDraft(sessionId: string): string {
+  const key = `${COMPOSER_DRAFT_KEY_PREFIX}${sessionId}`
+  const legacyKey = `${LEGACY_COMPOSER_DRAFT_KEY_PREFIX}${sessionId}`
   try {
-    return window.localStorage.getItem(`${COMPOSER_DRAFT_KEY_PREFIX}${sessionId}`) ?? ''
+    return window.localStorage.getItem(key) ?? window.localStorage.getItem(legacyKey) ?? ''
   } catch {
     return ''
   }
@@ -1101,7 +1104,7 @@ export function ChatInput({ variant = 'default', sessionId: sessionIdProp, proje
   const composerToolButtonClassName = 'group relative flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full border border-transparent text-[var(--color-text-tertiary)] transition-colors duration-100 hover:border-[var(--color-border-separator)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]'
 
   return (
-    <div className={isHeroComposer ? '' : 'wechat-input-container pointer-events-none flex justify-center p-[24px]'}>
+    <div className={isHeroComposer ? '' : 'pointer-events-none flex justify-center p-[24px]'}>
       <div
         data-chat-content-column={isHeroComposer ? undefined : true}
         className={isHeroComposer ? 'relative w-full' : 'pointer-events-auto relative w-full max-w-[878px]'}
@@ -1199,7 +1202,7 @@ export function ChatInput({ variant = 'default', sessionId: sessionIdProp, proje
           </div>
         )}
 
-        {/* ── WeChat Style Input ── */}
+        {/* ── Composer input ── */}
         <div
           className={`relative flex w-full flex-col rounded-[28px] border-2 bg-[var(--color-surface-container-lowest)] p-[8px] pt-[12px] transition-colors duration-150 focus-within:border-[var(--color-border-focus)] ${
             isDraggingFiles

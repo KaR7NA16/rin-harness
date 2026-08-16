@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import type { RuntimeSelection } from '../types/runtime'
+import { readStoredJson, writeStoredJson } from '../lib/storage'
 
-const STORAGE_KEY = 'cybercode-session-runtime'
+const STORAGE_KEY = 'rin-session-runtime'
+const LEGACY_STORAGE_KEY = 'cybercode-session-runtime'
 
 export const DRAFT_RUNTIME_SELECTION_KEY = '__draft__'
 
@@ -13,24 +15,12 @@ type SessionRuntimeStore = {
 }
 
 function loadSelections(): Record<string, RuntimeSelection> {
-  if (typeof localStorage === 'undefined') return {}
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw) as Record<string, RuntimeSelection>
-    return parsed && typeof parsed === 'object' ? parsed : {}
-  } catch {
-    return {}
-  }
+  const parsed = readStoredJson<Record<string, RuntimeSelection>>(STORAGE_KEY, LEGACY_STORAGE_KEY, {})
+  return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
 }
 
 function persistSelections(selections: Record<string, RuntimeSelection>) {
-  if (typeof localStorage === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(selections))
-  } catch {
-    // noop
-  }
+  writeStoredJson(STORAGE_KEY, selections)
 }
 
 export const useSessionRuntimeStore = create<SessionRuntimeStore>((set) => ({

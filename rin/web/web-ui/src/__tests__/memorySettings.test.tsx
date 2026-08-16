@@ -5,7 +5,7 @@ import { MemorySettings } from '../pages/Settings'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useUIStore } from '../stores/uiStore'
 
-const userEntry = '用户给 Cyberpsychosis/AI 取名为「零」。'
+const userEntry = '用户给 rin/AI 取名为「零」。'
 
 function jsonResponse(body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -89,7 +89,7 @@ describe('MemorySettings evolution profile', () => {
             injectEvolutionMemory: injectionEnabled,
           },
           files: {
-            soul: memoryFile('soul', 'You are Cyberpsychosis.'),
+            soul: memoryFile('soul', 'You are rin.'),
             brief: memoryFile('brief'),
             user: memoryFile('user', removed ? '' : userEntry),
           },

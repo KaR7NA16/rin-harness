@@ -1,14 +1,13 @@
 import { create } from 'zustand'
 import type { ThemeMode } from '../types/settings'
+import { readStoredValue, writeStoredValue } from '../lib/storage'
 
-const THEME_STORAGE_KEY = 'cybercode-theme'
+const THEME_STORAGE_KEY = 'rin-theme'
+const LEGACY_THEME_STORAGE_KEY = 'cybercode-theme'
 
 function getStoredTheme(): ThemeMode {
-  try {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY)
-    if (stored === 'light' || stored === 'dark') return stored
-  } catch { /* localStorage unavailable */ }
-  return 'light'
+  const stored = readStoredValue(THEME_STORAGE_KEY, LEGACY_THEME_STORAGE_KEY)
+  return stored === 'light' || stored === 'dark' ? stored : 'light'
 }
 
 export function applyTheme(theme: ThemeMode) {
@@ -69,14 +68,12 @@ type ActiveView = 'code' | 'scheduled' | 'terminal' | 'history' | 'settings'
 
 export type SidebarGrouping = 'project' | 'time'
 
-const SIDEBAR_GROUPING_STORAGE_KEY = 'cybercode-sidebar-grouping'
+const SIDEBAR_GROUPING_STORAGE_KEY = 'rin-sidebar-grouping'
+const LEGACY_SIDEBAR_GROUPING_STORAGE_KEY = 'cybercode-sidebar-grouping'
 
 function getStoredSidebarGrouping(): SidebarGrouping {
-  try {
-    const stored = localStorage.getItem(SIDEBAR_GROUPING_STORAGE_KEY)
-    if (stored === 'time' || stored === 'project') return stored
-  } catch { /* localStorage unavailable */ }
-  return 'project'
+  const stored = readStoredValue(SIDEBAR_GROUPING_STORAGE_KEY, LEGACY_SIDEBAR_GROUPING_STORAGE_KEY)
+  return stored === 'time' || stored === 'project' ? stored : 'project'
 }
 
 type UIStore = {
@@ -132,7 +129,7 @@ export const useUIStore = create<UIStore>((set) => ({
 
   setTheme: (theme) => {
     applyTheme(theme)
-    try { localStorage.setItem(THEME_STORAGE_KEY, theme) } catch { /* noop */ }
+    writeStoredValue(THEME_STORAGE_KEY, theme)
     set({ theme })
   },
 
@@ -140,7 +137,7 @@ export const useUIStore = create<UIStore>((set) => ({
     set((state) => {
       const next = state.theme === 'light' ? 'dark' : 'light'
       applyTheme(next)
-      try { localStorage.setItem(THEME_STORAGE_KEY, next) } catch { /* noop */ }
+      writeStoredValue(THEME_STORAGE_KEY, next)
       return { theme: next }
     })
   },
@@ -205,7 +202,7 @@ export const useUIStore = create<UIStore>((set) => ({
   removeToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
   setSidebarGrouping: (grouping) => {
-    try { localStorage.setItem(SIDEBAR_GROUPING_STORAGE_KEY, grouping) } catch { /* noop */ }
+    writeStoredValue(SIDEBAR_GROUPING_STORAGE_KEY, grouping)
     set({ sidebarGrouping: grouping })
   },
 }))

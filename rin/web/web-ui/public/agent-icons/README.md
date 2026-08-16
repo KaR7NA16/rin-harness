@@ -1,7 +1,7 @@
 # Agent icon sources
 
 These unmodified brand assets are used only to identify compatible third-party
-agents in Cyberpsychosis's migration UI.
+agents in rin's migration UI.
 
 - `openclaw.png`: OpenClaw app icon from `openclaw/openclaw`.
 - `claude-code.png`: Claude favicon from the official `claude.com` product site.

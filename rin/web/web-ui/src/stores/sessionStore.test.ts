@@ -55,7 +55,7 @@ describe('sessionStore', () => {
     listMock.mockImplementation(() => new Promise(() => {}))
 
     const result = await Promise.race([
-      useSessionStore.getState().createSession('D:/workspace/code/myself_code/cybercode'),
+      useSessionStore.getState().createSession('D:/workspace/code/myself_code/rin'),
       delay(100).then(() => 'timed-out'),
     ])
 
@@ -64,7 +64,7 @@ describe('sessionStore', () => {
     expect(useSessionStore.getState().sessions[0]).toMatchObject({
       id: 'session-optimistic-1',
       title: '新会话',
-      workDir: 'D:/workspace/code/myself_code/cybercode',
+      workDir: 'D:/workspace/code/myself_code/rin',
       workDirExists: true,
       isTemporary: false,
     })
@@ -164,7 +164,7 @@ describe('sessionStore', () => {
     expect(useSessionStore.getState().projectDisplayNames).toEqual({
       '-workspace-project': 'Client Portal',
     })
-    expect(JSON.parse(localStorage.getItem('cybercode.sidebar.projectDisplayNames.v1') || '{}')).toEqual({
+    expect(JSON.parse(localStorage.getItem('rin.sidebar.projectDisplayNames.v1') || '{}')).toEqual({
       '-workspace-project': 'Client Portal',
     })
   })

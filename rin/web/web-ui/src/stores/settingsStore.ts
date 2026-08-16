@@ -3,9 +3,11 @@ import { settingsApi } from '../api/settings'
 import { modelsApi } from '../api/models'
 import type { PermissionMode, EffortLevel, ModelInfo, ThemeMode, ConnectionMode } from '../types/settings'
 import { isLocale, type Locale } from '../i18n/localeConfig'
+import { readStoredValue, writeStoredValue } from '../lib/storage'
 import { useUIStore } from './uiStore'
 
-const LOCALE_STORAGE_KEY = 'cybercode-locale'
+const LOCALE_STORAGE_KEY = 'rin-locale'
+const LEGACY_LOCALE_STORAGE_KEY = 'cybercode-locale'
 
 const LANGUAGE_BY_LOCALE: Record<Locale, string> = {
   en: 'English',
@@ -25,11 +27,8 @@ function syncPromptMemoryLanguage(language: string): Promise<void> {
 }
 
 function getStoredLocale(): Locale {
-  try {
-    const stored = localStorage.getItem(LOCALE_STORAGE_KEY)
-    if (isLocale(stored)) return stored
-  } catch { /* localStorage unavailable */ }
-  return 'zh'
+  const stored = readStoredValue(LOCALE_STORAGE_KEY, LEGACY_LOCALE_STORAGE_KEY)
+  return isLocale(stored) ? stored : 'zh'
 }
 
 type SettingsStore = {
@@ -141,7 +140,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
 
   setLocale: async (locale) => {
     set({ locale })
-    try { localStorage.setItem(LOCALE_STORAGE_KEY, locale) } catch { /* noop */ }
+    writeStoredValue(LOCALE_STORAGE_KEY, locale)
     await syncPromptMemoryLanguage(LANGUAGE_BY_LOCALE[locale]).catch(() => {})
   },
 

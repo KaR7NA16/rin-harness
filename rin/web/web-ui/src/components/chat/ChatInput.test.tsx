@@ -450,7 +450,7 @@ describe('ChatInput composer controls', () => {
     await waitFor(() => {
       expect(useUIStore.getState().toasts).toContainEqual(expect.objectContaining({
         type: 'error',
-        message: expect.stringContaining('Allow screen recording for Cyberpsychosis'),
+        message: expect.stringContaining('Allow screen recording for rin'),
       }))
     })
   })
@@ -504,7 +504,7 @@ describe('ChatInput composer controls', () => {
     fireEvent.dragEnter(textarea, { dataTransfer })
 
     expect(screen.getByText('Drop to attach files or photos')).toBeInTheDocument()
-    expect(screen.getByText('Cyberpsychosis will add them to this message.')).toBeInTheDocument()
+    expect(screen.getByText('rin will add them to this message.')).toBeInTheDocument()
 
     fireEvent.dragLeave(textarea, { dataTransfer })
 

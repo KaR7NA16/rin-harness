@@ -94,7 +94,7 @@ describe('tabStore', () => {
     useTabStore.getState().openTab('__repository__', 'Repository', 'repository')
     const terminalId = useTabStore.getState().openTerminalTab()
 
-    const persisted = JSON.parse(localStorage.getItem('cybercode-open-tabs') || '{}')
+    const persisted = JSON.parse(localStorage.getItem('rin-open-tabs') || '{}')
     expect(persisted.openTabs).toMatchObject([
       { sessionId: 'session-1', type: 'session' },
       { sessionId: terminalId, type: 'terminal' },
@@ -103,7 +103,7 @@ describe('tabStore', () => {
   })
 
   it('drops legacy persisted tool tabs during restore', async () => {
-    localStorage.setItem('cybercode-open-tabs', JSON.stringify({
+    localStorage.setItem('rin-open-tabs', JSON.stringify({
       openTabs: [
         { sessionId: '__repository__', title: 'Repository', type: 'repository' },
         { sessionId: '__agents__', title: 'Agents', type: 'agents' },
@@ -115,7 +115,7 @@ describe('tabStore', () => {
 
     expect(useTabStore.getState().tabs).toEqual([])
     expect(useTabStore.getState().activeTabId).toBeNull()
-    expect(localStorage.getItem('cybercode-open-tabs')).toBeNull()
+    expect(localStorage.getItem('rin-open-tabs')).toBeNull()
   })
 
   it('updates a duplicate session id only in the matching project tab', () => {

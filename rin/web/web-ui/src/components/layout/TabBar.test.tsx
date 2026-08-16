@@ -212,7 +212,7 @@ describe('TabBar', () => {
     })
 
     expect(screen.getByTestId('tab-bar')).toBeInTheDocument()
-    expect(screen.queryByText('Cyberpsychosis')).not.toBeInTheDocument()
+    expect(screen.queryByText('rin')).not.toBeInTheDocument()
     expect(screen.queryByTestId('window-controls')).not.toBeInTheDocument()
   })
 

@@ -4,9 +4,12 @@ import { t } from '../i18n'
 import { useSessionRuntimeStore } from './sessionRuntimeStore'
 import type { CreateSessionInput, SessionListItem } from '../types/session'
 import { getDefaultSessionTitle } from '../utils/sessionTitle'
+import { readStoredJson, writeStoredJson } from '../lib/storage'
 
-const HIDDEN_SIDEBAR_PROJECTS_KEY = 'cybercode.sidebar.hiddenProjects.v1'
-const PROJECT_DISPLAY_NAMES_KEY = 'cybercode.sidebar.projectDisplayNames.v1'
+const HIDDEN_SIDEBAR_PROJECTS_KEY = 'rin.sidebar.hiddenProjects.v1'
+const LEGACY_HIDDEN_SIDEBAR_PROJECTS_KEY = 'cybercode.sidebar.hiddenProjects.v1'
+const PROJECT_DISPLAY_NAMES_KEY = 'rin.sidebar.projectDisplayNames.v1'
+const LEGACY_PROJECT_DISPLAY_NAMES_KEY = 'cybercode.sidebar.projectDisplayNames.v1'
 
 type SessionFilterScope = 'all' | 'project' | 'temporary'
 
@@ -16,41 +19,29 @@ function matchesSessionLocator(session: SessionListItem, id: string, projectPath
 }
 
 function readHiddenProjectPaths(): string[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(HIDDEN_SIDEBAR_PROJECTS_KEY) || '[]')
-    if (!Array.isArray(parsed)) return []
-    return [...new Set(parsed.filter((item): item is string => typeof item === 'string' && item.length > 0))]
-  } catch {
-    return []
-  }
+  const parsed = readStoredJson<unknown>(HIDDEN_SIDEBAR_PROJECTS_KEY, LEGACY_HIDDEN_SIDEBAR_PROJECTS_KEY, [])
+  if (!Array.isArray(parsed)) return []
+  return [...new Set(parsed.filter((item): item is string => typeof item === 'string' && item.length > 0))]
 }
 
 function writeHiddenProjectPaths(projectPaths: string[]) {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(HIDDEN_SIDEBAR_PROJECTS_KEY, JSON.stringify(projectPaths))
+  writeStoredJson(HIDDEN_SIDEBAR_PROJECTS_KEY, projectPaths)
 }
 
 function readProjectDisplayNames(): Record<string, string> {
-  if (typeof window === 'undefined') return {}
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(PROJECT_DISPLAY_NAMES_KEY) || '{}')
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
-    return Object.fromEntries(
-      Object.entries(parsed)
-        .filter((entry): entry is [string, string] =>
-          entry[0].length > 0 && typeof entry[1] === 'string' && entry[1].trim().length > 0,
-        )
-        .map(([projectPath, title]) => [projectPath, title.trim().slice(0, 80)]),
-    )
-  } catch {
-    return {}
-  }
+  const parsed = readStoredJson<unknown>(PROJECT_DISPLAY_NAMES_KEY, LEGACY_PROJECT_DISPLAY_NAMES_KEY, {})
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+  return Object.fromEntries(
+    Object.entries(parsed)
+      .filter((entry): entry is [string, string] =>
+        entry[0].length > 0 && typeof entry[1] === 'string' && entry[1].trim().length > 0,
+      )
+      .map(([projectPath, title]) => [projectPath, title.trim().slice(0, 80)]),
+  )
 }
 
 function writeProjectDisplayNames(names: Record<string, string>) {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(PROJECT_DISPLAY_NAMES_KEY, JSON.stringify(names))
+  writeStoredJson(PROJECT_DISPLAY_NAMES_KEY, names)
 }
 
 function deriveAvailableProjects(

@@ -11,8 +11,8 @@ const overview: PromptMemoryInsights = {
       id: 'identity-1',
       target: 'user',
       category: 'identity',
-      content: 'The user calls Cyberpsychosis Zero.',
-      raw: '[identity] The user calls Cyberpsychosis Zero.',
+      content: 'The user calls rin Zero.',
+      raw: '[identity] The user calls rin Zero.',
       source: 'explicit',
     },
     {
@@ -48,7 +48,7 @@ describe('EvolutionProfile', () => {
       />,
     )
 
-    const userHeading = screen.getByRole('heading', { name: 'What Cyberpsychosis understands about you' })
+    const userHeading = screen.getByRole('heading', { name: 'What rin understands about you' })
     expect(userHeading).toBeInTheDocument()
     expect(userHeading.className).toContain('whitespace-normal')
     expect(userHeading.className).not.toContain('truncate')

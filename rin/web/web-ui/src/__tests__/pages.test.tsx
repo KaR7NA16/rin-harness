@@ -178,10 +178,10 @@ describe('Content-only pages render without errors', () => {
     vi.spyOn(sessionsApi, 'getRecentProjects').mockResolvedValueOnce({
       projects: [
         {
-          projectPath: '-workspace-cybercode',
-          realPath: '/workspace/cybercode',
-          projectName: 'cybercode',
-          repoName: 'cybercode',
+          projectPath: '-workspace-rin',
+          realPath: '/workspace/rin',
+          projectName: 'rin',
+          repoName: 'rin',
           isGit: true,
           branch: 'main',
           modifiedAt: '2026-05-28T00:00:00.000Z',
@@ -192,7 +192,7 @@ describe('Content-only pages render without errors', () => {
 
     render(<EmptySession />)
 
-    expect(await screen.findByRole('button', { name: /cybercode/ })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /rin/ })).toBeInTheDocument()
     expect(screen.getByText('Recent projects')).toBeInTheDocument()
   })
 

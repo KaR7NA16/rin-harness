@@ -172,7 +172,7 @@ describe('Settings > Skills tab', () => {
 
     render(<SkillSettings />)
 
-    expect(screen.getByRole('button', { name: 'Open skills folder' })).toHaveTextContent('~/.cyber/skills')
+    expect(screen.getByRole('button', { name: 'Open skills folder' })).toHaveTextContent('~/.rin/skill-memory')
     expect(screen.getByText('Alpha Skill')).toBeInTheDocument()
     expect(screen.getByText('Second skill description')).toBeInTheDocument()
     expect(screen.getAllByText('Plugin').length).toBeGreaterThan(0)
@@ -317,11 +317,11 @@ describe('Settings > Skills tab', () => {
       const target = String(url)
       if (target.includes('/api/filesystem/browse')) {
         return Promise.resolve(new Response(JSON.stringify({
-          currentPath: '/Users/wang/.cyber/skills',
-          parentPath: '/Users/wang/.cyber',
+          currentPath: '/home/rin/.rin/skill-memory',
+          parentPath: '/home/rin/.rin',
           entries: [
-            { name: 'alpha', path: '/Users/wang/.cyber/skills/alpha', isDirectory: true },
-            { name: 'SKILL.md', path: '/Users/wang/.cyber/skills/SKILL.md', isDirectory: false },
+            { name: 'alpha', path: '/home/rin/.rin/skill-memory/alpha', isDirectory: true },
+            { name: 'SKILL.md', path: '/home/rin/.rin/skill-memory/SKILL.md', isDirectory: false },
           ],
         }), {
           status: 200,
@@ -330,8 +330,8 @@ describe('Settings > Skills tab', () => {
       }
       return Promise.resolve(new Response(JSON.stringify({
         config: {
-          userSkillsDir: '/Users/wang/.cyber/skills',
-          displayPath: '~/.cyber/skills',
+          userSkillsDir: '/home/rin/.rin/skill-memory',
+          displayPath: '~/.rin/skill-memory',
         },
       }), {
         status: 200,
@@ -363,10 +363,10 @@ describe('Settings > Skills tab', () => {
       const target = String(url)
       if (target.includes('/api/filesystem/browse')) {
         return Promise.resolve(new Response(JSON.stringify({
-          currentPath: '/Users/wang/custom-claude/skills',
-          parentPath: '/Users/wang/custom-claude',
+          currentPath: '/home/rin/custom-claude/skills',
+          parentPath: '/home/rin/custom-claude',
           entries: [
-            { name: 'beta', path: '/Users/wang/custom-claude/skills/beta', isDirectory: true },
+            { name: 'beta', path: '/home/rin/custom-claude/skills/beta', isDirectory: true },
           ],
         }), {
           status: 200,
@@ -375,7 +375,7 @@ describe('Settings > Skills tab', () => {
       }
       return Promise.resolve(new Response(JSON.stringify({
         config: {
-          userSkillsDir: '/Users/wang/custom-claude/skills',
+          userSkillsDir: '/home/rin/custom-claude/skills',
           displayPath: '~/custom-claude/skills',
         },
       }), {
@@ -390,7 +390,7 @@ describe('Settings > Skills tab', () => {
     await screen.findByText('~/custom-claude/skills')
     fireEvent.click(screen.getByRole('button', { name: 'Open skills folder' }))
 
-    expect(await screen.findByText('/Users/wang/custom-claude/skills')).toBeInTheDocument()
+    expect(await screen.findByText('/home/rin/custom-claude/skills')).toBeInTheDocument()
     expect(screen.getByText('beta')).toBeInTheDocument()
   })
 

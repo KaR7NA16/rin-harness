@@ -69,7 +69,7 @@ describe('SettingsOverview', () => {
     render(
       <SettingsOverview
         title="设置"
-        description="配置 Cyberpsychosis 的工作方式"
+        description="配置 rin 的工作方式"
         statusCards={[
           { label: '模型', value: '未配置', detail: '先配置一个模型供应商', tone: 'warning', tab: 'providers' },
         ]}

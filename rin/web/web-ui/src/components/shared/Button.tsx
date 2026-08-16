@@ -8,7 +8,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: 'sm' | 'md' | 'lg'
   loading?: boolean
   icon?: ReactNode
-  /** Whether to apply uppercase + letter-spacing (spacex-codex tracker style) */
+  /** Whether to apply the technical tracker label style (uppercase + letter-spacing) */
   stencil?: boolean
 }
 

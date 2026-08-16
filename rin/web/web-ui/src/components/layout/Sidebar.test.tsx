@@ -22,7 +22,7 @@ vi.mock('../../api/sessions', () => ({
 vi.mock('../../api/skills', () => ({
   skillsApi: {
     config: vi.fn().mockResolvedValue({
-      config: { userSkillsDir: '/Users/wang/.cyber/skills', displayPath: '~/.cyber/skills' },
+      config: { userSkillsDir: '/home/rin/.rin/skill-memory', displayPath: '~/.rin/skill-memory' },
     }),
   },
 }))
@@ -30,11 +30,11 @@ vi.mock('../../api/skills', () => ({
 vi.mock('../../api/filesystem', () => ({
   filesystemApi: {
     browse: vi.fn().mockResolvedValue({
-      currentPath: '/Users/wang/.cyber/skills',
-      parentPath: '/Users/wang/.cyber',
+      currentPath: '/home/rin/.rin/skill-memory',
+      parentPath: '/home/rin/.rin',
       entries: [
-        { name: 'alpha', path: '/Users/wang/.cyber/skills/alpha', isDirectory: true },
-        { name: 'beta', path: '/Users/wang/.cyber/skills/beta', isDirectory: false },
+        { name: 'alpha', path: '/home/rin/.rin/skill-memory/alpha', isDirectory: true },
+        { name: 'beta', path: '/home/rin/.rin/skill-memory/beta', isDirectory: false },
       ],
     }),
   },

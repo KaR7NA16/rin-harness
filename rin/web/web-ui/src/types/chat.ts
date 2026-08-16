@@ -95,7 +95,7 @@ export type TokenUsage = {
   output_tokens: number
   cache_read_input_tokens?: number
   cache_creation_input_tokens?: number
-  /** Legacy aliases used by older Cyberpsychosis servers. */
+  /** Legacy aliases used by pre-migration servers. */
   cache_read_tokens?: number
   cache_creation_tokens?: number
 }

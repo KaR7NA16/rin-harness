@@ -42,6 +42,12 @@ pnpm --filter @rin/web-ui run dev   # vite dev，port 5173，/api 代理到 http
 pnpm run rin                 # 启动 host：http://127.0.0.1:8320 伺服 dist/（@rin/bundle staticRoot）
 ```
 
+## 设计系统
+
+- 设计 token 集中在 `src/theme/globals.css`：品牌色来自 `public/app-icon.svg` 的海豹深蓝（`--color-rin-ink` / `--color-rin-deep` / `--color-rin-mist` / `--color-rin-blue`），亮暗主题通过 `[data-theme]` 切换。
+- 正文使用自托管 Geist，代码使用 JetBrains Mono；旧 Archivo 与 Material Symbols 字体及旧品牌资产已移除。
+- 持久化键已从 `cybercode-*` 迁移到 `rin-*`，读取时自动回退旧键（见 `src/lib/storage.ts`）。
+
 ## 加载策略
 
 Settings、workspace 页面、Terminal、Mermaid、Shiki 代码高亮与 DiffViewer 均按需懒加载（Suspense 边界见 `src/components/chat/lazyRenderers.tsx`、`ContentRouter.tsx` 与 `SettingsPanel.tsx`），避免把重型依赖打进首屏主包。

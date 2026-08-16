@@ -3,8 +3,10 @@ import { sessionsApi } from '../api/sessions'
 import { t } from '../i18n'
 import { useUIStore } from './uiStore'
 import { getDefaultSessionTitle, getSessionDisplayTitle, getSessionTitleText } from '../utils/sessionTitle'
+import { readStoredValue, writeStoredValue, removeStoredValue } from '../lib/storage'
 
-const TAB_STORAGE_KEY = 'cybercode-open-tabs'
+const TAB_STORAGE_KEY = 'rin-open-tabs'
+const LEGACY_TAB_STORAGE_KEY = 'cybercode-open-tabs'
 
 export const TERMINAL_TAB_PREFIX = '__terminal__'
 
@@ -288,7 +290,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
     const { tabs, activeTabId } = get()
     const persistentTabs = tabs.filter((tab) => tab.type === 'session' || tab.type === 'terminal')
     if (persistentTabs.length === 0) {
-      try { localStorage.removeItem(TAB_STORAGE_KEY) } catch { /* noop */ }
+      removeStoredValue(TAB_STORAGE_KEY)
       return
     }
 
@@ -305,14 +307,12 @@ export const useTabStore = create<TabStore>((set, get) => ({
         ? activeTabId
         : persistentTabs[0]!.sessionId,
     }
-    try {
-      localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(data))
-    } catch { /* noop */ }
+    writeStoredValue(TAB_STORAGE_KEY, JSON.stringify(data))
   },
 
   restoreTabs: async () => {
     try {
-      const raw = localStorage.getItem(TAB_STORAGE_KEY)
+      const raw = readStoredValue(TAB_STORAGE_KEY, LEGACY_TAB_STORAGE_KEY)
       if (!raw) return
 
       const parsed = JSON.parse(raw) as Partial<TabPersistence> & {
@@ -332,7 +332,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
         // Filtering here also migrates legacy persisted tool tabs in place.
         .filter((tab) => !tab.type || tab.type === 'session' || tab.type === 'terminal')
       if (persistedTabs.length === 0) {
-        try { localStorage.removeItem(TAB_STORAGE_KEY) } catch { /* noop */ }
+        removeStoredValue(TAB_STORAGE_KEY)
         return
       }
 
@@ -368,7 +368,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
         })
 
       if (restoredTabs.length === 0) {
-        try { localStorage.removeItem(TAB_STORAGE_KEY) } catch { /* noop */ }
+        removeStoredValue(TAB_STORAGE_KEY)
         return
       }
 

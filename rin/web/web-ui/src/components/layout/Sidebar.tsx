@@ -14,9 +14,11 @@ import { ProjectFilter } from './ProjectFilter'
 import { Icon } from '../shared/Icon'
 import { useCreateAndOpenSession } from '../../hooks/useCreateAndOpenSession'
 import type { SessionListItem } from '../../types/session'
+import { readStoredJson, writeStoredJson } from '../../lib/storage'
 
 const isTauri = typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)
-const COLLAPSED_PROJECTS_KEY = 'cybercode.sidebar.collapsedProjects.v1'
+const COLLAPSED_PROJECTS_KEY = 'rin.sidebar.collapsedProjects.v1'
+const LEGACY_COLLAPSED_PROJECTS_KEY = 'cybercode.sidebar.collapsedProjects.v1'
 const TEMPORARY_GROUP_KEY = '__temporary__'
 const BACKGROUND_HISTORY_PREFETCH_COUNT = 8
 const HOVER_PREFETCH_DELAY_MS = 175
@@ -47,20 +49,14 @@ function isTemporarySession(session: SessionListItem) {
 }
 
 function readCollapsedGroupKeys(): string[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(COLLAPSED_PROJECTS_KEY) || '[]')
-    return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === 'string' && item.length > 0)
-      : []
-  } catch {
-    return []
-  }
+  const parsed = readStoredJson<unknown>(COLLAPSED_PROJECTS_KEY, LEGACY_COLLAPSED_PROJECTS_KEY, [])
+  return Array.isArray(parsed)
+    ? parsed.filter((item): item is string => typeof item === 'string' && item.length > 0)
+    : []
 }
 
 function writeCollapsedGroupKeys(keys: Set<string>) {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(COLLAPSED_PROJECTS_KEY, JSON.stringify([...keys]))
+  writeStoredJson(COLLAPSED_PROJECTS_KEY, [...keys])
 }
 
 export function Sidebar() {

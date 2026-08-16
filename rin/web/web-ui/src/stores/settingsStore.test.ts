@@ -19,7 +19,7 @@ describe('settingsStore locale defaults', () => {
   })
 
   it('keeps a stored locale override', async () => {
-    window.localStorage.setItem('cybercode-locale', 'ja')
+    window.localStorage.setItem('rin-locale', 'ja')
 
     const { useSettingsStore } = await import('./settingsStore')
 
@@ -27,7 +27,7 @@ describe('settingsStore locale defaults', () => {
   })
 
   it('falls back to Chinese for unsupported stored locales', async () => {
-    window.localStorage.setItem('cybercode-locale', 'fr')
+    window.localStorage.setItem('rin-locale', 'fr')
 
     const { useSettingsStore } = await import('./settingsStore')
 
@@ -42,7 +42,7 @@ describe('settingsStore locale defaults', () => {
     await useSettingsStore.getState().setLocale('ja')
 
     expect(useSettingsStore.getState().locale).toBe('ja')
-    expect(window.localStorage.getItem('cybercode-locale')).toBe('ja')
+    expect(window.localStorage.getItem('rin-locale')).toBe('ja')
     expect(updateSpy).toHaveBeenCalledWith({ promptMemoryLanguage: 'Japanese' })
   })
 
@@ -54,7 +54,7 @@ describe('settingsStore locale defaults', () => {
     await useSettingsStore.getState().setLocale('ko')
 
     expect(useSettingsStore.getState().locale).toBe('ko')
-    expect(window.localStorage.getItem('cybercode-locale')).toBe('ko')
+    expect(window.localStorage.getItem('rin-locale')).toBe('ko')
   })
 
   it('serializes rapid language changes so the latest selection is saved last', async () => {

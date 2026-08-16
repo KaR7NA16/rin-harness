@@ -6,17 +6,17 @@ import { zh } from './locales/zh'
 
 describe('desktop product identity', () => {
   it.each([en, zh, ja, ko])(
-    'uses Cyberpsychosis for the generic empty-session experience',
+    'uses rin for the generic empty-session experience',
     locale => {
-      expect(locale['empty.subtitle']).toContain('Cyberpsychosis')
-      expect(locale['permMode.autoAcceptDesc']).toContain('Cyberpsychosis')
+      expect(locale['empty.subtitle']).toContain('rin')
+      expect(locale['permMode.autoAcceptDesc']).toContain('rin')
     },
   )
 
-  it('uses Cyberpsychosis for generic permission prompts', () => {
-    expect(en['permission.allowBash']).toContain('Cyberpsychosis')
-    expect(en['permission.allowTool']).toContain('Cyberpsychosis')
-    expect(zh['permission.allowBash']).toContain('Cyberpsychosis')
-    expect(zh['permission.allowTool']).toContain('Cyberpsychosis')
+  it('uses rin for generic permission prompts', () => {
+    expect(en['permission.allowBash']).toContain('rin')
+    expect(en['permission.allowTool']).toContain('rin')
+    expect(zh['permission.allowBash']).toContain('rin')
+    expect(zh['permission.allowTool']).toContain('rin')
   })
 })
