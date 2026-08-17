@@ -1,5 +1,14 @@
 # rin 笔记 × 知识图谱 × 仓库 × 文件一体化方案
 
+## 执行进度
+
+- **Phase 0（进行中）**
+  - ✅ `@rin/filesystem` 增加 `stat / readText / readBinary`（路径收容 + MIME）。
+  - ✅ web-server 增加 `/api/filesystem/stat|text|file`，二进制文件支持 inline/attachment。
+  - ✅ web-ui 新增 `FileExplorer` 与 `AssetPreviewModal`（PDF/图片/文本/音频/视频/下载回退）。
+  - ⏳ 待接入工作区入口（Files 页面/IconRail）并挂载各数据源根。
+- **Phase 1–5**：尚未开始。
+
 > 目标：把 `@rin/notes` 从“Obsidian 风格 markdown vault”升级为 rin 的统一本地知识面，
 > 同时把知识库、代码图谱、资产仓库和文件浏览投影进同一张图，而不是做四套孤立系统。
 >

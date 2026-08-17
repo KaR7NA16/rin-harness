@@ -170,6 +170,43 @@ describe('web-server note-asset binary routes', () => {
     }
   })
 
+  test('serves contained filesystem files inline and as download', async () => {
+    const content = Buffer.from('%PDF-1.4 workspace-file')
+    const services: RinServiceRefs = {
+      ...emptyServices(),
+      filesystem: () => ({
+        readBinary: async (path: string) => {
+          expect(path).toBe('/tmp/workspace.pdf')
+          return { path, content, sizeBytes: content.length, mimeType: 'application/pdf' }
+        },
+      }),
+    }
+    const s = await startServer({}, services)
+    try {
+      const inline = await rawRequest(s.port, '/api/filesystem/file?path=%2Ftmp%2Fworkspace.pdf')
+      expect(inline.status).toBe(200)
+      expect(inline.headers['content-type']).toBe('application/pdf')
+      expect(inline.headers['content-disposition']).toBe('inline')
+      expect(inline.text).toBe('%PDF-1.4 workspace-file')
+
+      const download = await rawRequest(s.port, '/api/filesystem/file?path=%2Ftmp%2Fworkspace.pdf&download=1')
+      expect(download.headers['content-disposition']).toBe('attachment')
+    } finally {
+      await s.close()
+    }
+  })
+
+  test('filesystem file route reports 400 without path and 500 unmounted', async () => {
+    const s = await startServer()
+    try {
+      const missing = await rawRequest(s.port, '/api/filesystem/file')
+      expect(missing.status).toBe(400)
+      expect(missing.body).toEqual({ error: 'path is required' })
+    } finally {
+      await s.close()
+    }
+  })
+
   test('raw note-asset upload reports 500 when notes is unmounted', async () => {
     const s = await startServer()
     try {

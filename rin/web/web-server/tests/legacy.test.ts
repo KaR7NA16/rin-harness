@@ -64,6 +64,32 @@ describe('legacy: dispatch fallthrough', () => {
   })
 })
 
+describe('legacy: filesystem file routes', () => {
+  test('stat forwards to the filesystem service', async () => {
+    let path = ''
+    const s = makeServices({ filesystem: () => ({ async stat(p: string) { path = p; return { path: p, name: 'a.pdf', isDirectory: false, sizeBytes: 1, modifiedAt: 0, mimeType: 'application/pdf' } } }) })
+    const res = await handle('/api/filesystem/stat', '?path=/tmp/a.pdf', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 200, body: { path: '/tmp/a.pdf', name: 'a.pdf', isDirectory: false, sizeBytes: 1, modifiedAt: 0, mimeType: 'application/pdf' } })
+    expect(path).toBe('/tmp/a.pdf')
+  })
+
+  test('stat requires path and returns unmounted cleanly', async () => {
+    expect(await handle('/api/filesystem/stat', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 400, body: { error: 'path is required' } })
+    const s = makeServices({ filesystem: () => undefined })
+    expect(await handle('/api/filesystem/stat', '?path=/tmp/a.pdf', 'GET', undefined, s, config)).toEqual({ status: 200, body: { mounted: false } })
+  })
+
+  test('text forwards maxBytes and reports access errors', async () => {
+    let maxBytes: number | undefined
+    const s = makeServices({ filesystem: () => ({ async readText(p: string, m?: number) { maxBytes = m; return { path: p, content: 'hello', truncated: false, sizeBytes: 5, mimeType: 'text/plain' } } }) })
+    const res = await handle('/api/filesystem/text', '?path=/tmp/a.txt&maxBytes=3', 'GET', undefined, s, config)
+    expect(res).toEqual({ status: 200, body: { path: '/tmp/a.txt', content: 'hello', truncated: false, sizeBytes: 5, mimeType: 'text/plain' } })
+    expect(maxBytes).toBe(3)
+    const denied = makeServices({ filesystem: () => ({ async readText() { throw new Error('Access denied: path outside allowed directory') } }) })
+    expect(await handle('/api/filesystem/text', '?path=/etc/passwd', 'GET', undefined, denied, config)).toEqual({ status: 403, body: { error: 'Access denied: path outside allowed directory' } })
+  })
+})
+
 describe('legacy: repositories', () => {
   const conn = { id: 'r1', name: 'Repo 1', rootPath: '/r', createdAt: '2026-01-01', updatedAt: '2026-01-01', environmentPackages: [], environmentProfiles: [{ id: 'e1' }] }
 

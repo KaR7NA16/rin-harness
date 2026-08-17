@@ -1,19 +1,51 @@
 import { api } from './client'
 
-type DirEntry = {
+export type DirEntry = {
   name: string
   path: string
   isDirectory: boolean
 }
 
-type BrowseResult = {
+export type BrowseResult = {
   currentPath: string
   parentPath: string
   entries: DirEntry[]
   query?: string
 }
 
+export type FileStat = {
+  path: string
+  name: string
+  isDirectory: boolean
+  sizeBytes: number
+  modifiedAt: number
+  mimeType: string
+}
+
+export type TextFileRead = {
+  path: string
+  content: string
+  truncated: boolean
+  sizeBytes: number
+  mimeType: string
+}
+
 export const filesystemApi = {
+  fileUrl(path: string, download = false) {
+    return `/api/filesystem/file?path=${encodeURIComponent(path)}${download ? '&download=1' : ''}`
+  },
+
+  stat(path: string) {
+    return api.get<FileStat>(`/api/filesystem/stat?path=${encodeURIComponent(path)}`)
+  },
+
+  text(path: string, maxBytes?: number) {
+    const q = new URLSearchParams({ path })
+    if (maxBytes !== undefined) q.set('maxBytes', String(maxBytes))
+    return api.get<TextFileRead>(`/api/filesystem/text?${q}`)
+  },
+
+
   browse(path?: string, options?: { includeFiles?: boolean }) {
     const q = new URLSearchParams()
     if (path) q.set('path', path)

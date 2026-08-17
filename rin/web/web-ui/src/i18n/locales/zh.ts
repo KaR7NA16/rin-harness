@@ -17,6 +17,15 @@ export const zh: Record<TranslationKey, string> = {
   'common.disable': '禁用',
   'common.active': '已激活',
   'common.close': '关闭',
+  'common.refresh': '刷新',
+  'files.title': '文件',
+  'files.parent': '上一级',
+  'files.empty': '空文件夹',
+  'files.preview': '预览',
+  'files.download': '下载',
+  'files.openExternal': '在浏览器中打开',
+  'files.textTruncated': '文本预览已在 {count} 字节处截断。',
+  'files.unsupported': '此文件类型暂不支持预览。',
   'common.up': '上一级',
 
   // ─── Sidebar ──────────────────────────────────────

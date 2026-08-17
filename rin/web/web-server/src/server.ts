@@ -130,6 +130,32 @@ async function handleRequest(
 
   if (method === 'GET' || method === 'HEAD') {
     const headOnly = method === 'HEAD'
+    // Contained filesystem file reads are served as raw bytes; PDFs and
+    // media render inline in the browser, downloads use ?download=1.
+    if (url.pathname === '/api/filesystem/file') {
+      const path = url.searchParams.get('path')?.trim() ?? ''
+      if (path === '') {
+        respondError(res, 400, 'path is required')
+        return
+      }
+      const filesystem = services.filesystem()
+      if (filesystem === undefined) {
+        respondError(res, 500, 'filesystem service is not mounted')
+        return
+      }
+      try {
+        const file = await filesystem.readBinary(path)
+        respondBinary(
+          res,
+          file.content,
+          file.mimeType,
+          url.searchParams.get('download') === '1' ? 'attachment' : 'inline',
+        )
+      } catch (err) {
+        respondError(res, 404, err instanceof Error ? err.message : String(err))
+      }
+      return
+    }
     // Note assets are served as raw bytes for <img>/download URLs.
     if (url.pathname.startsWith('/api/notes/assets/')) {
       const notes = services.notes()

@@ -46,11 +46,21 @@ function isAllowedPath(target: string): boolean {
   return false
 }
 
+/**
+ * Resolve and validate one path, returning the absolute resolved path.
+ * @param target - the path to validate.
+ * @returns the resolved absolute path.
+ */
+export function assertAllowedPath(target: string): string {
+  const resolved = resolve(target)
+  if (!isAllowedPath(resolved)) throw new Error('Access denied: path outside allowed directory')
+  return resolved
+}
+
 /** List one directory with containment, or throw on access/IO failure. */
 export function browseDirectory(input: BrowseInput = {}): BrowseResult {
   const targetPath = input.path && input.path.trim() !== '' ? input.path : homedir()
-  const resolved = resolve(targetPath)
-  if (!isAllowedPath(resolved)) throw new Error('Access denied: path outside allowed directory')
+  const resolved = assertAllowedPath(targetPath)
 
   const stat = statSync(resolved)
   if (!stat.isDirectory()) throw new Error('Not a directory')

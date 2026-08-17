@@ -15,6 +15,15 @@ export const en = {
   'common.disable': 'Disable',
   'common.active': 'ACTIVE',
   'common.close': 'Close',
+  'common.refresh': 'Refresh',
+  'files.title': 'Files',
+  'files.parent': 'Parent folder',
+  'files.empty': 'Empty folder',
+  'files.preview': 'Preview',
+  'files.download': 'Download',
+  'files.openExternal': 'Open externally',
+  'files.textTruncated': 'Text preview truncated at {count} bytes.',
+  'files.unsupported': 'Preview is not available for this file type.',
   'common.up': 'Up',
 
   // ─── Sidebar ──────────────────────────────────────

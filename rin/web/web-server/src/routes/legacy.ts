@@ -211,6 +211,8 @@ export async function handle(
   if (pathname === '/api/plugins/detail') return pluginsDetailRoute(search, services)
   if (pathname === '/api/plugins/enable' || pathname === '/api/plugins/disable') return pluginsSetEnabledRoute(pathname, method, body, services)
   if (pathname === '/api/filesystem/browse') return filesystemBrowseRoute(search, services)
+  if (pathname === '/api/filesystem/stat') return filesystemStatRoute(search, services)
+  if (pathname === '/api/filesystem/text') return filesystemTextRoute(search, services)
   if (pathname === '/api/sessions/project-folders') {
     return notImplemented(method, 'session project-folders is not implemented on this host yet')
   }
@@ -970,6 +972,36 @@ async function filesystemBrowseRoute(search: string, services: RinServiceRefs): 
     if (message.includes('Access denied')) return error(403, message)
     if (message.includes('Not a directory')) return error(400, message)
     return error(500, message)
+  }
+}
+
+async function filesystemStatRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const path = queryParam(search, 'path')
+  if (path === undefined) return error(400, 'path is required')
+  const filesystem = services.filesystem()
+  if (filesystem === undefined) return notMounted()
+  try {
+    return json(200, await filesystem.stat(path))
+  } catch (err) {
+    const message = errorMessage(err)
+    if (message.includes('Access denied')) return error(403, message)
+    return error(404, message)
+  }
+}
+
+async function filesystemTextRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const path = queryParam(search, 'path')
+  if (path === undefined) return error(400, 'path is required')
+  const filesystem = services.filesystem()
+  if (filesystem === undefined) return notMounted()
+  const rawMax = Number(queryParam(search, 'maxBytes') ?? '')
+  const maxBytes = Number.isFinite(rawMax) ? rawMax : undefined
+  try {
+    return json(200, await filesystem.readText(path, maxBytes))
+  } catch (err) {
+    const message = errorMessage(err)
+    if (message.includes('Access denied')) return error(403, message)
+    return error(404, message)
   }
 }
 
