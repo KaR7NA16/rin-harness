@@ -20,6 +20,10 @@ vi.mock('../../features/scheduledTasks', () => ({
   ScheduledTasks: () => <div data-testid="scheduled-tasks" />,
 }))
 
+vi.mock('../../pages/Files', () => ({
+  Files: () => <div data-testid="files-page" />,
+}))
+
 vi.mock('../../pages/Terminal', () => ({
   Terminal: ({ terminalId, spawnCommand }: { terminalId: string; spawnCommand?: string[] }) => (
     <div
@@ -92,6 +96,14 @@ describe('ContentRouter content routing', () => {
     expect(sessionOne).toHaveAttribute('aria-hidden', 'true')
     expect(sessionTwo).not.toHaveClass('invisible')
     expect(sessionTwo).not.toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('renders the Files workspace from the icon rail view state', async () => {
+    useUIStore.setState({ workspaceView: 'files' })
+
+    render(<ContentRouter />)
+
+    expect(await screen.findByTestId('files-page')).toBeInTheDocument()
   })
 
   it('renders the Terminal page for a terminal tab with its spawn command', async () => {

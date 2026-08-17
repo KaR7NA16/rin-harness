@@ -2,11 +2,13 @@
 
 ## 执行进度
 
-- **Phase 0（进行中）**
+- **Phase 0（已完成）**
   - ✅ `@rin/filesystem` 增加 `stat / readText / readBinary`（路径收容 + MIME）。
   - ✅ web-server 增加 `/api/filesystem/stat|text|file`，二进制文件支持 inline/attachment。
   - ✅ web-ui 新增 `FileExplorer` 与 `AssetPreviewModal`（PDF/图片/文本/音频/视频/下载回退）。
-  - ⏳ 待接入工作区入口（Files 页面/IconRail）并挂载各数据源根。
+  - ✅ Files 工作区入口接入 IconRail / ContentRouter。
+  - ✅ 文件根挂载：Home、当前 Workspace、Notes Vault、Knowledge 文件夹源、Repository 连接。
+  - ✅ Notes 服务暴露 `vaultRoot()`，`GET /api/notes/root` 支持 Files 根解析。
 - **Phase 1–5**：尚未开始。
 
 > 目标：把 `@rin/notes` 从“Obsidian 风格 markdown vault”升级为 rin 的统一本地知识面，

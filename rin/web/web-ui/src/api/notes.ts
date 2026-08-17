@@ -42,6 +42,8 @@ const noteUrl = (p: string) =>
   `/api/notes/note/${p.split('/').map(encodeURIComponent).join('/')}`
 
 export const notesApi = {
+  root: () => api.get<{ mounted: true; root: string }>('/api/notes/root'),
+
   list: () => api.get<{ notes: NoteMeta[] }>('/api/notes/list'),
 
   search: (q: string) =>

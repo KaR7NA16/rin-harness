@@ -9,7 +9,7 @@ const TAB_STORAGE_KEY = 'rin-open-tabs'
 
 export const TERMINAL_TAB_PREFIX = '__terminal__'
 
-export type TabType = 'session' | 'scheduled' | 'terminal' | 'notes' | 'codeGraph' | 'sandbox' | 'backup' | 'monitor' | 'repository' | 'agents'
+export type TabType = 'session' | 'scheduled' | 'terminal' | 'notes' | 'files' | 'codeGraph' | 'sandbox' | 'backup' | 'monitor' | 'repository' | 'agents'
 
 export type Tab = {
   sessionId: string

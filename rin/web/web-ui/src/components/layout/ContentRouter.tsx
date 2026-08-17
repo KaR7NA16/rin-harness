@@ -6,6 +6,7 @@ import { EmptySession } from '../../pages/EmptySession'
 
 const ScheduledTasks = lazy(() => import('../../features/scheduledTasks').then((module) => ({ default: module.ScheduledTasks })))
 const Notes = lazy(() => import('../../pages/Notes').then((module) => ({ default: module.Notes })))
+const Files = lazy(() => import('../../pages/Files').then((module) => ({ default: module.Files })))
 const KnowledgeSpace = lazy(() => import('../../pages/KnowledgeSpace').then((module) => ({ default: module.KnowledgeSpace })))
 const Sandboxes = lazy(() => import('../../pages/Sandboxes').then((module) => ({ default: module.Sandboxes })))
 const Monitor = lazy(() => import('../../pages/Monitor').then((module) => ({ default: module.Monitor })))
@@ -52,7 +53,7 @@ export function ContentRouter() {
 
   // Non-session pages (ScheduledTasks)
   const legacyWorkspaceView =
-    activeTabType === 'scheduled' || activeTabType === 'notes' || activeTabType === 'codeGraph'
+    activeTabType === 'scheduled' || activeTabType === 'notes' || activeTabType === 'files' || activeTabType === 'codeGraph'
       || activeTabType === 'sandbox' || activeTabType === 'repository' || activeTabType === 'agents'
       || activeTabType === 'monitor'
       ? activeTabType
@@ -61,6 +62,7 @@ export function ContentRouter() {
   const nonSessionPage: ReactNode =
     resolvedWorkspaceView === 'scheduled' ? <Suspended><ScheduledTasks /></Suspended>
     : resolvedWorkspaceView === 'notes' ? <Suspended><Notes /></Suspended>
+    : resolvedWorkspaceView === 'files' ? <Suspended><Files /></Suspended>
     : resolvedWorkspaceView === 'codeGraph' ? <Suspended><KnowledgeSpace /></Suspended>
     : resolvedWorkspaceView === 'sandbox' ? <Suspended><Sandboxes /></Suspended>
     : resolvedWorkspaceView === 'repository' ? <Suspended><RepositoryWorkspace /></Suspended>

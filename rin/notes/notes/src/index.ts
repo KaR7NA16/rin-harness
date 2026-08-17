@@ -71,6 +71,9 @@ export abstract class NotesStore extends Service {
     super(ctx, 'notes')
   }
 
+  /** Absolute path to the vault root owned by this service. */
+  abstract vaultRoot(): string
+
   /** List every note's metadata, newest first. */
   abstract list(): Promise<NoteMeta[]>
 
@@ -123,10 +126,16 @@ export abstract class NotesStore extends Service {
 /** File-backed notes service delegating to a `NotesVault`. */
 export class FileNotesStore extends NotesStore {
   private readonly vault: NotesVault
+  private readonly vaultPath: string
 
   constructor(ctx: Context, config: NotesConfig = {}) {
     super(ctx)
-    this.vault = new NotesVault(resolveVaultRoot(config.vaultRoot))
+    this.vaultPath = resolveVaultRoot(config.vaultRoot)
+    this.vault = new NotesVault(this.vaultPath)
+  }
+
+  override vaultRoot() {
+    return this.vaultPath
   }
 
   override list() {

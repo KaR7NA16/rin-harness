@@ -30,6 +30,8 @@ export async function handle(
   _config: Config,
 ): Promise<JsonResponse | null> {
   switch (pathname) {
+    case '/api/notes/root':
+      return notesRootRoute(services)
     case '/api/notes':
       return notesListRoute(services)
     case '/api/notes/read':
@@ -43,6 +45,12 @@ export async function handle(
     default:
       return null
   }
+}
+
+async function notesRootRoute(services: RinServiceRefs): Promise<JsonResponse> {
+  const notes = services.notes()
+  if (notes === undefined) return notMounted()
+  return mountedValue('root', notes.vaultRoot())
 }
 
 async function notesListRoute(services: RinServiceRefs): Promise<JsonResponse> {

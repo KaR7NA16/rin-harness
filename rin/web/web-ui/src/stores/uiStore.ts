@@ -56,6 +56,7 @@ export type SettingsPanelView =
 
 export type WorkspaceView =
   | 'notes'
+  | 'files'
   | 'scheduled'
   | 'codeGraph'
   | 'sandbox'

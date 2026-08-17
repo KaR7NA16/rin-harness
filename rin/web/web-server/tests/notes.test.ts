@@ -12,6 +12,11 @@ describe('notes routes', () => {
     expect(await handle('/api/notes/unknown', '', 'GET', undefined, services(), config)).toBeNull()
   })
 
+  test('root returns the service vault root', async () => {
+    const res = await handle('/api/notes/root', '', 'GET', undefined, services({ vaultRoot: () => '/home/rin/.rin/notes' }), config)
+    expect(res).toEqual({ status: 200, body: { mounted: true, root: '/home/rin/.rin/notes' } })
+  })
+
   test('list unmounted returns notMounted', async () => {
     const res = await handle('/api/notes', '', 'GET', undefined, services(), config)
     expect(res).toEqual({ status: 200, body: { mounted: false } })

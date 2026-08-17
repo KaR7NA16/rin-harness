@@ -92,6 +92,13 @@ export function IconRail({ __testTopRailHeight }: IconRailProps = {}) {
       icon: 'notes',
     },
     {
+      key: 'files',
+      active: workspaceView === 'files',
+      label: t('files.title'),
+      onClick: () => openWorkspaceView('files'),
+      icon: 'folder',
+    },
+    {
       key: 'scheduled',
       active: workspaceView === 'scheduled',
       label: t('sidebar.scheduled'),
