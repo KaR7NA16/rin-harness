@@ -151,7 +151,7 @@ function enhanceTextNode(textNode: Text): void {
 function enhanceMarkdownHtml(html: string): string {
   const cleanHtml = DOMPurify.sanitize(html, {
     ADD_TAGS: ['use'],
-    ADD_ATTR: ['xlink:href', 'data-pdf-open'],
+    ADD_ATTR: ['xlink:href', 'data-pdf-open', 'data-block-id'],
   })
 
   if (typeof document === 'undefined') {

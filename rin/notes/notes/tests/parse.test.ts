@@ -9,9 +9,13 @@
  */
 
 import { describe, expect, test } from 'vitest'
-import { extractLinks, extractTags, extractTitle, splitFrontmatter } from '../src/parse.ts'
+import { extractLinks, extractTags, extractTitle, extractTransclusions, parseWikilinkTarget, splitFrontmatter } from '../src/parse.ts'
 
 describe('extractTitle', () => {
+  test('prefers a frontmatter title over the first H1', () => {
+    expect(extractTitle('---\ntitle: Frontmatter Title\n---\n# Heading', 'fallback')).toBe('Frontmatter Title')
+  })
+
   test('returns the first H1 heading', () => {
     expect(extractTitle('# My Title\n\nbody', 'fallback')).toBe('My Title')
   })
@@ -22,6 +26,23 @@ describe('extractTitle', () => {
 
   test('ignores H2 and below for the title', () => {
     expect(extractTitle('## Section\n\n### Sub\n\n# Real Title', 'name')).toBe('Real Title')
+  })
+})
+
+describe('parseWikilinkTarget', () => {
+  test('parses plain, heading, and block targets', () => {
+    expect(parseWikilinkTarget('note')).toEqual({ note: 'note' })
+    expect(parseWikilinkTarget('note#Heading')).toEqual({ note: 'note', heading: 'Heading' })
+    expect(parseWikilinkTarget('note^block-1')).toEqual({ note: 'note', block: 'block-1' })
+  })
+})
+
+describe('extractTransclusions', () => {
+  test('extracts transclusion targets and aliases', () => {
+    expect(extractTransclusions('![[alpha]] and ![[beta|Alias]]')).toEqual([
+      { raw: '![[alpha]]', target: 'alpha' },
+      { raw: '![[beta|Alias]]', target: 'beta', alias: 'Alias' },
+    ])
   })
 })
 

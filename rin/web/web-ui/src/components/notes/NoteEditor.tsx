@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Download, Eye, FileUp, PencilLine, Save, SplitSquareHorizontal } from 'lucide-react'
 import { getBaseUrl } from '../../api/client'
 import { notesApi } from '../../api/notes'
+import { expandTransclusions } from './transclusion'
 import { MarkdownRenderer } from '../markdown/MarkdownRenderer'
 import { useTranslation } from '../../i18n'
 import { useUIStore } from '../../stores/uiStore'
@@ -32,6 +33,8 @@ function preprocessContent(content: string): string {
   })
   // 其余本地资源 → sidecar 绝对 URL (相对路径会落到 webview origin, 取不到)
   out = out.replace(/]\((?:\.\/)?assets\//g, `](${getBaseUrl()}/api/notes/assets/assets/`)
+  // 块锚点: 行尾 ^block-id 转为可滚动定位的零宽节点
+  out = out.replace(/^(.*\S)\s+\^([A-Za-z0-9_-]+)\s*$/gm, '$1<span data-block-id="$2"></span>')
   return out
 }
 
@@ -41,12 +44,14 @@ export function NoteEditor({
   onOpenLink,
   onOrganize,
   jumpToHeading,
+  jumpToBlock,
 }: {
   path: string
   onSaved: () => void
   onOpenLink: (target: string) => void
   onOrganize: (cb: (() => void) | null) => void
   jumpToHeading?: string | null
+  jumpToBlock?: string | null
 }) {
   const t = useTranslation()
   const addToast = useUIStore(s => s.addToast)
@@ -55,6 +60,7 @@ export function NoteEditor({
   const sendMessage = useChatStore(s => s.sendMessage)
 
   const [content, setContent] = useState('')
+  const [transcludedContent, setTranscludedContent] = useState('')
   const [savedContent, setSavedContent] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('split')
   const [loading, setLoading] = useState(true)
@@ -75,12 +81,22 @@ export function NoteEditor({
     void notesApi.read(path)
       .then(doc => {
         setContent(doc.content)
+        setTranscludedContent(doc.content)
         setSavedContent(doc.content)
         setTitle(doc.title)
       })
       .catch(error => addToast({ type: 'error', message: String(error) }))
       .finally(() => setLoading(false))
   }, [path, addToast])
+
+  useEffect(() => {
+    setTranscludedContent(content)
+    let cancelled = false
+    void expandTransclusions(content, async target => notesApi.read(target))
+      .then(next => { if (!cancelled) setTranscludedContent(next) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [content])
 
   const save = useCallback(async (value: string) => {
     setSaving(true)
@@ -124,6 +140,15 @@ export function NoteEditor({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [save])
+
+  // 块引用跳转: 预览滚动到 data-block-id
+  useEffect(() => {
+    if (!jumpToBlock) return
+    const el = previewRef.current
+    if (!el) return
+    const block = el.querySelector(`[data-block-id="${CSS.escape(jumpToBlock)}"]`)
+    block?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [jumpToBlock])
 
   // 大纲跳转: 预览滚动到对应标题
   useEffect(() => {
@@ -311,7 +336,7 @@ export function NoteEditor({
     return () => onOrganize(null)
   }, [doOrganize, onOrganize])
 
-  const previewContent = useMemo(() => preprocessContent(content), [content])
+  const previewContent = useMemo(() => preprocessContent(transcludedContent), [transcludedContent])
 
   if (loading) {
     return <div className="flex h-full items-center justify-center text-[13px] text-[var(--color-text-tertiary)]">{t('common.loading')}</div>

@@ -50,7 +50,8 @@ export {
   resolveLinkTarget,
   resolveVaultRoot,
 } from './vault.ts'
-export { TAG_RE, WIKILINK_RE, extractLinks, extractTags, extractTitle, splitFrontmatter } from './parse.ts'
+export { TAG_RE, TRANSCLUSION_RE, WIKILINK_RE, extractLinks, extractTags, extractTitle, extractTransclusions, parseWikilinkTarget, splitFrontmatter } from './parse.ts'
+export type { WikilinkTarget } from './parse.ts'
 export { NotesIndex, ensureNotesIndexSchema, NOTES_INDEX_DIRNAME, NOTES_INDEX_FILENAME } from './notes-index.ts'
 export type { IndexedNote, NoteBacklink, NoteBlock, NoteHeading } from './notes-index.ts'
 export {

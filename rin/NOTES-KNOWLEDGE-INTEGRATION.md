@@ -9,12 +9,14 @@
   - ✅ Files 工作区入口接入 IconRail / ContentRouter。
   - ✅ 文件根挂载：Home、当前 Workspace、Notes Vault、Knowledge 文件夹源、Repository 连接。
   - ✅ Notes 服务暴露 `vaultRoot()`，`GET /api/notes/root` 支持 Files 根解析。
-- **Phase 1（进行中）**
+- **Phase 1（已完成）**
   - ✅ `NotesIndex`：`<vault>/.index/notes.db`，索引 note / heading / block / task / tag / wikilink + FTS5。
   - ✅ `NotesVault.search / graph / todos` 已切换到索引查询；mtime 变化自动重建。
-  - ✅ frontmatter properties 读写 API：`GET/POST /api/notes/properties`。
+  - ✅ frontmatter properties 读写 API + PropertiesPanel UI；`title` 属性参与标题解析。
   - ✅ MarkdownRenderer 支持 Obsidian callout（`> [!note|warning|tip|todo]`）。
-  - ⏳ 待完成：properties UI、transclusion `![[...]]`、block ref `[[...#^block]]`、块锚跳转。
+  - ✅ transclusion `![[note]]` 在预览中展开为目标笔记 callout。
+  - ✅ heading/block 引用解析：`[[note#heading]]` 跳转标题，`[[note^block]]` 跳转块锚点。
+  - ✅ 200 篇笔记索引规模测试。
 - **Phase 2–5**：尚未开始。
 
 > 目标：把 `@rin/notes` 从“Obsidian 风格 markdown vault”升级为 rin 的统一本地知识面，

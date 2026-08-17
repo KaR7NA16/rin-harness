@@ -16,6 +16,9 @@ import type { NoteLink } from './types.ts'
 /** Matches `[[target]]` and `[[target|alias]]`. */
 export const WIKILINK_RE = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g
 
+/** Matches `![[target]]` transclusions, including `![[target#heading]]`. */
+export const TRANSCLUSION_RE = /!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g
+
 /** Matches an inline `#tag` preceded by whitespace or the line start. */
 export const TAG_RE = /(^|\s)#([\p{L}\p{N}_/-]+)/gu
 
@@ -58,6 +61,10 @@ export function splitFrontmatter(content: string): {
  * @returns the trimmed first heading or the fallback.
  */
 export function extractTitle(content: string, fallback: string): string {
+  const { frontmatter } = splitFrontmatter(content)
+  if (frontmatter && typeof frontmatter.title === 'string' && frontmatter.title.trim()) {
+    return frontmatter.title.trim()
+  }
   const match = content.match(/^#\s+(.+)$/m)
   return match ? (match[1] ?? '').trim() : fallback
 }
@@ -99,6 +106,53 @@ export function extractTags(content: string): string[] {
     if (tag) tags.add(tag)
   }
   return [...tags].sort()
+}
+
+/** A parsed wikilink target with optional heading or block anchor. */
+export interface WikilinkTarget {
+  /** The note path/name before any anchor. */
+  note: string
+  /** Heading text after `#`, when present. */
+  heading?: string
+  /** Block id after `^`, when present. */
+  block?: string
+}
+
+/**
+ * Parse `[[note]]`, `[[note|alias]]`, `[[note#heading]]`, and
+ * `[[note^block]]` target syntax. Aliases are intentionally ignored here.
+ * @param raw - the raw text inside `[[...]]`.
+ * @returns the note name and optional anchor parts.
+ */
+export function parseWikilinkTarget(raw: string): WikilinkTarget {
+  const value = raw.trim()
+  const blockIndex = value.indexOf('^')
+  const headingIndex = value.indexOf('#')
+  if (blockIndex >= 0 && (headingIndex < 0 || blockIndex < headingIndex)) {
+    const block = value.slice(blockIndex + 1).trim()
+    return { note: value.slice(0, blockIndex).trim(), ...(block ? { block } : {}) }
+  }
+  if (headingIndex >= 0) {
+    const heading = value.slice(headingIndex + 1).trim()
+    return { note: value.slice(0, headingIndex).trim(), ...(heading ? { heading } : {}) }
+  }
+  return { note: value }
+}
+
+/**
+ * Extract transclusion references from note content.
+ * @param content - the raw markdown note text.
+ * @returns the targets in document order with their optional aliases.
+ */
+export function extractTransclusions(content: string): NoteLink[] {
+  const links: NoteLink[] = []
+  for (const match of content.matchAll(TRANSCLUSION_RE)) {
+    const target = (match[1] ?? '').trim()
+    if (!target) continue
+    const alias = (match[2] ?? '').trim()
+    links.push({ raw: match[0], target, ...(alias ? { alias } : {}) })
+  }
+  return links
 }
 
 /**

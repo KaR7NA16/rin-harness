@@ -57,6 +57,18 @@ describe('NotesIndex', () => {
     expect(index.search('newtoken')).toHaveLength(1)
   })
 
+  test('scales to a few hundred indexed notes', async () => {
+    const { root, index } = await createVault()
+    await Promise.all(Array.from({ length: 200 }, (_, i) =>
+      writeFile(join(root, `note-${i}.md`), `# Note ${i}\n\ntoken-${i} [[note-${(i + 1) % 200}]]`),
+    ))
+    const started = Date.now()
+    expect(index.rebuild()).toBe(200)
+    expect(Date.now() - started).toBeLessThan(5000)
+    expect(index.search('token-123')).toEqual([expect.objectContaining({ path: 'note-123.md' })])
+    expect(index.graph().nodes).toHaveLength(200)
+  })
+
   test('vault search/graph/todos delegate to the index', async () => {
     const { vault } = await createVault()
     await vault.write('a.md', '# Apple\n\n- [ ] indexed task\n\n[[b]]')

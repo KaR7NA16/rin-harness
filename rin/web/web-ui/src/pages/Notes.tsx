@@ -21,12 +21,13 @@ import { QuickSwitcher } from '../components/notes/QuickSwitcher'
 import { OutlinePanel } from '../components/notes/OutlinePanel'
 import { BacklinksPanel } from '../components/notes/BacklinksPanel'
 import { SnapshotPanel } from '../components/notes/SnapshotPanel'
+import { PropertiesPanel } from '../components/notes/PropertiesPanel'
 import { useUIStore } from '../stores/uiStore'
 import { NoteNameDialog } from '../components/notes/NoteNameDialog'
 import { ConfirmDialog } from '../components/shared/ConfirmDialog'
 
 type WorkspaceMode = 'edit' | 'graph' | 'todos'
-type SideTab = 'outline' | 'backlinks' | 'history'
+type SideTab = 'outline' | 'backlinks' | 'history' | 'properties'
 
 function loadWidth(key: string, fallback: number): number {
   try {
@@ -91,6 +92,7 @@ export function Notes() {
   const sideResize = useResizableWidth('notes.sideWidth', 250, 180, 480, true)
   const [sideOpen, setSideOpen] = useState(true)
   const [headingJump, setHeadingJump] = useState<string | null>(null)
+  const [blockJump, setBlockJump] = useState<string | null>(null)
   const [sideTab, setSideTab] = useState<SideTab>('outline')
   const [editorReloadKey, setEditorReloadKey] = useState(0)
   const [templates, setTemplates] = useState<NoteTemplate[]>([])
@@ -122,16 +124,30 @@ export function Notes() {
   }, [])
 
   const openOrCreate = useCallback(async (target: string) => {
-    const existing = notes.find(n => n.path === target || n.name === target.replace(/\.md$/, ''))
+    const hashIndex = target.indexOf('#')
+    const blockIndex = target.indexOf('^')
+    const anchorIndex = hashIndex >= 0 && blockIndex >= 0
+      ? Math.min(hashIndex, blockIndex)
+      : Math.max(hashIndex, blockIndex)
+    const noteTarget = anchorIndex >= 0 ? target.slice(0, anchorIndex).trim() : target.trim()
+    const anchor = anchorIndex >= 0 ? target.slice(anchorIndex + 1).trim() : ''
+
+    const existing = notes.find(n => n.path === noteTarget || n.name === noteTarget.replace(/\.md$/, ''))
     if (existing) {
       openNote(existing.path)
+      if (blockIndex >= 0 && anchor) { setBlockJump(anchor); setHeadingJump(null) }
+      else if (hashIndex >= 0 && anchor) { setHeadingJump(anchor); setBlockJump(null) }
+      else { setHeadingJump(null); setBlockJump(null) }
       return
     }
-    const path = target.endsWith('.md') ? target : `${target}.md`
+    const path = noteTarget.endsWith('.md') ? noteTarget : `${noteTarget}.md`
     try {
-      await notesApi.create(path, `# ${target.replace(/\.md$/, '')}\n`)
+      await notesApi.create(path, `# ${noteTarget.replace(/\.md$/, '')}\n`)
       await refresh()
       openNote(path)
+      if (blockIndex >= 0 && anchor) { setBlockJump(anchor); setHeadingJump(null) }
+      else if (hashIndex >= 0 && anchor) { setHeadingJump(anchor); setBlockJump(null) }
+      else { setHeadingJump(null); setBlockJump(null) }
     } catch (error) {
       showToast({ message: String(error), type: 'error' })
     }
@@ -410,6 +426,7 @@ export function Notes() {
                 onOpenLink={target => void openOrCreate(target)}
                 onOrganize={setOrganizeCallback}
                 jumpToHeading={headingJump}
+                jumpToBlock={blockJump}
               />
             ) : (
               <div className="flex h-full items-center justify-center text-[13px] text-[var(--color-text-tertiary)]">
@@ -436,6 +453,7 @@ export function Notes() {
             <div style={{ width: sideResize.width }} className="flex shrink-0 flex-col">
               <div className="flex border-b border-[var(--color-border-separator)]">
                 {([
+                  ['properties', t('notes.side.properties')],
                   ['outline', t('notes.side.outline')],
                   ['backlinks', t('notes.side.backlinks')],
                   ['history', t('notes.side.history')],
@@ -454,6 +472,7 @@ export function Notes() {
                 ))}
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto p-[10px]">
+                {sideTab === 'properties' && <PropertiesPanel path={activePath} onChanged={() => void refresh()} />}
                 {sideTab === 'outline' && <OutlinePanel path={activePath} onJump={setHeadingJump} />}
                 {sideTab === 'backlinks' && <BacklinksPanel path={activePath} onOpenNote={openNote} />}
                 {sideTab === 'history' && (
