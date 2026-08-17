@@ -47,6 +47,31 @@ describe('notes routes', () => {
     expect(path).toBe('a.md')
   })
 
+  test('properties GET/POST forwards to the service', async () => {
+    let path = ''
+    let props: Record<string, unknown> = {}
+    const s = services({
+      properties: async (p: string) => { path = p; return { tags: ['a'] } },
+      updateProperties: async (p: string, next: Record<string, unknown>) => {
+        path = p
+        props = next
+        return { content: '---\ntags: [a]\n---\n# Hi' }
+      },
+    })
+    expect(await handle('/api/notes/properties', '?path=a.md', 'GET', undefined, s, config))
+      .toEqual({ status: 200, body: { mounted: true, properties: { tags: ['a'] } } })
+    expect(path).toBe('a.md')
+    expect(await handle('/api/notes/properties', '', 'POST', { path: 'a.md', properties: { tags: ['b'] } }, s, config))
+      .toEqual({ status: 200, body: { mounted: true, note: { content: '---\ntags: [a]\n---\n# Hi' } } })
+    expect(props).toEqual({ tags: ['b'] })
+  })
+
+  test('properties requires path and a JSON object', async () => {
+    const s = services({})
+    expect(await handle('/api/notes/properties', '', 'GET', undefined, s, config)).toEqual({ status: 400, body: { error: 'path is required' } })
+    expect(await handle('/api/notes/properties', '', 'POST', { path: 'a.md' }, s, config)).toEqual({ status: 400, body: { error: 'properties must be a JSON object' } })
+  })
+
   test('read ENOENT returns 404', async () => {
     const s = services({ async read() { throw new Error('ENOENT: no such file') } })
     const res = await handle('/api/notes/read', '?path=a.md', 'GET', undefined, s, config)

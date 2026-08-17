@@ -86,6 +86,20 @@ describe('path containment', () => {
   })
 })
 
+describe('frontmatter properties', () => {
+  test('reads absent properties as null and updates while preserving the body', async () => {
+    const { vault } = await createVault()
+    await vault.write('note.md', '# Title\n\nBody stays.\n')
+
+    expect(await vault.properties('note.md')).toBeNull()
+
+    const updated = await vault.updateProperties('note.md', { title: 'Titled', tags: ['a', 'b'] })
+    expect(updated.content.startsWith('---\n')).toBe(true)
+    expect(updated.content).toContain('# Title\n\nBody stays.\n')
+    expect(await vault.properties('note.md')).toEqual({ title: 'Titled', tags: ['a', 'b'] })
+  })
+})
+
 describe('history snapshots', () => {
   test('keeps the latest 10 snapshots and prunes the oldest', async () => {
     const { root, vault } = await createVault()

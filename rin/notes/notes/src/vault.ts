@@ -14,14 +14,14 @@ import { homedir } from 'node:os'
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import type { Dirent } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
-import { extractLinks, extractTags, extractTitle } from './parse.ts'
+import { stringify as stringifyYaml } from 'yaml'
+import { extractLinks, extractTags, extractTitle, splitFrontmatter } from './parse.ts'
+import { NotesIndex } from './notes-index.ts'
 import type {
   NoteAsset,
   NoteAssetRef,
   NoteDocument,
   NoteGraph,
-  NoteGraphEdge,
-  NoteGraphNode,
   NoteMeta,
   NoteSearchResult,
   NoteSnapshotMeta,
@@ -49,9 +49,6 @@ const INTERNAL_DIRNAMES = new Set([HISTORY_DIRNAME, TEMPLATES_DIRNAME, BACKUPS_D
 
 /** Monotonic per-process counter guaranteeing unique, sortable snapshot ids. */
 let snapshotSequence = 0
-
-/** Match a list-item checkbox: `- [ ]`, `- [x]`, `* [X]`, and `+` variants. */
-const TODO_LINE_RE = /^\s*[-*+]\s*\[([ xX])\]\s+(.*)$/
 
 /** Match a snapshot file name: `<epoch-millis>-<6-digit sequence>.md`. */
 const SNAPSHOT_ID_RE = /^\d+-\d{6}\.md$/
@@ -223,10 +220,12 @@ export function resolveLinkTarget(target: string, notes: readonly NoteMeta[]): N
 /** The pure file-backed markdown note vault. */
 export class NotesVault {
   readonly vaultRoot: string
+  private readonly index: NotesIndex
 
   /** @param vaultRoot - absolute or cwd-relative path to the vault. */
   constructor(vaultRoot: string) {
     this.vaultRoot = resolve(vaultRoot)
+    this.index = new NotesIndex(this.vaultRoot)
   }
 
   /** Resolve a vault-relative path, failing loud on any escape. */
@@ -375,6 +374,34 @@ export class NotesVault {
   }
 
   /**
+   * Read one note's YAML frontmatter properties.
+   * @param relPath - the POSIX vault-relative note path.
+   * @returns the parsed frontmatter object, or null when absent.
+   */
+  async properties(relPath: string): Promise<Record<string, unknown> | null> {
+    assertMarkdownPath(relPath)
+    const abs = this.resolveSafe(relPath)
+    const content = await readFile(abs, 'utf8')
+    return splitFrontmatter(content).frontmatter
+  }
+
+  /**
+   * Replace one note's YAML frontmatter properties while preserving its body.
+   * @param relPath - the POSIX vault-relative note path.
+   * @param properties - the new frontmatter object.
+   * @returns the written note document.
+   */
+  async updateProperties(relPath: string, properties: Record<string, unknown>): Promise<NoteDocument> {
+    assertMarkdownPath(relPath)
+    const abs = this.resolveSafe(relPath)
+    const content = await readFile(abs, 'utf8')
+    const { body } = splitFrontmatter(content)
+    const frontmatter = `---\n${stringifyYaml(properties).trim()}\n---\n`
+    const next = `${frontmatter}${body}`
+    return this.write(relPath, next)
+  }
+
+  /**
    * List a note's history snapshots, newest first.
    * @param relPath - the POSIX vault-relative note path (must end in `.md`).
    * @returns the snapshot metadata list.
@@ -434,29 +461,8 @@ export class NotesVault {
    * @returns the ranked search results.
    */
   async search(query: string, limit = 30): Promise<NoteSearchResult[]> {
-    const q = query.trim().toLowerCase()
-    if (!q) return []
-    const results: NoteSearchResult[] = []
-    for (const meta of await this.list()) {
-      const nameScore = meta.name.toLowerCase().includes(q) ? 3 : 0
-      const titleScore = meta.title.toLowerCase().includes(q) ? 2 : 0
-      let snippet = ''
-      let contentScore = 0
-      if (nameScore === 0 && titleScore === 0) {
-        const content = await readFile(this.resolveSafe(meta.path), 'utf8')
-        const index = content.toLowerCase().indexOf(q)
-        if (index >= 0) {
-          contentScore = 1
-          snippet = content
-            .slice(Math.max(0, index - 60), index + q.length + 60)
-            .replace(/\s+/g, ' ')
-            .trim()
-        }
-      }
-      const score = nameScore + titleScore + contentScore
-      if (score > 0) results.push({ path: meta.path, name: meta.name, title: meta.title, snippet, score })
-    }
-    return results.sort((a, b) => b.score - a.score).slice(0, limit)
+    this.index.refresh()
+    return this.index.search(query, limit)
   }
 
   /**
@@ -464,28 +470,8 @@ export class NotesVault {
    * @returns the note graph.
    */
   async graph(): Promise<NoteGraph> {
-    const notes = await this.list()
-    const nodes: NoteGraphNode[] = notes.map(note => ({
-      id: note.path,
-      name: note.name,
-      folder: note.folder,
-      tag: note.tags[0] ?? null,
-    }))
-    const edges: NoteGraphEdge[] = []
-    const seen = new Set<string>()
-    for (const note of notes) {
-      for (const link of note.links) {
-        const target = resolveLinkTarget(link.target, notes)
-        if (target && target.path !== note.path) {
-          const key = `${note.path}\u0000${target.path}`
-          if (!seen.has(key)) {
-            seen.add(key)
-            edges.push({ from: note.path, to: target.path })
-          }
-        }
-      }
-    }
-    return { nodes, edges }
+    this.index.refresh()
+    return this.index.graph()
   }
 
   /**
@@ -493,26 +479,8 @@ export class NotesVault {
    * @returns the todos, unfinished first.
    */
   async todos(): Promise<NoteTodo[]> {
-    const out: NoteTodo[] = []
-    for (const meta of await this.list()) {
-      const content = await readFile(this.resolveSafe(meta.path), 'utf8')
-      const lines = content.split('\n')
-      for (let index = 0; index < lines.length; index++) {
-        const line = lines[index]
-        if (line === undefined) continue
-        const match = TODO_LINE_RE.exec(line)
-        if (match) {
-          out.push({
-            notePath: meta.path,
-            noteName: meta.name,
-            line: index + 1,
-            text: (match[2] ?? '').trim(),
-            done: (match[1] ?? ' ').toLowerCase() === 'x',
-          })
-        }
-      }
-    }
-    return out.sort((a, b) => Number(a.done) - Number(b.done))
+    this.index.refresh()
+    return this.index.todos()
   }
 
   /**

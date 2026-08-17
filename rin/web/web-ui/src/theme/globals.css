@@ -1700,6 +1700,47 @@ button, input, textarea, select, a, [role="button"] {
   background: var(--color-surface-hover, rgba(128, 128, 128, 0.12));
 }
 
+.markdown-prose .md-callout {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: var(--color-surface-container-low);
+}
+
+.markdown-prose .md-callout-title {
+  margin-bottom: 6px;
+  color: var(--color-text-primary);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.markdown-prose .md-callout[data-callout='warning'],
+.markdown-prose .md-callout[data-callout='danger'],
+.markdown-prose .md-callout[data-callout='failure'],
+.markdown-prose .md-callout[data-callout='bug'] {
+  border-left-color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 10%, var(--color-surface-container-low));
+}
+
+.markdown-prose .md-callout[data-callout='tip'],
+.markdown-prose .md-callout[data-callout='success'],
+.markdown-prose .md-callout[data-callout='todo'],
+.markdown-prose .md-callout[data-callout='example'] {
+  border-left-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 10%, var(--color-surface-container-low));
+}
+
+.markdown-prose .md-callout[data-callout='note'],
+.markdown-prose .md-callout[data-callout='info'],
+.markdown-prose .md-callout[data-callout='question'],
+.markdown-prose .md-callout[data-callout='abstract'] {
+  border-left-color: var(--color-info);
+  background: color-mix(in srgb, var(--color-info) 10%, var(--color-surface-container-low));
+}
+
 /* ─── Scrollbars — symmetric across themes ─── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

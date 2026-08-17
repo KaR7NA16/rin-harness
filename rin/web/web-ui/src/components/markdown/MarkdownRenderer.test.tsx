@@ -81,6 +81,17 @@ describe('MarkdownRenderer', () => {
     expect(screen.queryByText('Rendering diagram...')).not.toBeInTheDocument()
   })
 
+  it('renders Obsidian callouts with a typed callout shell', () => {
+    const { container } = render(
+      <MarkdownRenderer content={'> [!warning] Watch out\n> This path is unsafe.'} />,
+    )
+
+    const callout = container.querySelector('.md-callout')
+    expect(callout).toHaveAttribute('data-callout', 'warning')
+    expect(callout?.querySelector('.md-callout-title')).toHaveTextContent('Watch out')
+    expect(callout).toHaveTextContent('This path is unsafe.')
+  })
+
   it('wraps markdown tables for horizontal overflow handling', () => {
     const { container } = render(
       <MarkdownRenderer

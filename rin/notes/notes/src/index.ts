@@ -51,6 +51,8 @@ export {
   resolveVaultRoot,
 } from './vault.ts'
 export { TAG_RE, WIKILINK_RE, extractLinks, extractTags, extractTitle, splitFrontmatter } from './parse.ts'
+export { NotesIndex, ensureNotesIndexSchema, NOTES_INDEX_DIRNAME, NOTES_INDEX_FILENAME } from './notes-index.ts'
+export type { IndexedNote, NoteBacklink, NoteBlock, NoteHeading } from './notes-index.ts'
 export {
   NOTES_TOOL_DESCRIPTION,
   NOTES_TOOL_NAME,
@@ -79,6 +81,12 @@ export abstract class NotesStore extends Service {
 
   /** Read one note by its POSIX vault-relative path. */
   abstract read(path: string): Promise<NoteDocument>
+
+  /** Read one note's YAML frontmatter properties. */
+  abstract properties(path: string): Promise<Record<string, unknown> | null>
+
+  /** Replace one note's YAML frontmatter properties. */
+  abstract updateProperties(path: string, properties: Record<string, unknown>): Promise<NoteDocument>
 
   /** Create or update a note, snapshotting the previous version first. */
   abstract write(path: string, content: string): Promise<NoteDocument>
@@ -144,6 +152,14 @@ export class FileNotesStore extends NotesStore {
 
   override read(path: string) {
     return this.vault.read(path)
+  }
+
+  override properties(path: string) {
+    return this.vault.properties(path)
+  }
+
+  override updateProperties(path: string, properties: Record<string, unknown>) {
+    return this.vault.updateProperties(path, properties)
   }
 
   override write(path: string, content: string) {

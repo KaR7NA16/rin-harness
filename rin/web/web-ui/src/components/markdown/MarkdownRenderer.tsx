@@ -69,6 +69,9 @@ function createMarkedParser(codeBlocks: CodeBlock[]): Marked {
   return parser
 }
 
+const CALLOUT_RE = /^\[!(\w+)\](?:[+-])?\s*(.*)$/
+const CALLOUT_TYPES = new Set(['note', 'info', 'tip', 'warning', 'danger', 'todo', 'example', 'abstract', 'success', 'question', 'failure', 'bug', 'quote'])
+
 const FILE_PATH_CHARS = /[A-Za-z0-9_.@~-]/
 const FILE_PATH_TOKEN_RE = /(?:[A-Za-z0-9_.@~-]+\/)+[A-Za-z0-9_.@~-]+/g
 
@@ -166,6 +169,8 @@ function enhanceMarkdownHtml(html: string): string {
     wrapper.appendChild(table)
   })
 
+  enhanceCallouts(container)
+
   container.querySelectorAll('a[href]').forEach((link) => {
     const href = link.getAttribute('href') ?? ''
     if (/\.pdf(?:\?|#|$)/i.test(href)) {
@@ -188,6 +193,32 @@ function enhanceMarkdownHtml(html: string): string {
   }
 
   return container.innerHTML
+}
+
+/**
+ * Convert Obsidian-style `> [!type] title` blockquotes into callout divs.
+ * Unrecognized types and ordinary blockquotes are left untouched.
+ */
+function enhanceCallouts(container: HTMLElement): void {
+  for (const quote of [...container.querySelectorAll('blockquote')]) {
+    const firstParagraph = quote.querySelector(':scope > p')
+    if (!firstParagraph) continue
+    const match = CALLOUT_RE.exec(firstParagraph.textContent?.trim() ?? '')
+    if (!match) continue
+    const type = (match[1] ?? '').toLowerCase()
+    if (!CALLOUT_TYPES.has(type)) continue
+    const title = (match[2] ?? '').trim()
+    const callout = document.createElement('div')
+    callout.className = 'md-callout'
+    callout.setAttribute('data-callout', type)
+    const header = document.createElement('div')
+    header.className = 'md-callout-title'
+    header.textContent = title || type.charAt(0).toUpperCase() + type.slice(1)
+    callout.appendChild(header)
+    firstParagraph.remove()
+    while (quote.firstChild) callout.appendChild(quote.firstChild)
+    quote.replaceWith(callout)
+  }
 }
 
 /** Suspense boundary shared by lazily loaded code/diagram renderers. */

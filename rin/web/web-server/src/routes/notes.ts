@@ -36,6 +36,8 @@ export async function handle(
       return notesListRoute(services)
     case '/api/notes/read':
       return notesReadRoute(search, services)
+    case '/api/notes/properties':
+      return notesPropertiesRoute(method, search, body, services)
     case '/api/notes/write':
       return notesWriteRoute(method, body, services)
     case '/api/notes/delete':
@@ -74,6 +76,43 @@ async function notesReadRoute(search: string, services: RinServiceRefs): Promise
     if (isMissingNoteError(err)) return error(404, 'note not found')
     return error(500, errorMessage(err))
   }
+}
+
+async function notesPropertiesRoute(
+  method: string,
+  search: string,
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  const notes = services.notes()
+  if (notes === undefined) return notMounted()
+  if (method === 'GET') {
+    const path = queryParam(search, 'path')
+    if (path === undefined) return error(400, 'path is required')
+    try {
+      return mountedValue('properties', await notes.properties(path))
+    } catch (err) {
+      if (isMissingNoteError(err)) return error(404, 'note not found')
+      return error(500, errorMessage(err))
+    }
+  }
+  if (method === 'POST') {
+    const fields = asRecord(body)
+    if (fields === undefined) return error(400, 'request body must be a JSON object')
+    const path = stringField(fields, 'path')
+    const properties = fields.properties
+    if (path === undefined || path.trim() === '') return error(400, 'path is required')
+    if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
+      return error(400, 'properties must be a JSON object')
+    }
+    try {
+      return mountedValue('note', await notes.updateProperties(path, properties as Record<string, unknown>))
+    } catch (err) {
+      if (isMissingNoteError(err)) return error(404, 'note not found')
+      return error(500, errorMessage(err))
+    }
+  }
+  return error(405, 'method not allowed')
 }
 
 async function notesWriteRoute(

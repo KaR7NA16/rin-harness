@@ -53,6 +53,14 @@ export const notesApi = {
 
   read: (path: string) => api.get<NoteDocument>(noteUrl(path)),
 
+  properties: (path: string) =>
+    api.get<{ mounted: true; properties: Record<string, unknown> | null }>(
+      `/api/notes/properties?path=${encodeURIComponent(path)}`,
+    ),
+
+  updateProperties: (path: string, properties: Record<string, unknown>) =>
+    api.post<{ mounted: true; note: NoteDocument }>('/api/notes/properties', { path, properties }),
+
   write: (path: string, content: string) =>
     api.put<NoteDocument>(noteUrl(path), { content }),
 
