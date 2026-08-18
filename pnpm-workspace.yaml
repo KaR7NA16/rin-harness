@@ -8,6 +8,12 @@ overrides:
   # vulnerable transitive deps. Caret ranges keep each dependency within the
   # major version its parent declares; bare `>=` would jump majors (fast-uri
   # 3->4, undici 7->8, @hono/node-server 1->2, protobufjs 7->8, nanoid 3->6).
+  # F1c audit leg: @deepseek-ai/dsh-llm-pi-ai@0.1.0-rc.7 still pins
+  # @earendil-works/pi-ai ^0.82.1 (0.84.2 is outside that 0.x range), so the
+  # audit's pi-ai->0.84.2 upgrade did not survive the Path B migration. Force it
+  # back to the audit-verified combination (pi-ai 0.84.2 + the fixed transitive
+  # pins below); a single dependent exists (dsh-llm-pi-ai), so resolution is safe.
+  '@earendil-works/pi-ai': ^0.84.2
   fast-uri: ^3.1.5
   ip-address: ^10.3.1
   'brace-expansion@2': 2.1.4
