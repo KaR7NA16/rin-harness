@@ -16,9 +16,10 @@
  * @module @rin/bundle
  */
 
+import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /** Default port of the rin Web server (8320). */
@@ -103,6 +104,32 @@ export function rinHome(subpath?: string): string {
 }
 
 /**
+ * The @rin/bundle package root, located by climbing from this module.
+ *
+ * This module can be reached through any of three layouts — source (tsconfig
+ * path alias, `rin/bundle/rin/src`), in-checkout build (`rin/bundle/rin/lib/
+ * types`), or an installed copy under the pnpm virtual store
+ * (`node_modules/.pnpm/@rin+bundle-.../node_modules/@rin/bundle/lib/types`) —
+ * so every sibling-path helper resolves from the nearest `@rin/bundle`
+ * package.json instead of a fixed `new URL(...)` step count.
+ * @returns the absolute @rin/bundle package root.
+ */
+function bundlePackageRoot(): string {
+  let dir = fileURLToPath(new URL('.', import.meta.url))
+  for (let depth = 0; depth < 10; depth += 1) {
+    const manifestPath = join(dir, 'package.json')
+    if (existsSync(manifestPath)) {
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: unknown }
+      if (manifest.name === '@rin/bundle') return dir
+    }
+    const parent = dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  throw new Error(`@rin/bundle package root not found above ${fileURLToPath(import.meta.url)}`)
+}
+
+/**
  * Resolve the built-in asset repository root relative to this package.
  *
  * The repository lives under the rin source tree (a stable sibling of the
@@ -111,7 +138,7 @@ export function rinHome(subpath?: string): string {
  * @returns the absolute built-in repository root (contains repository.yaml).
  */
 export function builtinRepositoryRoot(): string {
-  return fileURLToPath(new URL('../../../core/repository/builtin/', import.meta.url))
+  return join(bundlePackageRoot(), '../../core/repository/builtin')
 }
 
 /**
@@ -123,7 +150,7 @@ export function builtinRepositoryRoot(): string {
  * @returns the absolute @rin/web-ui dist directory.
  */
 export function webUiDistRoot(): string {
-  return fileURLToPath(new URL('../../../web/web-ui/dist/', import.meta.url))
+  return join(bundlePackageRoot(), '../../web/web-ui/dist')
 }
 
 /**
@@ -131,7 +158,7 @@ export function webUiDistRoot(): string {
  * @returns the absolute path of the @rin plugin entry list.
  */
 export function configPath(): string {
-  return fileURLToPath(new URL('./cordis.yml', import.meta.url))
+  return join(bundlePackageRoot(), 'src/cordis.yml')
 }
 
 /**

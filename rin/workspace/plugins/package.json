@@ -28,11 +28,11 @@
     "lib/types/**/*"
   ],
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^"
+    "@deepseek-ai/cordis": "4.0.1"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/schemastery": "workspace:^",
+    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/schemastery": "3.18.1",
     "yaml": "^2.8.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"

@@ -9,7 +9,7 @@
 
 import { existsSync, globSync, readFileSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
-import { markdownHeadingLines } from '../../scripts/markdown.ts'
+import { markdownHeadingLines } from './markdown.ts'
 
 const rinRoot = resolve(import.meta.dirname, '..')
 

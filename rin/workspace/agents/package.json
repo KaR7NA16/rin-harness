@@ -28,17 +28,17 @@
     "lib/types/**/*"
   ],
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^"
+    "@deepseek-ai/cordis": "4.0.1"
   },
   "dependencies": {
     "@rin/repository": "workspace:^",
-    "@deepseek-ai/dsh-agent-presets": "workspace:^",
+    "@deepseek-ai/dsh-agent-presets": "0.1.0-rc.7",
     "yaml": "^2.8.3"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/cordis": "4.0.1",
     "@rin/repository": "workspace:^",
-    "@deepseek-ai/dsh-agent-presets": "workspace:^",
+    "@deepseek-ai/dsh-agent-presets": "0.1.0-rc.7",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   },

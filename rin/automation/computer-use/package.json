@@ -29,10 +29,10 @@
     "runtime/**/*"
   ],
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^"
+    "@deepseek-ai/cordis": "4.0.1"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/cordis": "4.0.1",
     "typescript": "^6.0.3"
   },
   "publishConfig": {

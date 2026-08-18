@@ -28,14 +28,14 @@
     "lib/types/**/*"
   ],
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^"
+    "@deepseek-ai/cordis": "4.0.1"
   },
   "dependencies": {
     "@rin/prompt-memory": "workspace:^",
     "@rin/skill-memory": "workspace:^"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/cordis": "4.0.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   },

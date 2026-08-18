@@ -9,12 +9,6 @@
   ],
   "references": [
     {
-      "path": "../../../vendor/cordis"
-    },
-    {
-      "path": "../../../packages/boot/app-boot"
-    },
-    {
       "path": "../../bundle/rin"
     }
   ]

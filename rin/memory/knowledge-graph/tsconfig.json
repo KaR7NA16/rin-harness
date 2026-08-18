@@ -9,12 +9,6 @@
   ],
   "references": [
     {
-      "path": "../../../vendor/cordis"
-    },
-    {
-      "path": "../../../packages/core/tools"
-    },
-    {
       "path": "../../core/filesystem"
     },
     {

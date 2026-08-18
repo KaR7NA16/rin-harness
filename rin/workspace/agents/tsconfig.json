@@ -9,13 +9,7 @@
   ],
   "references": [
     {
-      "path": "../../../vendor/cordis"
-    },
-    {
       "path": "../../core/repository"
-    },
-    {
-      "path": "../../../packages/preset/agent-presets"
     }
   ]
 }

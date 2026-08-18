@@ -9,7 +9,7 @@
  * Run: node --import tsx/esm rin/scripts/verify-rin-publint.ts
  */
 import { resolve } from 'node:path'
-import { printResult, publintTargets, rinWorkspacePackages } from '../../scripts/publint-all.ts'
+import { printResult, publintTargets, rinWorkspacePackages } from './publint-all.ts'
 
 const repoRoot = resolve(import.meta.dirname, '../..')
 

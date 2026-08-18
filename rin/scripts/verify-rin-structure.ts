@@ -5,7 +5,8 @@
  *     only on the non-published product layer (gui/web-ui);
  *   - package.json: `main`/`exports["."].default`/`bin` resolve under the
  *     tsconfig `outDir` and `files` ships that `outDir`;
- *   - tsconfig.json: `extends` the shared base and `references` vendor/cordis;
+ *   - tsconfig.json: `extends` the shared base, references stay inside rin/, and
+ *     package.json declares @deepseek-ai/cordis (host packages are cordis plugins);
  *   - src/: no compiled artifacts (.js/.mjs/.cjs/.js.map/.d.ts.map, or a .d.ts
  *     emitted beside its .ts source) — the leak that re-imports built output
  *     into the source plane.
@@ -17,7 +18,6 @@ import { dirname, join, relative, resolve } from 'node:path'
 const rinRoot = resolve(import.meta.dirname, '..')
 const repoRoot = resolve(import.meta.dirname, '../..')
 const BASE_TSCONFIG = resolve(repoRoot, 'tsconfig.base.json')
-const VENDOR_CORDIS = resolve(repoRoot, 'vendor/cordis')
 
 /** Product-layer packages with independent Vite/Tauri tsconfig, not host aggregate members. */
 const PRODUCT_LAYER_GROUPS = new Set(['rin/gui/gui', 'rin/web/web-ui'])
@@ -46,7 +46,13 @@ function validatePackage(manifestPath: string): string[] {
   const rel = relative(repoRoot, dir).replaceAll('\\', '/')
   const failures: string[] = []
 
-  const manifest = readJson(manifestPath) as { name?: unknown; private?: unknown; type?: unknown }
+  const manifest = readJson(manifestPath) as {
+    name?: unknown
+    private?: unknown
+    type?: unknown
+    dependencies?: unknown
+    peerDependencies?: unknown
+  }
   if (typeof manifest.name !== 'string' || !manifest.name.startsWith('@rin/')) {
     failures.push(`${rel}/package.json: name must start with @rin/ (got ${JSON.stringify(manifest.name)})`)
   }
@@ -55,6 +61,13 @@ function validatePackage(manifestPath: string): string[] {
   }
   if (manifest.type !== 'module') {
     failures.push(`${rel}/package.json: type must be "module"`)
+  }
+  if (!PRODUCT_LAYER_GROUPS.has(rel)) {
+    const dependencies = isRecord(manifest.dependencies) ? manifest.dependencies : {}
+    const peers = isRecord(manifest.peerDependencies) ? manifest.peerDependencies : {}
+    if (typeof dependencies['@deepseek-ai/cordis'] !== 'string' && typeof peers['@deepseek-ai/cordis'] !== 'string') {
+      failures.push(`${rel}/package.json: dependencies or peerDependencies must declare @deepseek-ai/cordis (host packages are cordis plugins)`)
+    }
   }
 
   if (PRODUCT_LAYER_GROUPS.has(rel)) {
@@ -79,10 +92,13 @@ function validateTsconfig(rel: string, dir: string): string[] {
     failures.push(`${rel}/tsconfig.json: must extend tsconfig.base.json (got ${JSON.stringify(tsconfig.extends ?? null)})`)
   }
   const references = Array.isArray(tsconfig.references) ? tsconfig.references : []
-  const referencesCordis = references.some(reference =>
-    isRecord(reference) && typeof reference.path === 'string' && resolve(dir, reference.path) === VENDOR_CORDIS)
-  if (!referencesCordis) {
-    failures.push(`${rel}/tsconfig.json: references must include vendor/cordis`)
+  const rinPrefix = `${rinRoot.replaceAll('\\', '/')}/`
+  for (const reference of references) {
+    if (!isRecord(reference) || typeof reference.path !== 'string') continue
+    const resolved = resolve(dir, reference.path).replaceAll('\\', '/')
+    if (!resolved.startsWith(rinPrefix)) {
+      failures.push(`${rel}/tsconfig.json: references must stay inside rin/ (got ${reference.path})`)
+    }
   }
   return failures
 }

@@ -3,8 +3,8 @@
  *
  * The `rin` launcher patches @deepseek-ai/dsh-base and then mounts this file's
  * rows in order, so a working host assembly needs four facts to hold:
- *   1. every row `name` resolves to a workspace package — @rin/* rows live under
- *      rin/, @deepseek-ai/* rows under packages/ (or vendor/);
+ *   1. every row `name` resolves — @rin/* rows live under rin/, @deepseek-ai/*
+ *      rows resolve from the registry through @rin/bundle dependencies;
  *   2. the ordered @rin roster @rin/bundle exports (RIN_HOST_PLUGINS plus
  *      RIN_WEB_SERVER, i.e. RIN_PLUGINS) matches the @rin rows of cordis.yml
  *      exactly, in order;
@@ -14,6 +14,7 @@
  *      builtinRepositoryRoot, webUiDistRoot) are real exports of @rin/bundle.
  */
 
+import { createRequire } from 'node:module'
 import { globSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import * as yaml from 'js-yaml'
@@ -34,7 +35,6 @@ interface Row {
 const JS_HELPERS = ['rinHome', 'builtinRepositoryRoot', 'webUiDistRoot'] as const
 
 const rinRoot = resolve(import.meta.dirname, '..')
-const repoRoot = resolve(import.meta.dirname, '../..')
 const CONFIG_FILE = 'bundle/rin/src/cordis.yml'
 const BUNDLE_MANIFEST = 'bundle/rin/package.json'
 
@@ -63,10 +63,9 @@ function main(): number {
   const rows = collectRows(document)
   const jsExprs = collectJsExprs(document)
   const rinPackages = workspacePackages('*/*/package.json', rinRoot)
-  const dshPackages = workspacePackages(['packages/*/*/package.json', 'vendor/*/package.json'], repoRoot)
   const bundleDeps = bundleManifestDependencies()
 
-  failures.push(...validateRowResolution(rows, rinPackages, dshPackages))
+  failures.push(...validateRowResolution(rows, rinPackages))
   failures.push(...validateRowDependencyClosure(rows, bundleDeps))
   failures.push(...validateRoster(rows))
   failures.push(...validateJsHelpers(jsExprs))
@@ -138,20 +137,21 @@ function workspacePackages(pattern: string | string[], base: string): Map<string
 function validateRowResolution(
   rows: readonly Row[],
   rinPackages: ReadonlyMap<string, string>,
-  dshPackages: ReadonlyMap<string, string>,
 ): string[] {
   const failures: string[] = []
+  const requireFromBundle = createRequire(resolve(rinRoot, BUNDLE_MANIFEST))
   for (const row of rows) {
     if (row.name.startsWith('@rin/')) {
       if (!rinPackages.has(row.name)) {
-        const hint = dshPackages.has(row.name) ? ' (found under packages/, but @rin packages must live under rin/)' : ''
-        failures.push(`${CONFIG_FILE}: ${row.name} does not resolve to a rin/ package${hint}`)
+        failures.push(`${CONFIG_FILE}: ${row.name} does not resolve to a rin/ package`)
       }
       continue
     }
     if (row.name.startsWith('@')) {
-      if (!dshPackages.has(row.name)) {
-        failures.push(`${CONFIG_FILE}: ${row.name} does not resolve to a packages/ (or vendor/) package`)
+      try {
+        requireFromBundle.resolve(row.name)
+      } catch {
+        failures.push(`${CONFIG_FILE}: ${row.name} does not resolve from the registry through @rin/bundle dependencies`)
       }
       continue
     }

@@ -28,14 +28,14 @@
     "lib/types/**/*"
   ],
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^"
+    "@deepseek-ai/cordis": "4.0.1"
   },
   "dependencies": {
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/schemastery": "workspace:^",
+    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/schemastery": "3.18.1",
     "@rin/agent-migration": "workspace:^",
     "@rin/agents": "workspace:^",
     "@rin/codegraph": "workspace:^",

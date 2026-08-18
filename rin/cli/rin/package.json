@@ -32,11 +32,11 @@
   ],
   "dependencies": {
     "@rin/bundle": "workspace:^",
-    "@deepseek-ai/dsh-app-boot": "workspace:^",
-    "@deepseek-ai/cordis": "workspace:^"
+    "@deepseek-ai/dsh-app-boot": "0.1.0-rc.7",
+    "@deepseek-ai/cordis": "4.0.1"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/cordis": "4.0.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   },

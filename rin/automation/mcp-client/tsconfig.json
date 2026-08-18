@@ -9,15 +9,6 @@
   ],
   "references": [
     {
-      "path": "../../../vendor/cordis"
-    },
-    {
-      "path": "../../../vendor/schemastery"
-    },
-    {
-      "path": "../../../packages/mcp/mcp-client"
-    },
-    {
       "path": "../mcp"
     }
   ]
