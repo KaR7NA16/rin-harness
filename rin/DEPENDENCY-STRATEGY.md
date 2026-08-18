@@ -67,9 +67,10 @@ rin 的产品层是 `rin/*`（约 34 个 `@rin/*` 包），dsh 提供运行时�
 - dsh 托管：dsh CLI + profile `bundles=[@deepseek-ai/dsh-base, @rin/bundle]` → 浏览器验证（0 console error）
 - llm-pi-ai 加固 VERIFY（✅ 完成）：rc.7 **未内置**（仍钉 `@earendil-works/pi-ai: ^0.82.1`，0.x 范围不含 0.84.2）；以 `@earendil-works/pi-ai: ^0.84.2` override 恢复审计既定组合（vendored 时代 ^0.84.2 全门禁通过）；`pnpm audit` 0 HIGH；运行时验证通过
 
-### Phase 4　同步机制替换
-- 删除 `sync-rin-dsh.sh` + `dsh-layer-exclusions.txt`（vendored 机制作废）
-- 新增 `bump-dsh-deps.sh`：查最新 registry 版本 → 更新精确钉 → `pnpm install` → `rin:typecheck` → 输出可审 diff
+### Phase 4　同步机制替换（✅ 完成）
+- ✅ 删除 `sync-rin-dsh.sh` + `dsh-layer-exclusions.txt`（vendored 机制作废；无代码引用，仅策略文档历史提及保留）
+- ✅ 新增 `bump-dsh-deps.sh`：TARGET 默认取 `@deepseek-ai/dsh-base` 的 `dist-tags.next`（`latest` tag 过期停在 0.0.1-rc.1，整组 rc 线走 next）→ 精确钉全部 `@deepseek-ai/dsh-*` → `pnpm install` → `rin:typecheck` → 输出可审 diff；koishi 生态依赖（cordis/cosmokit/schemastery/cordis-plugin-*）不重写；默认 dry-run
+- ✅ CI 重建：新增 `.github/workflows/rin.yml`（GATES-PLAN §4.4：typecheck → lint → hygiene → test → test:coverage → smoke）
 - `dsh-web.sh` / `update-dsh.sh` 保留（`~/deepseek-harness` 克隆仍在跑 3080 web）
 
 ## 六、版本钉版策略
@@ -98,3 +99,4 @@ rin 的产品层是 `rin/*`（约 34 个 `@rin/*` 包），dsh 提供运行时�
 - **2026-08-18（Phase 2 闸门全绿）**：pnpm install ✅；rin:typecheck ✅；rin:lint 0 错 ✅；rin:test 183/183 文件 1669/1669 用例 ✅；rin:smoke 38 ✅；rin:hygiene 5/5 ✅；8320 boot `rin host on http://127.0.0.1:8320` + web-ui HTTP 200（`<title>rin</title>`）✅。
 - **2026-08-19（dsh 托管打通，Phase 3 双启动验证完成）**：dsh CLI 的 profile boot 并行应用条目，`!!js rinHome(...)` 插值在 helper 提供前执行而失败（`without inject`）。修复：给 src/cordis.yml 全部 15 个用 helper 的行加 `inject: [rinHome/builtinRepositoryRoot/webUiDistRoot]`（dsh web-app 先例：行 inject webStartup 后 Loader 才解析其表达式，vendor/loader 与 registry loader 1.0.2 语义一致），镜像到 cordis.patch.yml，profile 覆盖层（session-query-sqlite）同步加 inject；`@rin/bundle/providers` 行自持提供 helper。`--profile rinweb` boot 成功：8320 监听、HTTP 200、`<title>rin</title>`、真实数据渲染（23 会话/最近项目/skills/当前目录/分支 migration/registry-deps）、**0 console error**。回验 rin 自启 8320 无回归（0 console error）。门禁全绿：rin:typecheck ✅、rin:hygiene 5/5 ✅。命名统一为「rin 自启 / dsh 托管」。
 - **2026-08-19（llm-pi-ai 加固 VERIFY 完成）**：查实 rc.7 **未吸收** F1c 加固——`@deepseek-ai/dsh-llm-pi-ai@0.1.0-rc.7` 声明 `@earendil-works/pi-ai: ^0.82.1`（0.x 范围到 <0.83.0，不含 0.84.2），Phase 2 将 vendored 副本（审计时代钉 ^0.84.2）换成 registry rc.7 后该腿丢失；7 条 HIGH 传递漏洞（fast-uri SSRF×2 / ip-address SSRF / brace-expansion DoS×3 / undici 泄露）仅靠 11 条 overrides 压制。修复：`pnpm-workspace.yaml` 加 `'@earendil-works/pi-ai': ^0.84.2` override（唯一依赖方 dsh-llm-pi-ai，无解析冲突），install 后 lockfile 解析 0.84.2；`pnpm audit` **0 HIGH**（2 low / 5 moderate，全 dev）。运行时验证：dsh-base 装配自带 dormant `llm-pi-ai` 行 → 每次 boot 已实际加载 0.84.2 catalog；再经 `~/.dsh/settings.yaml` 配 deepseek catalog 路由 + acme 手声明 openai-completions 路由 → rin 自启 boot **0 错误**（resolveRouteModels / reuseCatalogProvider / createProvider+openAICompletionsApi 全路径通过），随后还原 settings。fast-uri@3.1.5、ip-address@10.5.0、undici@7.29.0 修复版在树；brace-expansion 已被 0.84.2 弃用（override 留作防御）。
+- **2026-08-19（Phase 4 完成）**：删 `rin/scripts/sync-rin-dsh.sh` + `dsh-layer-exclusions.txt`（vendored 同步机制作废，无残留引用）；新增 `rin/scripts/bump-dsh-deps.sh`（dry-run 默认；TARGET 取 dsh-base `dist-tags.next` = 0.1.0-rc.7，规避过期的 `latest`=0.0.1-rc.1；重写全部 96 个 `@deepseek-ai/dsh-*` 精确钉 → pnpm install → rin:typecheck → diff，koishi 生态版本不碰；dry-run 冒烟通过，already-at 路径 exit 0）；新增 `.github/workflows/rin.yml`（GATES-PLAN §4.4 六道闸门：rin:typecheck / rin:lint / rin:hygiene / rin:test / rin:test:coverage / rin:smoke；pnpm@11.7.0 + Node 22）。
