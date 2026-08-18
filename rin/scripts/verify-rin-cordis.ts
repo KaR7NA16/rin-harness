@@ -34,9 +34,13 @@ interface Row {
 /** The @rin/bundle exports cordis.yml may interpolate as `!!js` helpers. */
 const JS_HELPERS = ['rinHome', 'builtinRepositoryRoot', 'webUiDistRoot'] as const
 
+/** The dsh harness patch row that provides the `!!js` path helpers first. */
+const PROVIDERS_ROW = { id: 'rin-providers', name: '@rin/bundle/providers' } as const
+
 const rinRoot = resolve(import.meta.dirname, '..')
 const CONFIG_FILE = 'bundle/rin/src/cordis.yml'
 const BUNDLE_MANIFEST = 'bundle/rin/package.json'
+const PATCH_FILE = 'bundle/rin/cordis.patch.yml'
 
 const jsExprType = new yaml.Type('tag:yaml.org,2002:js', {
   kind: 'scalar',
@@ -69,6 +73,7 @@ function main(): number {
   failures.push(...validateRowDependencyClosure(rows, bundleDeps))
   failures.push(...validateRoster(rows))
   failures.push(...validateJsHelpers(jsExprs))
+  failures.push(...validateHarnessPatch(document))
 
   if (failures.length > 0) {
     console.error('verify-rin-cordis: invalid @rin assembly:')
@@ -82,7 +87,8 @@ function main(): number {
   console.log(
     `verify-rin-cordis: ${rows.length} rows (${rinRowCount} @rin, ${dshRowCount} dsh) resolve and are declared; `
     + `RIN_HOST_PLUGINS (${bundle.RIN_HOST_PLUGINS.length}) + RIN_WEB_SERVER match the ${rinRowCount} @rin rows; `
-    + `!!js helpers defined in @rin/bundle: ${referenced.join(', ')}.`,
+    + `!!js helpers defined in @rin/bundle: ${referenced.join(', ')}; `
+    + `dsh harness patch in sync with ${CONFIG_FILE}.`,
   )
   return 0
 }
@@ -219,6 +225,31 @@ function validateJsHelpers(jsExprs: readonly string[]): string[] {
     if (referenced && typeof bindings[name] !== 'function') {
       failures.push(`cordis.yml interpolates !!js ${name}(...) but @rin/bundle does not export ${name} as a function`)
     }
+  }
+  return failures
+}
+
+/** Validate the generated dsh harness patch layer against the canonical entry
+ * list: one insert of the providers row followed by exactly the cordis.yml
+ * rows (deep-equal). The patch is the same assembly mounted through the dsh
+ * profile mechanism, so drift here would boot a different tree from the
+ * plugin form.
+ */
+function validateHarnessPatch(document: unknown[]): string[] {
+  const failures: string[] = []
+  const patchRaw: unknown = yaml.load(readFileSync(resolve(rinRoot, PATCH_FILE), 'utf8'), { schema })
+  if (!Array.isArray(patchRaw) || patchRaw.length !== 1 || !isRecord(patchRaw[0]) || !Array.isArray(patchRaw[0].insert)) {
+    failures.push(`${PATCH_FILE}: must be a single patch row with an insert list`)
+    return failures
+  }
+  const insert = patchRaw[0].insert
+  const expected = [PROVIDERS_ROW, ...document]
+  if (insert.length === 0 || insert.length !== expected.length
+    || insert.some((row, i) => JSON.stringify(row) !== JSON.stringify(expected[i]))) {
+    failures.push(
+      `${PATCH_FILE}: insert rows must match ${CONFIG_FILE} row-for-row with ${JSON.stringify(PROVIDERS_ROW)} first`
+      + ' (regenerate the patch when the entry list changes)',
+    )
   }
   return failures
 }

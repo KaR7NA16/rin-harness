@@ -32,14 +32,16 @@ rin layers a set of `@rin/*` packages on top of the `dsh` base:
 
 ### Run from source
 
-To run from a repository checkout:
+rin's `dsh` base is installed as `@deepseek-ai/*` dependencies from the **public npm registry** — you do not need a separate DeepSeek Harness checkout. Cloning this repository and running `pnpm install` pulls the entire `dsh` base automatically (pinned to `0.1.0-rc.7`):
 
 ```sh
 pnpm install
 pnpm run rin
 ```
 
-The `rin` host serves the Web UI at `http://127.0.0.1:8320` by default.
+The `rin` host serves the Web UI at `http://127.0.0.1:8320` by default (standalone launch via `@rin/cli`).
+
+rin can also be launched hosted by the `dsh` CLI: create a `dsh` profile whose `dsh.profile.bundles` lists `@rin/bundle` (it declares `dsh.bundle.patch`), then `dsh --profile <name>` assembles the exact same assembly on `dsh`'s own launcher.
 
 ### Distribution
 

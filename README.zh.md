@@ -32,14 +32,16 @@ rin 在 `dsh` 底座之上叠加了一组 `@rin/*` 包：
 
 ### 从源码运行
 
-如需从仓库源码运行：
+rin 的 `dsh` 底座以 `@deepseek-ai/*` 依赖形式从**公共 npm registry** 安装——**无需单独检出 DeepSeek Harness**。clone 本仓库后执行 `pnpm install` 即自动拉齐整个 `dsh` 底座（精确钉在 `0.1.0-rc.7`）：
 
 ```sh
 pnpm install
 pnpm run rin
 ```
 
-`rin` host 默认在 `http://127.0.0.1:8320` 伺服 Web UI。
+`rin` host 默认在 `http://127.0.0.1:8320` 伺服 Web UI（**rin 自启**：由 `@rin/cli` 启动）。
+
+rin 也可以**托管在 dsh CLI 内运行**：创建一个 `dsh.profile.bundles` 列出 `@rin/bundle`（其声明了 `dsh.bundle.patch`）的 dsh profile，然后 `dsh --profile <name>` 会在 dsh 自己的启动器上装配同一套装配。
 
 ### 发行形态
 

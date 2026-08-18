@@ -22,12 +22,18 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/types/index.js"
     },
+    "./providers": {
+      "types": "./lib/types/providers.d.ts",
+      "default": "./lib/types/providers.js"
+    },
     "./cordis.yml": "./src/cordis.yml",
+    "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
   "files": [
     "lib/types/**/*",
-    "src/cordis.yml"
+    "src/cordis.yml",
+    "cordis.patch.yml"
   ],
   "dependencies": {
     "@deepseek-ai/cordis-plugin-hmr": "1.0.16",
@@ -163,5 +169,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }
