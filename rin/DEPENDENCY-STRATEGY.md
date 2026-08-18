@@ -92,4 +92,4 @@ rin 的产品层是 `rin/*`（约 34 个 `@rin/*` 包），dsh 提供运行时�
 
 ## 九、状态日志
 
-- **2026-08-18**：决策成立（UI=@rin/web-ui）；Phase 1/Phase 0 完成；分支与试装闸门进行中。
+- **2026-08-18**：决策成立（UI=@rin/web-ui）；Phase 0/1 完成。分支 `migration/registry-deps`；36 个 dsh 依赖已切 `0.1.0-rc.7`；**试装闸门通过**（rin:typecheck exit 0；8320 boot 成功，web-ui HTTP 200）。
