@@ -22,11 +22,23 @@ for tool registration.
 import type { Context } from '@deepseek-ai/cordis'
 // const service = ctx.knowledge.open(dbPath)
 // await service.addSources(['/path/to/notes'], { waitForIndex: true })
-// service.search('query')         // KnowledgeSearchResult[]
-// service.listSources()           // KnowledgeSource[]
-// service.listDocuments()         // KnowledgeDocument[]
+// await service.addSources(['~/.rin/notes'], { waitForIndex: true, indexContent: false })
+// service.search('query')         // KnowledgeSearchResult[] (each has nodeId + links)
+// service.listSources()           // KnowledgeSource[] (each has indexContent)
+// service.listDocuments()         // KnowledgeDocument[] (each has links)
 // service.getStats()              // KnowledgeStats
 ```
+
+## Entity projection
+
+Markdown documents are projected into graph-navigable entities during
+indexing: wikilink targets (`[[target]]`) are extracted into `links` (on both
+`KnowledgeDocument` and `KnowledgeSearchResult`), and search results carry a
+stable `nodeId` (`knowledge_document:<id>`). The stable node-id vocabulary —
+`knowledge_source:<id>` and `knowledge_document:<id>` — lives in `entities.ts`
+(`knowledgeSourceNodeId` / `knowledgeDocumentNodeId`). A source registered with
+`indexContent: false` (e.g. the Notes Vault) skips full-text content while
+still extracting links for graph projection.
 
 The plugin's `Config` offers two optional fields: `dbPath` (an explicit
 database path) and `configHome` (a home used to derive the default path via

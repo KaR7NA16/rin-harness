@@ -23,6 +23,8 @@ export type KnowledgeSource = {
   name: string
   kind: KnowledgeSourceKind
   status: KnowledgeSourceStatus
+  /** When false, the source is indexed for entity projection (links/title) without full-text content. */
+  indexContent: boolean
   error: string | null
   documentCount: number
   chunkCount: number
@@ -45,6 +47,8 @@ export type KnowledgeDocument = {
   sizeBytes: number
   modifiedAt: string
   indexedAt: string
+  /** Wikilink targets extracted from the document body, in first-seen order. */
+  links: string[]
   error: string | null
 }
 
@@ -57,6 +61,10 @@ export type KnowledgeSearchResult = {
   path: string
   excerpt: string
   score: number
+  /** Stable graph node id of the owning document (knowledge_document:<id>). */
+  nodeId: string
+  /** Wikilink targets extracted from the owning document, in first-seen order. */
+  links: string[]
 }
 
 export type KnowledgeStats = {

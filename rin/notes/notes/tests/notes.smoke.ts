@@ -102,10 +102,18 @@ try {
 
   // tool schema smoke
   check(NOTES_TOOL_NAME === 'notes', 'tool name is notes')
-  check(notesToolParameters.action.enum.join(',') === 'list,search,read', 'action enum')
+  check(notesToolParameters.action.enum.join(',') === 'list,search,read,query', 'action enum')
   check(notesToolParameters.action.required === true, 'action required')
   check(notesToolOutputSchema.properties.action.type === 'string', 'output action is a string')
   check(notesToolOutputSchema.properties.document.properties.content.type === 'string', 'document content field')
+  check(notesToolOutputSchema.properties.notes.items.properties.nodeId.type === 'string', 'notes carry nodeId')
+  check(notesToolOutputSchema.properties.document.properties.links.type === 'array', 'document carries links')
+  const queryText = renderNotesResult({
+    action: 'query',
+    query: 'FROM #project',
+    queryTasks: [{ notePath: 'a.md', noteName: 'a', line: 3, text: 'task one', done: false, priority: 'high', due: '2026-02-01' }],
+  })
+  check(queryText.includes('Query matched 1 task(s)'), 'query tasks render')
   const listText = renderNotesResult({
     action: 'list',
     notes: [{ path: 'a.md', name: 'a', folder: '', title: 'A', tags: [], modifiedAt: 'now' }],

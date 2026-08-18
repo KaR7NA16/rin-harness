@@ -137,6 +137,27 @@ export function IconRail({ __testTopRailHeight }: IconRailProps = {}) {
       icon: 'account_tree',
     },
     {
+      key: 'atlas',
+      active: workspaceView === 'atlas',
+      label: t('atlas.title'),
+      onClick: () => openWorkspaceView('atlas'),
+      icon: 'hub',
+    },
+    {
+      key: 'queries',
+      active: workspaceView === 'queries',
+      label: t('queries.title'),
+      onClick: () => openWorkspaceView('queries'),
+      icon: 'filter_list',
+    },
+    {
+      key: 'tags',
+      active: workspaceView === 'tags',
+      label: t('tags.title'),
+      onClick: () => openWorkspaceView('tags'),
+      icon: 'tag',
+    },
+    {
       key: 'agents',
       active: workspaceView === 'agents',
       label: t('sidebar.agentConfiguration'),

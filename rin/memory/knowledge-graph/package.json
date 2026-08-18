@@ -1,0 +1,51 @@
+{
+  "name": "@rin/knowledge-graph",
+  "description": "rin knowledge-graph: read-only unified graph projection over notes, knowledge, repository, codegraph, and filesystem entities",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-name/rin-harness.git"
+  },
+  "homepage": "https://github.com/your-name/rin-harness",
+  "bugs": {
+    "url": "https://github.com/your-name/rin-harness/issues"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "main": "lib/types/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/types/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/types/**/*"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:^"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-tools": "workspace:^"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/schemastery": "workspace:^",
+    "@rin/codegraph": "workspace:^",
+    "@rin/filesystem": "workspace:^",
+    "@rin/knowledge": "workspace:^",
+    "@rin/notes": "workspace:^",
+    "@rin/repository": "workspace:^",
+    "@rin/session-search": "workspace:^",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -11,6 +11,7 @@ function services(overrides: Record<string, () => unknown> = {}) {
     sessionBackup: () => undefined,
     smartPruning: () => undefined,
     knowledge: () => undefined,
+    knowledgeGraph: () => undefined,
     sessionSearch: () => undefined,
     promptMemory: () => undefined,
     evolution: () => undefined,

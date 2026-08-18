@@ -14,6 +14,7 @@ import type { EnvironmentStore } from '@rin/environment'
 import type { FilesystemService } from '@rin/filesystem'
 import type { SessionBackupService } from '@rin/session-backup'
 import type { KnowledgeStore } from '@rin/knowledge'
+import type { KnowledgeGraphService } from '@rin/knowledge-graph'
 import type { SessionSearchStore } from '@rin/session-search'
 import type { PromptMemoryService } from '@rin/prompt-memory'
 import type { EvolutionService } from '@rin/evolution'
@@ -34,6 +35,7 @@ import type { MonitorService } from '@rin/monitor'
 import type { DoctorService } from '@rin/doctor'
 import { handle as handleCore } from './routes/core.ts'
 import { handle as handleKnowledge } from './routes/knowledge.ts'
+import { handle as handleKnowledgeGraph } from './routes/knowledge-graph.ts'
 import { handle as handleSessions } from './routes/sessions.ts'
 import { handle as handlePromptMemory } from './routes/prompt-memory.ts'
 import { handle as handleEvolution } from './routes/evolution.ts'
@@ -221,6 +223,7 @@ export interface RinServiceRefs {
   sessionBackup(): SessionBackupService | undefined
   smartPruning(): SmartPruningRef | undefined
   knowledge(): KnowledgeStore | undefined
+  knowledgeGraph(): KnowledgeGraphService | undefined
   sessionSearch(): SessionSearchStore | undefined
   promptMemory(): PromptMemoryService | undefined
   evolution(): EvolutionService | undefined
@@ -277,6 +280,7 @@ export async function routeApi(
   return (await handleLegacy(pathname, search, method, body, services, config))
     ?? (await handleCore(pathname, search, method, body, services, config))
     ?? (await handleKnowledge(pathname, search, method, body, services, config))
+    ?? (await handleKnowledgeGraph(pathname, search, method, body, services, config))
     ?? (await handleSessions(pathname, search, method, body, services, config))
     ?? (await handlePromptMemory(pathname, search, method, body, services, config))
     ?? (await handleEvolution(pathname, search, method, body, services, config))

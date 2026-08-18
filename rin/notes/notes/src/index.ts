@@ -26,6 +26,7 @@ import type {
   NoteDocument,
   NoteGraph,
   NoteMeta,
+  NoteQueryResult,
   NoteSearchResult,
   NoteSnapshotMeta,
   NoteTemplate,
@@ -50,8 +51,10 @@ export {
   resolveLinkTarget,
   resolveVaultRoot,
 } from './vault.ts'
-export { TAG_RE, TRANSCLUSION_RE, WIKILINK_RE, extractLinks, extractTags, extractTitle, extractTransclusions, parseWikilinkTarget, splitFrontmatter } from './parse.ts'
-export type { WikilinkTarget } from './parse.ts'
+export { TAG_RE, TRANSCLUSION_RE, WIKILINK_RE, extractInlineFields, extractLinks, extractTags, extractTaskFields, extractTitle, extractTransclusions, normalizeDateValue, parseWikilinkTarget, splitFrontmatter } from './parse.ts'
+export type { NoteTaskFields, WikilinkTarget } from './parse.ts'
+export { evaluateNoteQuery, evaluateTaskQuery, parseQuery } from './query.ts'
+export type { NoteQueryRow, ParsedQuery, QueryCondition, QueryMode, QueryOperator, QuerySortField, QuerySource, TaskQueryRow } from './query.ts'
 export { NotesIndex, ensureNotesIndexSchema, NOTES_INDEX_DIRNAME, NOTES_INDEX_FILENAME } from './notes-index.ts'
 export type { IndexedNote, NoteBacklink, NoteBlock, NoteHeading } from './notes-index.ts'
 export {
@@ -109,6 +112,9 @@ export abstract class NotesStore extends Service {
 
   /** Extract line-level checkboxes from every note. */
   abstract todos(): Promise<NoteTodo[]>
+
+  /** Execute a live query (Dataview/Tasks subset) over notes or tasks. */
+  abstract query(dsl: string): Promise<NoteQueryResult>
 
   /** List templates under `.templates/`. */
   abstract templates(): Promise<NoteTemplate[]>
@@ -191,6 +197,10 @@ export class FileNotesStore extends NotesStore {
     return this.vault.todos()
   }
 
+  override query(dsl: string) {
+    return this.vault.query(dsl)
+  }
+
   override templates() {
     return this.vault.templates()
   }
@@ -210,6 +220,11 @@ export class FileNotesStore extends NotesStore {
 
 export const name = 'notes'
 export const inject = ['tools']
+
+/** Stable knowledge-graph node id for a note (mirrored by @rin/knowledge-graph). */
+export function noteNodeId(path: string): string {
+  return `note:${path}`
+}
 
 /** Plugin configuration: an optional vault root (defaults to `~/.rin/notes`). */
 export const Config: z<NotesConfig> = z.object({
@@ -240,6 +255,7 @@ export function apply(ctx: Context, config: NotesConfig): void {
           action: 'list',
           notes: list.map(note => ({
             path: note.path,
+            nodeId: noteNodeId(note.path),
             name: note.name,
             folder: note.folder,
             title: note.title,
@@ -254,7 +270,44 @@ export function apply(ctx: Context, config: NotesConfig): void {
         const results = await notes.search(query)
         return {
           action: 'search',
-          results: results.map(result => ({ path: result.path, title: result.title, snippet: result.snippet })),
+          results: results.map(result => ({
+            path: result.path,
+            nodeId: noteNodeId(result.path),
+            title: result.title,
+            snippet: result.snippet,
+          })),
+        }
+      }
+      if (args.action === 'query') {
+        const dsl = args.query?.trim()
+        if (!dsl) return { action: 'query', error: 'query DSL is required for the query action' }
+        const result = await notes.query(dsl)
+        if (result.kind === 'tasks') {
+          return {
+            action: 'query',
+            query: dsl,
+            queryTasks: result.tasks.map(task => ({
+              notePath: task.notePath,
+              noteName: task.noteName,
+              line: task.line,
+              text: task.text,
+              done: task.done,
+              ...(task.due ? { due: task.due } : {}),
+              priority: task.priority,
+            })),
+          }
+        }
+        return {
+          action: 'query',
+          query: dsl,
+          queryNotes: result.notes.map(note => ({
+            path: note.path,
+            name: note.name,
+            folder: note.folder,
+            title: note.title,
+            fields: note.fields,
+            modifiedAt: note.modifiedAt,
+          })),
         }
       }
       // args.action === 'read'
@@ -264,7 +317,14 @@ export function apply(ctx: Context, config: NotesConfig): void {
         const doc = await notes.read(path)
         return {
           action: 'read',
-          document: { path: doc.path, title: doc.title, tags: doc.tags, content: doc.content },
+          document: {
+            path: doc.path,
+            nodeId: noteNodeId(doc.path),
+            title: doc.title,
+            tags: doc.tags,
+            links: doc.links.map(link => link.target),
+            content: doc.content,
+          },
         }
       } catch (error) {
         // A failed read is a recoverable model error: report it in-band so the

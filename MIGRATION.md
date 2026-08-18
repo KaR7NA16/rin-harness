@@ -43,6 +43,7 @@ rin/                          # rin 唯一扩展根（dsh 之外的一切）
 │  └─ sandboxes/              # @rin/sandboxes：sandbox profile + 仓库挂载 + 环境安装执行
 ├─ memory/                    # 记忆域
 │  ├─ knowledge/              # @rin/knowledge（+ 知识检索工具）
+│  ├─ knowledge-graph/        # @rin/knowledge-graph：只读统一图谱投影（notes + knowledge）
 │  ├─ prompt-memory/          # @rin/prompt-memory
 │  ├─ skill-memory/           # @rin/skill-memory
 │  └─ session-search/         # @rin/session-search

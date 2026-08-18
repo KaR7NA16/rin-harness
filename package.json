@@ -156,6 +156,7 @@
     "@rin/monitor": "workspace:^",
     "@rin/doctor": "workspace:^",
     "@rin/repository": "workspace:^",
+    "@rin/knowledge-graph": "workspace:^",
     "@rin/brief": "workspace:^",
     "@rin/review": "workspace:^",
     "@stylistic/eslint-plugin": "^5.10.0",

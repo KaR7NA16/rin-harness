@@ -8,6 +8,9 @@ const ScheduledTasks = lazy(() => import('../../features/scheduledTasks').then((
 const Notes = lazy(() => import('../../pages/Notes').then((module) => ({ default: module.Notes })))
 const Files = lazy(() => import('../../pages/Files').then((module) => ({ default: module.Files })))
 const KnowledgeSpace = lazy(() => import('../../pages/KnowledgeSpace').then((module) => ({ default: module.KnowledgeSpace })))
+const Atlas = lazy(() => import('../../pages/Atlas').then((module) => ({ default: module.Atlas })))
+const Queries = lazy(() => import('../../pages/Queries').then((module) => ({ default: module.Queries })))
+const Tags = lazy(() => import('../../pages/Tags').then((module) => ({ default: module.Tags })))
 const Sandboxes = lazy(() => import('../../pages/Sandboxes').then((module) => ({ default: module.Sandboxes })))
 const Monitor = lazy(() => import('../../pages/Monitor').then((module) => ({ default: module.Monitor })))
 const RepositoryWorkspace = lazy(() => import('../../pages/RepositoryWorkspace').then((module) => ({ default: module.RepositoryWorkspace })))
@@ -64,6 +67,9 @@ export function ContentRouter() {
     : resolvedWorkspaceView === 'notes' ? <Suspended><Notes /></Suspended>
     : resolvedWorkspaceView === 'files' ? <Suspended><Files /></Suspended>
     : resolvedWorkspaceView === 'codeGraph' ? <Suspended><KnowledgeSpace /></Suspended>
+    : resolvedWorkspaceView === 'atlas' ? <Suspended><Atlas /></Suspended>
+    : resolvedWorkspaceView === 'queries' ? <Suspended><Queries /></Suspended>
+    : resolvedWorkspaceView === 'tags' ? <Suspended><Tags /></Suspended>
     : resolvedWorkspaceView === 'sandbox' ? <Suspended><Sandboxes /></Suspended>
     : resolvedWorkspaceView === 'repository' ? <Suspended><RepositoryWorkspace /></Suspended>
     : resolvedWorkspaceView === 'agents' ? <Suspended><AgentWorkspace /></Suspended>

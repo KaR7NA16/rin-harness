@@ -61,7 +61,7 @@ Base: `http://<host>:<port>`（默认 `http://127.0.0.1:8320`）。
 **v3（已完成，当前态）**：API 面扩展到全部已装配 @rin 服务，前端扩展为 18 页（17 个 `src/pages/*.tsx` + `ScheduledTasks`）：
 
 - 资产/环境/仓库：`/api/repository`、`/api/repositories*`、`/api/environment/plan`、`/api/agents*`、`/api/sandboxes*`、`/api/filesystem/browse`。
-- 记忆/笔记/会话：knowledge、prompt-memory、skill-memory、notes、sessions/export/import/backup、search/sessions 等路由组。
+- 记忆/笔记/会话：knowledge、knowledge-graph（`GET /api/knowledge-graph/graph` 与 `GET /api/knowledge-graph/related`）、prompt-memory、skill-memory、notes、sessions/export/import/backup、search/sessions 等路由组。
 - 自动化/协作/策略：`/api/tasks*`、`/api/mcp`、`/api/plugins*`、`/api/teams`、`/api/computer-use*`、`/api/agent-migration*`、`/api/permissions/*`。
 - 诊断：`/api/monitor/snapshot`（`ctx.monitor`，Linux `/proc`）与 `/api/doctor`（`ctx.doctor`）。
 - 终端：`/ws/terminal/<terminalId>`（xterm.js + WebSocket PTY，协议见 @rin/web-server README）。

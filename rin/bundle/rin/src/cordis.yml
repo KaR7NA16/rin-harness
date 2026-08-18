@@ -32,6 +32,16 @@
     dbPath: !!js rinHome('knowledge/knowledge.db')
     configHome: !!js rinHome()
 
+- id: knowledge-graph
+  name: '@rin/knowledge-graph'
+  config:
+    dbPath: !!js rinHome('knowledge-graph.db')
+    knowledgeDbPath: !!js rinHome('knowledge/knowledge.db')
+    repositoryRoot: !!js builtinRepositoryRoot()
+    filesystemRoots:
+      - !!js rinHome('notes')
+      - !!js builtinRepositoryRoot()
+
 - id: prompt-memory
   name: '@rin/prompt-memory'
   config:

@@ -75,6 +75,7 @@ export async function handle(
   if (pathname === '/api/notes/search') return notesSearchRoute(search, services)
   if (pathname === '/api/notes/graph') return notesGraphRoute(services)
   if (pathname === '/api/notes/todos') return notesTodosRoute(services)
+  if (pathname === '/api/notes/query') return notesQueryRoute(search, services)
   if (pathname === '/api/notes/templates') return notesTemplatesRoute(services)
   if (pathname === '/api/notes/from-template') return notesFromTemplateRoute(method, body, services)
   if (pathname === '/api/notes/export') return notesExportRoute(search, services)
@@ -1371,6 +1372,18 @@ async function notesTodosRoute(services: RinServiceRefs): Promise<JsonResponse> 
   if (notes === undefined) return notMounted()
   try {
     return json(200, { todos: await notes.todos() })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function notesQueryRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
+  const notes = services.notes()
+  if (notes === undefined) return notMounted()
+  const dsl = queryParam(search, 'q') ?? ''
+  if (dsl.trim() === '') return error(400, 'query DSL is required; pass ?q=')
+  try {
+    return json(200, await notes.query(dsl))
   } catch (err) {
     return error(500, errorMessage(err))
   }

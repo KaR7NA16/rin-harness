@@ -7,6 +7,7 @@
     { "path": "./core/monitor" },
     { "path": "./core/doctor" },
     { "path": "./memory/knowledge" },
+    { "path": "./memory/knowledge-graph" },
     { "path": "./memory/prompt-memory" },
     { "path": "./memory/skill-memory" },
     { "path": "./memory/session-search" },

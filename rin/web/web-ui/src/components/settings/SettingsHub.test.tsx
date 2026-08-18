@@ -19,7 +19,7 @@ const sections: SettingsNavSection[] = [
     icon: 'dns',
     tabs: [
       { id: 'providers', label: '模型供应商' },
-      { id: 'tokenOptimization', label: 'Token 优化' },
+      { id: 'behavior', label: '执行行为' },
     ],
   },
 ]

@@ -48,6 +48,7 @@ export interface HealthServices {
   sessionBackup: boolean
   smartPruning: boolean
   knowledge: boolean
+  knowledgeGraph: boolean
   sessionSearch: boolean
   promptMemory: boolean
   evolution: boolean

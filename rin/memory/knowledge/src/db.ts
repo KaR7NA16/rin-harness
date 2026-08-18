@@ -36,6 +36,7 @@ export function ensureKnowledgeSchema(db: DatabaseSync): void {
       path TEXT NOT NULL UNIQUE,
       name TEXT NOT NULL,
       kind TEXT NOT NULL CHECK(kind IN ('file', 'folder')),
+      index_content INTEGER NOT NULL DEFAULT 1,
       status TEXT NOT NULL DEFAULT 'pending',
       error TEXT,
       document_count INTEGER NOT NULL DEFAULT 0,
@@ -48,6 +49,7 @@ export function ensureKnowledgeSchema(db: DatabaseSync): void {
   `)
 
   migrateDocumentIdentity(db)
+  migrateSourceIndexContent(db)
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS knowledge_documents (
@@ -104,7 +106,24 @@ export function ensureKnowledgeSchema(db: DatabaseSync): void {
         content,
         tokenize='trigram'
       );
+
+    CREATE TABLE IF NOT EXISTS knowledge_document_links (
+      document_id TEXT NOT NULL,
+      target TEXT NOT NULL,
+      ordinal INTEGER NOT NULL,
+      PRIMARY KEY(document_id, target),
+      FOREIGN KEY(document_id) REFERENCES knowledge_documents(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_knowledge_document_links_document
+      ON knowledge_document_links(document_id);
   `)
+}
+
+function migrateSourceIndexContent(db: DatabaseSync): void {
+  const row = db.prepare(`SELECT name FROM pragma_table_info('knowledge_sources') WHERE name = 'index_content'`).get()
+  if (row !== undefined) return
+  db.exec(`ALTER TABLE knowledge_sources ADD COLUMN index_content INTEGER NOT NULL DEFAULT 1`)
 }
 
 function migrateDocumentIdentity(db: DatabaseSync): void {

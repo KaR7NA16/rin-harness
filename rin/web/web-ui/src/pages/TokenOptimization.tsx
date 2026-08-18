@@ -38,7 +38,7 @@ type TokenOptimizationProps = {
   initialView?: 'overview' | 'graph'
 }
 
-export function TokenOptimization({ initialView = 'overview' }: TokenOptimizationProps = {}) {
+export function TokenOptimizationContent({ initialView = 'overview' }: TokenOptimizationProps = {}) {
   const t = useTranslation()
   const activeTabId = useTabStore((state) => state.activeTabId)
   const tabs = useTabStore((state) => state.tabs)
@@ -552,11 +552,7 @@ export function TokenOptimization({ initialView = 'overview' }: TokenOptimizatio
   }
 
   return (
-    <SettingsPage
-      title={t('tokenOptimization.title')}
-      description={t('tokenOptimization.description')}
-      saveMode="immediate"
-    >
+    <div className="flex flex-col gap-[16px]">
       <section
         data-testid="savings-overview"
         className="relative overflow-hidden rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-container)] px-[20px] py-[16px]"
@@ -850,6 +846,20 @@ export function TokenOptimization({ initialView = 'overview' }: TokenOptimizatio
           {message}
         </div>
       ))}
+    </div>
+  )
+}
+
+/** Standalone token-optimization settings page (kept for compatibility). */
+export function TokenOptimization(props: TokenOptimizationProps = {}) {
+  const t = useTranslation()
+  return (
+    <SettingsPage
+      title={t('tokenOptimization.title')}
+      description={t('tokenOptimization.description')}
+      saveMode="immediate"
+    >
+      <TokenOptimizationContent {...props} />
     </SettingsPage>
   )
 }

@@ -41,7 +41,6 @@ export type SettingsTab =
   | 'computerUse'
   | 'sessionBackup'
   | 'agentMigration'
-  | 'tokenOptimization'
   | 'about'
   | 'behavior'
 
@@ -50,7 +49,6 @@ export type SettingsPanelView =
   | 'settings'
   | 'scheduled'
   | 'notes'
-  | 'tokenOptimization'
   | 'codeGraph'
   | 'agentMigration'
 
@@ -59,6 +57,9 @@ export type WorkspaceView =
   | 'files'
   | 'scheduled'
   | 'codeGraph'
+  | 'atlas'
+  | 'queries'
+  | 'tags'
   | 'sandbox'
   | 'repository'
   | 'agents'
@@ -90,6 +91,8 @@ type UIStore = {
   activeModal: string | null
   toasts: Toast[]
   sidebarGrouping: SidebarGrouping
+  /** Note the Queries page asked the Notes workspace to open on next mount. */
+  pendingNotePath: string | null
 
   setTheme: (theme: ThemeMode) => void
   toggleTheme: () => void
@@ -108,6 +111,7 @@ type UIStore = {
   addToast: (toast: Omit<Toast, 'id'>) => void
   removeToast: (id: string) => void
   setSidebarGrouping: (grouping: SidebarGrouping) => void
+  setPendingNotePath: (path: string | null) => void
 }
 
 let toastCounter = 0
@@ -125,6 +129,7 @@ export const useUIStore = create<UIStore>((set) => ({
   activeModal: null,
   toasts: [],
   sidebarGrouping: getStoredSidebarGrouping(),
+  pendingNotePath: null,
 
   setTheme: (theme) => {
     applyTheme(theme)
@@ -204,4 +209,6 @@ export const useUIStore = create<UIStore>((set) => ({
     writeStoredValue(SIDEBAR_GROUPING_STORAGE_KEY, grouping)
     set({ sidebarGrouping: grouping })
   },
+
+  setPendingNotePath: (path) => set({ pendingNotePath: path }),
 }))

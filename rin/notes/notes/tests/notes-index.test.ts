@@ -38,7 +38,7 @@ describe('NotesIndex', () => {
     expect(index.search('project')).toHaveLength(1)
     expect(index.headings('a.md')).toEqual([{ notePath: 'a.md', line: 6, level: 1, text: 'Heading One', slug: 'heading-one' }])
     expect(index.blocks('a.md')).toEqual([{ notePath: 'a.md', blockId: 'block-one', line: 7, text: 'Body' }])
-    expect(index.todos()).toEqual([{ notePath: 'a.md', noteName: 'a', line: 8, text: 'todo item', done: false }])
+    expect(index.todos()).toEqual([{ notePath: 'a.md', noteName: 'a', line: 8, text: 'todo item', done: false, priority: 'medium' }])
     expect(index.graph().edges).toEqual([
       { from: 'a.md', to: 'b.md' },
       { from: 'b.md', to: 'a.md' },
@@ -76,6 +76,45 @@ describe('NotesIndex', () => {
 
     expect((await vault.search('indexed')).map(hit => hit.path)).toEqual(['a.md'])
     expect((await vault.graph()).edges).toEqual([{ from: 'a.md', to: 'b.md' }])
-    expect(await vault.todos()).toEqual([{ notePath: 'a.md', noteName: 'a', line: 3, text: 'indexed task', done: false }])
+    expect(await vault.todos()).toEqual([{ notePath: 'a.md', noteName: 'a', line: 3, text: 'indexed task', done: false, priority: 'medium' }])
+  })
+
+  test('runs live queries over inline fields and task fields', async () => {
+    const { root, index } = await createVault()
+    await writeFile(join(root, 'a.md'), [
+      '# Project Alpha',
+      '',
+      'status:: active',
+      '',
+      '- [ ] Ship it 📅 2026-02-01 🔺',
+      '- [x] Done one',
+      '',
+      '#project',
+    ].join('\n'))
+    await writeFile(join(root, 'b.md'), [
+      '# Other',
+      '',
+      'status:: done',
+      '',
+      '- [ ] later task 📅 2099-01-01',
+    ].join('\n'))
+    index.rebuild()
+
+    const notes = index.query('FROM #project WHERE status = active')
+    expect(notes).toEqual({
+      kind: 'notes',
+      notes: [expect.objectContaining({ path: 'a.md', fields: [{ key: 'status', value: 'active' }] })],
+    })
+
+    const tasks = index.query('TASKS FROM #project WHERE not done SORT due ASC')
+    expect(tasks.kind).toBe('tasks')
+    if (tasks.kind === 'tasks') {
+      expect(tasks.tasks).toEqual([expect.objectContaining({
+        notePath: 'a.md',
+        text: 'Ship it 📅 2026-02-01 🔺',
+        due: '2026-02-01',
+        priority: 'high',
+      })])
+    }
   })
 })

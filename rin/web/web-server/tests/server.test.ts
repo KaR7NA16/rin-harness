@@ -15,6 +15,7 @@ function emptyServices(): RinServiceRefs {
     sessionBackup: absent,
     smartPruning: absent,
     knowledge: absent,
+    knowledgeGraph: absent,
     sessionSearch: absent,
     promptMemory: absent,
     evolution: absent,

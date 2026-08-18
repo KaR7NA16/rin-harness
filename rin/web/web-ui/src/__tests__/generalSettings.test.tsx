@@ -152,7 +152,7 @@ describe('Settings > General tab', () => {
   it('places reasoning effort in Execution behavior instead of General', () => {
     render(<ExecutionBehaviorSettings />)
 
-    expect(screen.getByText('Effort level')).toBeInTheDocument()
+    expect(screen.getByText('Reasoning effort')).toBeInTheDocument()
     expect(screen.queryByText('Skip WebFetch domain preflight')).not.toBeInTheDocument()
   })
 

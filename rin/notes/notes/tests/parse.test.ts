@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, test } from 'vitest'
-import { extractLinks, extractTags, extractTitle, extractTransclusions, parseWikilinkTarget, splitFrontmatter } from '../src/parse.ts'
+import { extractInlineFields, extractLinks, extractTags, extractTaskFields, extractTitle, extractTransclusions, parseWikilinkTarget, splitFrontmatter } from '../src/parse.ts'
 
 describe('extractTitle', () => {
   test('prefers a frontmatter title over the first H1', () => {
@@ -96,5 +96,45 @@ describe('extractTags', () => {
 
   test('deduplicates and sorts frontmatter plus inline tags', () => {
     expect(extractTags('---\ntags: [b, a]\n---\n#b #a\n')).toEqual(['a', 'b'])
+  })
+})
+
+describe('extractInlineFields', () => {
+  test('extracts key:: value fields from the body', () => {
+    expect(extractInlineFields('---\ntags: [x]\n---\n# T\nstatus:: active\ndue:: 2026-01-17\n'))
+      .toEqual([{ key: 'status', value: 'active' }, { key: 'due', value: '2026-01-17' }])
+  })
+
+  test('ignores frontmatter and deduplicates by key', () => {
+    expect(extractInlineFields('---\nstatus:: frontmatter\n---\nstatus:: body\nother:: value\n'))
+      .toEqual([{ key: 'status', value: 'body' }, { key: 'other', value: 'value' }])
+  })
+
+  test('returns no fields without the :: marker', () => {
+    expect(extractInlineFields('plain text\n# heading')).toEqual([])
+  })
+})
+
+describe('extractTaskFields', () => {
+  test('parses due, scheduled, start, recurrence, and priority', () => {
+    expect(extractTaskFields('Ship it 📅 2026-02-01 🛫 2026-01-20 ⏳ 2026-01-25 🔁 every week 🔺'))
+      .toEqual({
+        due: '2026-02-01',
+        start: '2026-01-20',
+        scheduled: '2026-01-25',
+        recurrence: 'every week',
+        priority: 'high',
+      })
+  })
+
+  test('maps the remaining priority emojis', () => {
+    expect(extractTaskFields('a ⏫').priority).toBe('highest')
+    expect(extractTaskFields('b 🔼').priority).toBe('medium')
+    expect(extractTaskFields('c 🔽').priority).toBe('low')
+    expect(extractTaskFields('d ⏬').priority).toBe('lowest')
+  })
+
+  test('defaults to medium priority with no dates', () => {
+    expect(extractTaskFields('plain task')).toEqual({ priority: 'medium' })
   })
 })

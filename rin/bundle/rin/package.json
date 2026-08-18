@@ -61,6 +61,7 @@
     "@rin/filesystem": "workspace:^",
     "@rin/session-backup": "workspace:^",
     "@rin/knowledge": "workspace:^",
+    "@rin/knowledge-graph": "workspace:^",
     "@rin/prompt-memory": "workspace:^",
     "@rin/skill-memory": "workspace:^",
     "@rin/session-search": "workspace:^",

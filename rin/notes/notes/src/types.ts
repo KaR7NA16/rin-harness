@@ -71,6 +71,15 @@ export interface NoteGraph {
   edges: NoteGraphEdge[]
 }
 
+/** Task priority levels, in ascending order. */
+export type NoteTaskPriority = 'lowest' | 'low' | 'medium' | 'high' | 'highest'
+
+/** One inline field (`key:: value`) extracted from a note body. */
+export interface NoteInlineField {
+  key: string
+  value: string
+}
+
 /** One checkbox extracted from a note body. */
 export interface NoteTodo {
   notePath: string
@@ -79,7 +88,35 @@ export interface NoteTodo {
   line: number
   text: string
   done: boolean
+  /** Due date (`📅 YYYY-MM-DD`), when present. */
+  due?: string
+  /** Start date (`🛫 YYYY-MM-DD`), when present. */
+  start?: string
+  /** Scheduled date (`⏳ YYYY-MM-DD`), when present. */
+  scheduled?: string
+  /** Recurrence rule (`🔁 ...`), when present. */
+  recurrence?: string
+  priority: NoteTaskPriority
 }
+
+/** One note matched by a live query, with its inline fields. */
+export interface NoteQueryNote {
+  path: string
+  name: string
+  folder: string
+  title: string
+  tags: string[]
+  fields: NoteInlineField[]
+  modifiedAt: string
+}
+
+/** One task matched by a live query. */
+export interface NoteQueryTask extends NoteTodo {}
+
+/** Canonical live-query result: matched notes or matched tasks. */
+export type NoteQueryResult =
+  | { kind: 'notes'; notes: NoteQueryNote[] }
+  | { kind: 'tasks'; tasks: NoteQueryTask[] }
 
 /** One note template under `.templates/`. */
 export interface NoteTemplate {
@@ -122,8 +159,8 @@ export interface Config {
 
 /** Validated input of the `notes` tool. */
 export interface NotesToolInput {
-  action: 'list' | 'search' | 'read'
-  /** Search keyword; required for `search`. */
+  action: 'list' | 'search' | 'read' | 'query'
+  /** Search keyword (search) or query DSL (query); required for both. */
   query?: string
   /** Vault-relative note path; required for `read`. */
   path?: string
@@ -132,6 +169,8 @@ export interface NotesToolInput {
 /** One note listed by the `notes` tool's `list` action. */
 export interface NotesToolNote {
   path: string
+  /** Stable graph node id (`note:<path>`). */
+  nodeId: string
   name: string
   folder: string
   title: string
@@ -142,6 +181,8 @@ export interface NotesToolNote {
 /** One hit reported by the `notes` tool's `search` action. */
 export interface NotesToolSearchResult {
   path: string
+  /** Stable graph node id (`note:<path>`). */
+  nodeId: string
   title: string
   snippet: string
 }
@@ -149,17 +190,46 @@ export interface NotesToolSearchResult {
 /** One document returned by the `notes` tool's `read` action. */
 export interface NotesToolDocument {
   path: string
+  /** Stable graph node id (`note:<path>`). */
+  nodeId: string
   title: string
   tags: string[]
+  /** Wikilink targets extracted from the note, in first-seen order. */
+  links: string[]
   content: string
+}
+
+/** One note matched by the `notes` tool's `query` action. */
+export interface NotesToolQueryNote {
+  path: string
+  name: string
+  folder: string
+  title: string
+  fields: NoteInlineField[]
+  modifiedAt: string
+}
+
+/** One task matched by the `notes` tool's `query` action. */
+export interface NotesToolQueryTask {
+  notePath: string
+  noteName: string
+  line: number
+  text: string
+  done: boolean
+  due?: string
+  priority: NoteTaskPriority
 }
 
 /** Canonical output of the `notes` tool. */
 export interface NotesToolOutput {
-  action: 'list' | 'search' | 'read'
+  action: 'list' | 'search' | 'read' | 'query'
   notes?: NotesToolNote[]
   results?: NotesToolSearchResult[]
   document?: NotesToolDocument
+  /** The query DSL echoed back by the `query` action. */
+  query?: string
+  queryNotes?: NotesToolQueryNote[]
+  queryTasks?: NotesToolQueryTask[]
   /** Recoverable failure message (missing query/path, note not found). */
   error?: string
 }

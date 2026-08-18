@@ -36,6 +36,9 @@
       "path": "../../memory/knowledge"
     },
     {
+      "path": "../../memory/knowledge-graph"
+    },
+    {
       "path": "../../memory/session-search"
     },
     {

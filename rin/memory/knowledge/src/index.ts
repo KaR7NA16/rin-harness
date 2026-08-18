@@ -24,6 +24,7 @@ import {
 export type * from './types.ts'
 export { KnowledgeService } from './service.ts'
 export { getKnowledgeDbPath, getKnowledgeDir } from './paths.ts'
+export { extractWikilinkTargets, knowledgeDocumentNodeId, knowledgeSourceNodeId } from './entities.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {

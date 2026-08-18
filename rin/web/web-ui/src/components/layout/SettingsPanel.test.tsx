@@ -34,9 +34,8 @@ vi.mock('../../features/scheduledTasks', () => ({
 }))
 
 vi.mock('../../pages/TokenOptimization', () => ({
-  TokenOptimization: ({ initialView = 'overview' }: { initialView?: string }) => (
-    <div data-initial-view={initialView} data-testid="token-optimization-panel" />
-  ),
+  TokenOptimizationContent: () => <div data-testid="token-optimization-panel" />,
+  TokenOptimization: () => <div data-testid="token-optimization-panel" />,
 }))
 
 vi.mock('../../pages/KnowledgeSpace', () => ({
@@ -110,8 +109,8 @@ describe('SettingsPanel content routing', () => {
     expect(await screen.findByTestId('settings-home')).toBeInTheDocument()
   })
 
-  it('renders token optimization via the settings home nav', async () => {
-    useUIStore.setState({ settingsPanelView: 'tokenOptimization', pendingSettingsTab: 'tokenOptimization' })
+  it('renders execution behavior via the settings home nav', async () => {
+    useUIStore.setState({ settingsPanelView: 'behavior', pendingSettingsTab: 'behavior' })
 
     render(<SettingsPanel visible />)
 

@@ -118,6 +118,14 @@ export function Notes() {
     void notesApi.templates().then(r => setTemplates(r.templates)).catch(() => {})
   }, [refresh])
 
+  useEffect(() => {
+    const pending = useUIStore.getState().pendingNotePath
+    if (!pending) return
+    useUIStore.getState().setPendingNotePath(null)
+    setMode('edit')
+    setActivePath(pending)
+  }, [])
+
   const openNote = useCallback((path: string) => {
     setMode('edit')
     setActivePath(path)

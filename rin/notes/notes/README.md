@@ -9,8 +9,9 @@ model-visible `notes` tool on the dsh tool seam.
 Module ownership:
 
 - `types.ts` — the pure domain model.
-- `parse.ts` — wikilink / tag / frontmatter / title parsing (pure; `yaml` + `node:`).
-- `vault.ts` — `NotesVault`, the pure file engine (path containment, snapshots, search, graph, todos).
+- `parse.ts` — wikilink / tag / frontmatter / title / inline-field / task-field parsing (pure; `yaml` + `node:`).
+- `query.ts` — the live-query DSL parser and evaluator (Dataview/Tasks subset; pure).
+- `vault.ts` — `NotesVault`, the pure file engine (path containment, snapshots, search, graph, todos, query).
 - `schema.ts` — the `notes` tool's model-facing description, schemas, and result renderer.
 - `index.ts` — the Cordis plugin: `NotesStore` (Service abstraction) + `FileNotesStore` + tool registration.
 
@@ -30,7 +31,8 @@ registered when the plugin loads.
 // ctx.notes.delete(path)               -> void                  (removes note + .history)
 // ctx.notes.search(query)              -> NoteSearchResult[]    (name/title hits > body hits)
 // ctx.notes.graph()                    -> { nodes, edges }      (wikilink reverse-resolution)
-// ctx.notes.todos()                    -> NoteTodo[]            (line-level checkboxes)
+// ctx.notes.todos()                    -> NoteTodo[]            (line-level checkboxes + task fields)
+// ctx.notes.query(dsl)                 -> NoteQueryResult       (live query: notes or tasks)
 // ctx.notes.templates()                -> NoteTemplate[]        ({ name, path })
 // ctx.notes.backupSession(title, body) -> NoteDocument          (note under backups/)
 // ctx.notes.saveAsset(fileName, buf)   -> NoteAssetRef          ({ path, url } under assets/)
@@ -54,13 +56,18 @@ viewer.
 ### What the model sees
 
 One tool joins prompt assembly through the dsh tools seam: `notes`, with
-`action` (`list` | `search` | `read`), an optional `query` (for
-`search`), and an optional `path` (for `read`). The description is
-bilingual (Chinese + English). Output is `{ action, notes | results | document | error }`:
+`action` (`list` | `search` | `read` | `query`), an optional `query` (a
+search keyword or the live-query DSL), and an optional `path` (for `read`).
+The description is bilingual (Chinese + English). Output is
+`{ action, notes | results | document | queryNotes | queryTasks | error }`:
 
 - `list` → `notes: [{ path, name, folder, title, tags, modifiedAt }]`
 - `search` → `results: [{ path, title, snippet }]`, ranked with name/title hits above body hits
 - `read` → `document: { path, title, tags, content }`
+- `query` → `queryNotes: [{ path, title, fields, ... }]` or
+  `queryTasks: [{ notePath, text, done, due, priority, ... }]`; the DSL is a
+  Dataview/Tasks subset — `FROM #tag | "folder"`, `WHERE field op value AND ...`,
+  `SORT field ASC|DESC`, and the `TASKS` keyword.
 - recoverable failures (missing query/path, note not found) return `{ action, error }` in-band so the model can list first and retry.
 
 The tool name, description, and parameter/output schemas are model-visible.
@@ -78,19 +85,23 @@ prefix and changes only when the tool set does.
 
 ## Known Limitations and Deferred Work
 
-- **No snapshot listing/reading API.** Snapshots are retained (10 per note) and
-  cleaned up on delete, but there is no `listSnapshots`/`readSnapshot`; the
-  web-server `snapshots` route and the NotesPage SnapshotPanel will need it.
-- **Linear search.** `search` scans every note on each call; no index. A large
-  vault (thousands of notes) will be slow — an FTS index (like `@rin/knowledge`)
-  is deferred.
+- **Live-query DSL is a minimal subset.** `WHERE` supports `=`, `!=`, `<`,
+  `<=`, `>`, `>=`, and `contains` over inline fields plus built-in fields
+  (path/name/folder/title/tags/done/due/start/scheduled/recurrence/priority);
+  `date(today)` resolves to the current date. Dataview expression functions,
+  `GROUP BY`, `FLATTEN`, and multi-field inline values are deferred.
+- **Inline fields are one per line** (`key:: value` takes the rest of the
+  line); multiple fields on one line and `[key:: value]` list syntax are
+  deferred.
 - **Session backups share the 4 MiB cap.** Long session transcripts over 4 MiB
   are rejected; a separate backup-size budget is deferred.
-- **No move/rename, template instantiation, or checkbox toggling.** The old
-  notesService's `move`, `createFromTemplate`, `daily`, and `setTodo` are out
-  of scope for this milestone; callers can compose them from
-  `read`/`write`/`delete`.
+- **No dedicated service methods for move/template/daily/checkbox toggle.**
+  The `NotesStore` API keeps `move` / `createFromTemplate` / `daily` /
+  `setTodo` out of scope; the web-server legacy routes already compose
+  `move` / `from-template` / `daily` from `read`/`write`/`delete`, and the
+  web-ui Notes page drives them. Formalizing the service methods is deferred
+  (see `rin/DEFERRED-ITEMS.md` §A2).
 - **Inline tags are matched anywhere in the body**, including inside fenced code
   blocks, so a `#word` in a code sample becomes a tag.
-- **No per-note backlinks API.** `graph()` returns resolved edges, but there is
-  no `backlinks(path)` convenience; the UI can derive it from `graph()`.
+- **Task dates use Obsidian Tasks emoji syntax only** (`📅`/`🛫`/`⏳`/`🔁`
+  plus the five priority emoji); inline `key:: due` fields are separate.

@@ -93,6 +93,35 @@ describe('KnowledgeService', () => {
     expect(service.search('Shared source content')).toHaveLength(2)
   })
 
+  test('extracts wikilink targets into document links', async () => {
+    const fixture = await createFixture()
+    const project = join(fixture, 'project')
+    await mkdir(project)
+    await writeFile(join(project, 'a.md'), '# A\n\nLinks to [[b]] and [[sub/c]].')
+
+    const service = createService(fixture)
+    const [source] = await service.addSources([project], { waitForIndex: true })
+    const [document] = service.listDocuments({ sourceId: source!.id })
+
+    expect(document?.links).toEqual(['b', 'sub/c'])
+  })
+
+  test('indexes metadata-only when indexContent is false', async () => {
+    const fixture = await createFixture()
+    const project = join(fixture, 'project')
+    await mkdir(project)
+    await writeFile(join(project, 'a.md'), '# A\n\nText [[b]].')
+
+    const service = createService(fixture)
+    const [source] = await service.addSources([project], { waitForIndex: true, indexContent: false })
+    const [document] = service.listDocuments({ sourceId: source!.id })
+
+    expect(source?.indexContent).toBe(false)
+    expect(document?.indexMode).toBe('metadata')
+    expect(document?.links).toEqual(['b'])
+    expect(service.getStats().chunkCount).toBe(0)
+  })
+
   test('rejects sources outside the allowed roots', async () => {
     const fixture = await createFixture()
     const project = join(fixture, 'project')

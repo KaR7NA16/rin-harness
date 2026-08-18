@@ -33,7 +33,30 @@ export type NoteTodo = {
   line: number
   text: string
   done: boolean
+  due?: string
+  start?: string
+  scheduled?: string
+  recurrence?: string
+  priority: 'lowest' | 'low' | 'medium' | 'high' | 'highest'
 }
+
+export type NoteInlineField = { key: string; value: string }
+
+export type NoteQueryNote = {
+  path: string
+  name: string
+  folder: string
+  title: string
+  tags: string[]
+  fields: NoteInlineField[]
+  modifiedAt: string
+}
+
+export type NoteQueryTask = NoteTodo
+
+export type NoteQueryResult =
+  | { kind: 'notes'; notes: NoteQueryNote[] }
+  | { kind: 'tasks'; tasks: NoteQueryTask[] }
 
 export type NoteSnapshot = { id: string; createdAt: string; sizeBytes: number }
 export type NoteTemplate = { name: string; path: string }
@@ -50,6 +73,9 @@ export const notesApi = {
     api.get<{ results: NoteSearchResult[] }>(`/api/notes/search?q=${encodeURIComponent(q)}`),
 
   graph: () => api.get<NoteGraph>('/api/notes/graph'),
+
+  query: (dsl: string) =>
+    api.get<NoteQueryResult>(`/api/notes/query?q=${encodeURIComponent(dsl)}`),
 
   read: (path: string) => api.get<NoteDocument>(noteUrl(path)),
 

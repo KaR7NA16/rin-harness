@@ -62,6 +62,7 @@ function healthRoute(services: RinServiceRefs): JsonResponse {
     sessionBackup: services.sessionBackup() !== undefined,
     smartPruning: services.smartPruning() !== undefined,
     knowledge: services.knowledge() !== undefined,
+    knowledgeGraph: services.knowledgeGraph() !== undefined,
     sessionSearch: services.sessionSearch() !== undefined,
     promptMemory: services.promptMemory() !== undefined,
     evolution: services.evolution() !== undefined,

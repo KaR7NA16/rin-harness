@@ -17,7 +17,59 @@
   - ✅ transclusion `![[note]]` 在预览中展开为目标笔记 callout。
   - ✅ heading/block 引用解析：`[[note#heading]]` 跳转标题，`[[note^block]]` 跳转块锚点。
   - ✅ 200 篇笔记索引规模测试。
-- **Phase 2–5**：尚未开始。
+- **Phase 2（已完成）**
+  - ✅ 新包 `@rin/knowledge-graph` 第一版：只读 SQLite 投影库 + `notes` / `knowledge` 两个 provider，
+    host 插件暴露 `ctx.knowledgeGraph`（`graph()` / `related()`），已装配进 `@rin/bundle`
+    （host 插件 27→28），并在 web-server 暴露 `GET /api/knowledge-graph/graph` 与
+    `GET /api/knowledge-graph/related`（`/api/health` 报告 `knowledgeGraph` 挂载态）。
+  - ✅ web-ui `Atlas` 页（统一图谱画布）：`api/knowledgeGraph.ts` + `components/atlas/AtlasGraphView`
+    （按 kind 聚类的确定性布局、hover/点击选中、`related` 邻居检查器、来源/类型/路径过滤），
+    经 IconRail 入口进入。
+  - ✅ knowledge 实体关系：markdown wikilink 抽取（`entities.ts`）→ `KnowledgeDocument.links`、
+    `KnowledgeSearchResult.nodeId` + `links`；稳定 `knowledge_source:<id>` / `knowledge_document:<id>` URI。
+  - ✅ Notes Vault 可注册为 knowledge source：`addSources(..., { indexContent: false })`
+    （关闭 FTS，仅抽取链接生成图谱投影）。
+  - ✅ 跨源边：knowledge-graph `cites` 边（`knowledge_document` → `note`，wikilink 解析），
+    note ↔ knowledge_document 路径可追溯。
+- **Phase 3（已完成）**
+  - ✅ repository 资产入图：`repositoryGraphRows` 投影 `repository_agent` / `repository_environment` /
+    `repository_package` 节点与 `uses`（agent→environment）、`contains`（environment→package）、
+    `depends_on`（package→package）边；knowledge-graph Config 增 `repositoryRoot`（cordis.yml 注入内置仓库）。
+  - ✅ codegraph 入图：`codeGraphRows` 投影 `code_file` / `code_symbol` 节点与 `defined_in`（symbol→file）、
+    `code_ref`（symbol→symbol）边；项目路径 = 配置的 repositoryRoot + 已连接仓库 rootPaths，逐项目 best-effort 读取。
+  - ✅ 低置信关系：笔记 wikilink 命中代码符号/文件名 → `mentions` 边（confidence 0.5）。
+  - ✅ Atlas 画布支持新 kind/边类型（颜色 + 过滤 + i18n），验收「从 repo agent 出发可见
+    environment、package、相关 notes、相关代码符号」达成（经 uses/contains/depends_on/mentions 路径）。
+- **Phase 4（已完成）**
+  - ✅ 行内字段解析 `key:: value`（`parse.ts` `extractInlineFields`，body 内逐行、按 key 去重）。
+  - ✅ 任务字段：Obsidian Tasks emoji 语法（`📅` due / `🛫` start / `⏳` scheduled / `🔁` recurrence
+    + 五档优先级 ⏫🔺🔼🔽⏬），`NoteTodo` 扩展可选字段，`note_tasks` 表加列 + 迁移。
+  - ✅ 查询 DSL：`query.ts` `parseQuery` + 求值器（notes/tasks 双模式、`FROM #tag|"folder"`、
+    `WHERE field op value AND ...`、`SORT field ASC|DESC`、`date(today)`、`not done`），
+    含 parser/求值测试（`query.test.ts` + `parse.test.ts` + notes-index 集成测试）。
+  - ✅ 模型可见：`notes` 工具新增 `query` 动作（schema/渲染/执行），smoke 断言更新。
+  - ✅ API：`GET /api/notes/query?q=<dsl>`（web-server legacy 路由）。
+  - ✅ web-ui：`Queries` 页（DSL 输入 + notes/tasks 结果表 + 点击跳转 Notes 并打开对应笔记）。
+- **Phase 5（已完成）**
+  - ✅ 模型工具：`@rin/knowledge-graph` 注册 `atlas_search`（自由文本搜实体 + 匹配邻居）与
+    `atlas_graph`（单节点邻域 + 边类型），纯逻辑在 `tools.ts`（可 strip-types 冒烟），
+    工具 schema/渲染/执行完整，`ATLAS_*` 上限常量（limit 10/30、depth 1/3）。
+  - ✅ `notes` 工具结果附 `nodeId`（`note:<path>`，list/search/read 均有）与关系
+    （read 输出 `links` wikilink 目标）。
+  - ✅ session-search 投影：`session` 节点（最近会话）+ `derived_from` 边
+    （`backups/*.md` 备份笔记标题匹配会话标题）。
+  - ✅ Agent 闭环：模型经 atlas_search/atlas_graph 定位实体 → 用 notes/read、repository、
+    knowledge 跳转原文；Atlas 页同步展示 session 节点。
+  - ✅ 验收：工具单测（tools.test.ts 7 例）+ 工具冒烟（tools.smoke.ts）+ providers session 测试
+    + notes smoke 断言更新；typecheck/lint/hygiene/smoke 全绿。
+- 全部分期完成：Phase 0–5 已全部落地。
+- **收尾项（Phase 计划外）**
+  - ✅ filesystem 入图：`filesystemRoots` 配置 + `filesystemGraphRows`（`file` 节点 + `child` 边，
+    每根浅浏览一层），cordis.yml 注入 notes vault + 内置仓库。
+  - ✅ Tags 页：web-ui `Tags` 工作区（标签列表 + 按标签浏览笔记 + 点击跳转 Notes 并打开笔记），
+    IconRail 入口 + i18n。
+  - 其余延后项（notes `move`/`setTodo`/`daily` 服务 API、Dataview 表达式函数/GROUP BY、行内多字段）
+    完整清单与优先级见 **`rin/DEFERRED-ITEMS.md`（延后项留档）**。
 
 > 目标：把 `@rin/notes` 从“Obsidian 风格 markdown vault”升级为 rin 的统一本地知识面，
 > 同时把知识库、代码图谱、资产仓库和文件浏览投影进同一张图，而不是做四套孤立系统。

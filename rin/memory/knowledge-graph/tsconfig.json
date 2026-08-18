@@ -1,0 +1,36 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../packages/core/tools"
+    },
+    {
+      "path": "../../core/filesystem"
+    },
+    {
+      "path": "../../core/repository"
+    },
+    {
+      "path": "../../notes/notes"
+    },
+    {
+      "path": "../../optimization/codegraph"
+    },
+    {
+      "path": "../knowledge"
+    },
+    {
+      "path": "../session-search"
+    }
+  ]
+}

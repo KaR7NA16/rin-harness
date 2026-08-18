@@ -12,7 +12,7 @@ MIGRATION.md §1.1，更新迭代契约见 §9。
 |---|---|---|
 | `core/` | 资产主轴与主机运维：仓库读取、环境计划、文件浏览、会话备份、监控、诊断 | `repository`（含 `builtin/` 内置仓库）、`environment`、`filesystem`、`session-backup`、`monitor`、`doctor` |
 | `workspace/` | 仓库 → agent / sandbox / plugin 装配 | `agents`、`sandboxes`、`plugins` |
-| `memory/` | 记忆域（文件 / SQLite 持久化） | `knowledge`、`prompt-memory`、`skill-memory`、`session-search` |
+| `memory/` | 记忆域（文件 / SQLite 持久化） | `knowledge`、`knowledge-graph`、`prompt-memory`、`skill-memory`、`session-search` |
 | `notes/` | 笔记（Obsidian 风格 + 会话备份） | `notes` |
 | `optimization/` | token / 输出优化与代码图谱 | `token-optimization`、`smart-pruning`、`codegraph` |
 | `learning/` | 自我进化 | `evolution` |

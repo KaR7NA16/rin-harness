@@ -62,7 +62,6 @@ import { AgentMigration } from './AgentMigration'
 import { ComputerUseSettings } from './ComputerUseSettings'
 import { McpSettings } from './McpSettings'
 import { SessionBackup } from './SessionBackup'
-import { TokenOptimization } from './TokenOptimization'
 import { resolveAboutVersion } from './aboutVersion'
 import { groupProviderCatalogRows } from './providerCatalog'
 import { ExecutionBehaviorSettings } from './ExecutionBehaviorSettings'
@@ -77,7 +76,7 @@ const SETTINGS_SECTIONS: Array<{
   tabs: SettingsTab[]
 }> = [
   { id: 'general', icon: 'tune', labelKey: 'settings.tab.general', descriptionKey: 'settings.general.description', tabs: ['general'] },
-  { id: 'execution', icon: 'dns', labelKey: 'settings.group.execution', descriptionKey: 'settings.category.execution', tabs: ['providers', 'behavior', 'tokenOptimization'] },
+  { id: 'execution', icon: 'dns', labelKey: 'settings.group.execution', descriptionKey: 'settings.category.execution', tabs: ['providers', 'behavior'] },
   { id: 'extensions', icon: 'extension', labelKey: 'settings.group.extensions', descriptionKey: 'settings.category.extensions', tabs: ['skills', 'plugins', 'mcp', 'adapters'] },
   { id: 'data', icon: 'database', labelKey: 'settings.group.data', descriptionKey: 'settings.category.data', tabs: ['memory', 'sessionBackup', 'agentMigration'] },
   { id: 'security', icon: 'shield', labelKey: 'settings.group.runtime', descriptionKey: 'settings.category.runtime', tabs: ['permissions', 'computerUse'] },
@@ -94,7 +93,6 @@ const TAB_RENDERERS: Partial<Record<SettingsTab, () => ReactNode>> = {
   plugins: () => <PluginSettings />,
   mcp: () => <McpSettings />,
   behavior: () => <ExecutionBehaviorSettings />,
-  tokenOptimization: () => <TokenOptimization />,
   adapters: () => <AdapterSettings />,
   computerUse: () => <ComputerUseSettings />,
   memory: () => <MemorySettings />,

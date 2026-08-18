@@ -15,6 +15,7 @@ import { readFile, readdir, realpath, stat } from 'node:fs/promises'
 import { basename, extname, isAbsolute, parse, relative, resolve } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
 import { openKnowledgeDb } from './db.ts'
+import { extractWikilinkTargets, knowledgeDocumentNodeId } from './entities.ts'
 import type {
   KnowledgeDocument,
   KnowledgeDocumentIndexMode,
@@ -61,6 +62,7 @@ type SourceRow = {
   path: string
   name: string
   kind: KnowledgeSourceKind
+  index_content: number
   status: KnowledgeSource['status']
   error: string | null
   document_count: number
@@ -93,6 +95,7 @@ type IndexedFile = {
 type ParsedDocument = {
   mode: KnowledgeDocumentIndexMode
   content: string
+  links: string[]
   error: string | null
 }
 
@@ -139,14 +142,16 @@ export class KnowledgeService {
    * @param paths - filesystem paths to register as sources.
    * @param options.waitForIndex - resolve only after indexing finishes.
    * @param options.allowedRoots - when non-empty, each path must resolve inside one of these roots.
+   * @param options.indexContent - when false, index links/title for graph projection but skip full-text content.
    * @returns the registered sources.
    */
   async addSources(
     paths: string[],
-    options: { waitForIndex?: boolean; allowedRoots?: readonly string[] } = {},
+    options: { waitForIndex?: boolean; allowedRoots?: readonly string[]; indexContent?: boolean } = {},
   ): Promise<KnowledgeSource[]> {
     const cleanPaths = [...new Set(paths.map((value) => value.trim()).filter(Boolean))]
     if (cleanPaths.length === 0) throw new Error('rin knowledge: At least one source path is required')
+    const indexContent = options.indexContent !== false ? 1 : 0
 
     const sourceIds: string[] = []
     for (const inputPath of cleanPaths) {
@@ -159,15 +164,16 @@ export class KnowledgeService {
       this.cancelled.delete(id)
       this.db.prepare(`
         INSERT INTO knowledge_sources (
-          id, path, name, kind, status, error, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, 'pending', NULL, ?, ?)
+          id, path, name, kind, index_content, status, error, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 'pending', NULL, ?, ?)
         ON CONFLICT(path) DO UPDATE SET
           name = excluded.name,
           kind = excluded.kind,
+          index_content = excluded.index_content,
           status = 'pending',
           error = NULL,
           updated_at = excluded.updated_at
-      `).run(id, normalizedPath, basename(normalizedPath), kind, now, now)
+      `).run(id, normalizedPath, basename(normalizedPath), kind, indexContent, now, now)
       sourceIds.push(id)
       this.scheduleIndex(id)
     }
@@ -241,7 +247,7 @@ export class KnowledgeService {
           ORDER BY indexed_at DESC, relative_path COLLATE NOCASE
           LIMIT ?
         `).all(limit) as DocumentRow[]
-    return rows.map(mapDocument)
+    return rows.map((row) => ({ ...mapDocument(row), links: this.documentLinks(row.id) }))
   }
 
   /**
@@ -256,7 +262,7 @@ export class KnowledgeService {
     const normalizedQuery = query.trim()
     if (!normalizedQuery) return []
     const limit = clamp(options.limit ?? 30, 1, SEARCH_LIMIT_MAX)
-    const resultMap = new Map<number, KnowledgeSearchResult>()
+    const resultMap = new Map<number, Omit<KnowledgeSearchResult, 'nodeId' | 'links'>>()
 
     this.searchFts('knowledge_fts', buildFtsQuery(normalizedQuery), options.sourceId, limit)
       .forEach((result) => resultMap.set(result.chunkId, result))
@@ -276,6 +282,11 @@ export class KnowledgeService {
     return [...resultMap.values()]
       .sort((a, b) => a.score - b.score)
       .slice(0, limit)
+      .map((result) => ({
+        ...result,
+        nodeId: knowledgeDocumentNodeId(result.documentId),
+        links: this.documentLinks(result.documentId),
+      }))
   }
 
   /** Aggregate counts across all sources. */
@@ -421,6 +432,7 @@ export class KnowledgeService {
     const extension = extname(file.path).toLowerCase()
     const documentId = stableId(`${source.id}\0${file.path}`)
     const indexedAt = new Date().toISOString()
+    const indexMode: KnowledgeDocumentIndexMode = source.indexContent ? parsed.mode : 'metadata'
     const contentHash = parsed.content
       ? createHash('sha256').update(parsed.content).digest('hex')
       : `${fileStat.size}:${fileStat.mtimeMs}`
@@ -438,13 +450,16 @@ export class KnowledgeService {
       file.relativePath,
       title,
       extension,
-      parsed.mode,
+      indexMode,
       fileStat.size,
       fileStat.mtimeMs,
       contentHash,
       indexedAt,
       parsed.error,
     )
+    this.storeDocumentLinks(documentId, parsed.links)
+
+    if (!source.indexContent) return
 
     const chunks = parsed.content
       ? chunkText(parsed.content)
@@ -480,7 +495,7 @@ export class KnowledgeService {
     matchQuery: string,
     sourceId: string | undefined,
     limit: number,
-  ): KnowledgeSearchResult[] {
+  ): Omit<KnowledgeSearchResult, 'nodeId' | 'links'>[] {
     try {
       const sourceClause = sourceId ? `AND f.source_id = ?` : ''
       const sql = `
@@ -509,7 +524,7 @@ export class KnowledgeService {
     }
   }
 
-  private searchLike(query: string, sourceId: string | undefined, limit: number): KnowledgeSearchResult[] {
+  private searchLike(query: string, sourceId: string | undefined, limit: number): Omit<KnowledgeSearchResult, 'nodeId' | 'links'>[] {
     const pattern = `%${query.replaceAll('%', '\\%').replaceAll('_', '\\_')}%`
     const sourceClause = sourceId ? 'AND c.source_id = ?' : ''
     const sql = `
@@ -555,6 +570,26 @@ export class KnowledgeService {
     }
     this.db.prepare('DELETE FROM knowledge_chunks WHERE document_id = ?').run(documentId)
     this.db.prepare('DELETE FROM knowledge_documents WHERE id = ?').run(documentId)
+  }
+
+  /** Replace one document's wikilink targets, preserving first-seen order. */
+  private storeDocumentLinks(documentId: string, links: readonly string[]): void {
+    this.db.prepare('DELETE FROM knowledge_document_links WHERE document_id = ?').run(documentId)
+    const insert = this.db.prepare(`
+      INSERT INTO knowledge_document_links (document_id, target, ordinal)
+      VALUES (?, ?, ?)
+    `)
+    links.forEach((target, ordinal) => insert.run(documentId, target, ordinal))
+  }
+
+  /** Read one document's wikilink targets in first-seen order. */
+  private documentLinks(documentId: string): string[] {
+    const rows = this.db.prepare(`
+      SELECT target FROM knowledge_document_links
+      WHERE document_id = ?
+      ORDER BY ordinal
+    `).all(documentId) as { target: string }[]
+    return rows.map(row => row.target)
   }
 
   private checkpoint(): void {
@@ -626,6 +661,7 @@ async function parseDocument(filePath: string, sizeBytes: number): Promise<Parse
     return {
       mode: 'metadata',
       content: '',
+      links: [],
       error: `Content was not indexed because the file is larger than ${MAX_TEXT_FILE_BYTES / 1024 / 1024} MB`,
     }
   }
@@ -633,6 +669,7 @@ async function parseDocument(filePath: string, sizeBytes: number): Promise<Parse
     return {
       mode: 'metadata',
       content: '',
+      links: [],
       error: 'Binary content is represented by filename and path only',
     }
   }
@@ -643,12 +680,15 @@ async function parseDocument(filePath: string, sizeBytes: number): Promise<Parse
     return {
       mode: 'metadata',
       content: '',
+      links: [],
       error: 'Binary content is represented by filename and path only',
     }
   }
+  const content = fileBuffer.toString('utf8').replace(/\r\n?/g, '\n').trim()
   return {
     mode: 'text',
-    content: fileBuffer.toString('utf8').replace(/\r\n?/g, '\n').trim(),
+    content,
+    links: extractWikilinkTargets(content),
     error: null,
   }
 }
@@ -723,6 +763,7 @@ function mapSource(row: SourceRow): KnowledgeSource {
     name: row.name,
     kind: row.kind,
     status: row.status,
+    indexContent: row.index_content !== 0,
     error: row.error,
     documentCount: row.document_count,
     chunkCount: row.chunk_count,
@@ -733,7 +774,7 @@ function mapSource(row: SourceRow): KnowledgeSource {
   }
 }
 
-function mapDocument(row: DocumentRow): KnowledgeDocument {
+function mapDocument(row: DocumentRow): Omit<KnowledgeDocument, 'links'> {
   return {
     id: row.id,
     sourceId: row.source_id,
@@ -749,7 +790,7 @@ function mapDocument(row: DocumentRow): KnowledgeDocument {
   }
 }
 
-function mapSearchResult(row: Record<string, unknown>): KnowledgeSearchResult {
+function mapSearchResult(row: Record<string, unknown>): Omit<KnowledgeSearchResult, 'nodeId' | 'links'> {
   return {
     chunkId: Number(row.chunk_id),
     sourceId: String(row.source_id),

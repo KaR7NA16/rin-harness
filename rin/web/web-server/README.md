@@ -37,8 +37,8 @@ files; POST is accepted for /api/* write endpoints (JSON body ≤ 1 MiB).
 
 - GET /api/health → {"ok":true,"name":"rin-web","version":"0.1.0","services":{...}},
   where services reports repository, environment, smartPruning, knowledge,
-  sessionSearch, promptMemory, evolution, skillMemory, agents, notes,
-  sandboxes, and tokenOptimization as booleans.
+  knowledgeGraph, sessionSearch, promptMemory, evolution, skillMemory, agents,
+  notes, sandboxes, and tokenOptimization as booleans.
 - GET /api/repository?root=<abs> → the full AssetRepository JSON. root is
   optional when Config.repositoryRoot is set; missing root → 400, read failure
   → 500.
@@ -97,6 +97,15 @@ The vault root is owned by the @rin/notes Config; routes never pass a path.
   stored under `assets/`; returns {"path":string,"url":string}. PDFs are
   served back as `application/pdf` with `Content-Disposition: inline` for the
   web-ui's native preview.
+
+### knowledge-graph
+
+- GET /api/knowledge-graph/graph?sources=notes,knowledge&kinds=note,tag&pathPrefix=&limit=
+  → {"mounted":true,"graph":{nodes,edges,refreshedAt}}. sources/kinds are
+  comma-separated filters; unknown members are dropped. limit caps the node set.
+- GET /api/knowledge-graph/related?node=<id>&depth=<n> →
+  {"mounted":true,"graph":{nodes,edges,refreshedAt}}; node is required, depth
+  defaults to 1.
 
 ### sandboxes
 

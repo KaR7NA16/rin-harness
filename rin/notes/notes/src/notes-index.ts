@@ -14,8 +14,9 @@
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { extractLinks, extractTags, extractTitle, splitFrontmatter } from './parse.ts'
-import type { NoteGraph, NoteGraphEdge, NoteGraphNode, NoteSearchResult, NoteTodo } from './types.ts'
+import { extractInlineFields, extractLinks, extractTags, extractTaskFields, extractTitle, splitFrontmatter } from './parse.ts'
+import { evaluateNoteQuery, evaluateTaskQuery, parseQuery } from './query.ts'
+import type { NoteGraph, NoteGraphEdge, NoteGraphNode, NoteQueryNote, NoteQueryResult, NoteQueryTask, NoteSearchResult, NoteTaskPriority, NoteTodo } from './types.ts'
 
 export const NOTES_INDEX_DIRNAME = '.index'
 export const NOTES_INDEX_FILENAME = 'notes.db'
@@ -99,8 +100,8 @@ export class NotesIndex {
         const insertMeta = db.prepare(`
           INSERT INTO notes_index_meta(
             path, name, folder, title, size_bytes, mtime_ms,
-            tags_json, aliases_json, links_json, frontmatter_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            tags_json, aliases_json, links_json, fields_json, frontmatter_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
         const insertHeading = db.prepare(`
           INSERT INTO note_headings(note_path, line, level, text, slug)
@@ -111,8 +112,8 @@ export class NotesIndex {
           VALUES (?, ?, ?, ?)
         `)
         const insertTask = db.prepare(`
-          INSERT INTO note_tasks(note_path, line, text, done)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO note_tasks(note_path, line, text, done, due, start, scheduled, recurrence, priority)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
         const insertLink = db.prepare(`
           INSERT INTO note_links(source_path, target, alias)
@@ -135,6 +136,7 @@ export class NotesIndex {
             JSON.stringify(note.tags),
             JSON.stringify(note.aliases),
             JSON.stringify(note.links.map(link => ({ target: link.target, alias: link.alias }))),
+            JSON.stringify(note.fields),
             JSON.stringify(frontmatter ?? {}),
           )
           for (const heading of note.headings) {
@@ -144,7 +146,11 @@ export class NotesIndex {
             insertBlock.run(note.path, block.blockId, block.line, block.text)
           }
           for (const todo of note.todos) {
-            insertTask.run(note.path, todo.line, todo.text, todo.done ? 1 : 0)
+            insertTask.run(
+              note.path, todo.line, todo.text, todo.done ? 1 : 0,
+              todo.due ?? null, todo.start ?? null, todo.scheduled ?? null,
+              todo.recurrence ?? null, todo.priority,
+            )
           }
           for (const link of note.links) {
             insertLink.run(note.path, link.target, link.alias ?? null)
@@ -250,18 +256,43 @@ export class NotesIndex {
     const db = this.openDb()
     try {
       const rows = db.prepare(`
-        SELECT t.note_path, m.name, t.line, t.text, t.done
+        SELECT t.note_path, m.name, t.line, t.text, t.done, t.due, t.start, t.scheduled, t.recurrence, t.priority
         FROM note_tasks t
         JOIN notes_index_meta m ON m.path = t.note_path
         ORDER BY t.done ASC, t.note_path ASC, t.line ASC
-      `).all() as Array<{ note_path: string; name: string; line: number; text: string; done: number }>
-      return rows.map(row => ({
-        notePath: row.note_path,
-        noteName: row.name,
-        line: row.line,
-        text: row.text,
-        done: row.done === 1,
-      }))
+      `).all() as TaskRow[]
+      return rows.map(mapTask)
+    } finally {
+      db.close()
+    }
+  }
+
+  /** Execute a live query over indexed notes or tasks. */
+  query(dsl: string): NoteQueryResult {
+    const parsed = parseQuery(dsl)
+    const db = this.openDb()
+    try {
+      if (parsed.mode === 'tasks') {
+        const tasks = db.prepare(`
+          SELECT t.note_path, m.name, m.folder, m.tags_json, t.line, t.text, t.done, t.due, t.start, t.scheduled, t.recurrence, t.priority
+          FROM note_tasks t
+          JOIN notes_index_meta m ON m.path = t.note_path
+          ORDER BY t.note_path ASC, t.line ASC
+        `).all() as TaskRow[]
+        const noteByPath = new Map(tasks.map(row => [row.note_path, {
+          tags: JSON.parse(row.tags_json ?? '[]') as string[],
+          folder: row.folder ?? '',
+        }]))
+        return {
+          kind: 'tasks',
+          tasks: evaluateTaskQuery(parsed, tasks.map(mapTask), notePath => noteByPath.get(notePath)),
+        }
+      }
+      const rows = db.prepare(`
+        SELECT path, name, folder, title, tags_json, fields_json, mtime_ms
+        FROM notes_index_meta
+      `).all() as MetaRow[]
+      return { kind: 'notes', notes: evaluateNoteQuery(parsed, rows.map(mapQueryNote)) }
     } finally {
       db.close()
     }
@@ -340,6 +371,7 @@ export function ensureNotesIndexSchema(db: DatabaseSync): void {
       tags_json TEXT NOT NULL DEFAULT '[]',
       aliases_json TEXT NOT NULL DEFAULT '[]',
       links_json TEXT NOT NULL DEFAULT '[]',
+      fields_json TEXT NOT NULL DEFAULT '[]',
       frontmatter_json TEXT NOT NULL DEFAULT '{}'
     );
 
@@ -365,6 +397,11 @@ export function ensureNotesIndexSchema(db: DatabaseSync): void {
       line INTEGER NOT NULL,
       text TEXT NOT NULL,
       done INTEGER NOT NULL DEFAULT 0,
+      due TEXT,
+      start TEXT,
+      scheduled TEXT,
+      recurrence TEXT,
+      priority TEXT NOT NULL DEFAULT 'medium',
       PRIMARY KEY(note_path, line)
     );
 
@@ -384,12 +421,38 @@ export function ensureNotesIndexSchema(db: DatabaseSync): void {
       content
     );
   `)
+  migrateNotesSchema(db)
+}
+
+/** Add the task-field and inline-field columns to databases created before them. */
+function migrateNotesSchema(db: DatabaseSync): void {
+  const columns = (table: string): Set<string> => {
+    const rows = db.prepare(`SELECT name FROM pragma_table_info(?)`).all(table) as Array<{ name: string }>
+    return new Set(rows.map(row => row.name))
+  }
+  const metaColumns = columns('notes_index_meta')
+  if (!metaColumns.has('fields_json')) {
+    db.exec(`ALTER TABLE notes_index_meta ADD COLUMN fields_json TEXT NOT NULL DEFAULT '[]'`)
+  }
+  const taskColumns = columns('note_tasks')
+  for (const [column, definition] of [
+    ['due', 'TEXT'],
+    ['start', 'TEXT'],
+    ['scheduled', 'TEXT'],
+    ['recurrence', 'TEXT'],
+    ['priority', "TEXT NOT NULL DEFAULT 'medium'"],
+  ] as const) {
+    if (!taskColumns.has(column)) {
+      db.exec(`ALTER TABLE note_tasks ADD COLUMN ${column} ${definition}`)
+    }
+  }
 }
 
 interface CollectedNote extends IndexedNote {
   mtimeMs: number
   frontmatter: Record<string, unknown> | null
   content: string
+  fields: Array<{ key: string; value: string }>
   headings: NoteHeading[]
   blocks: NoteBlock[]
   todos: NoteTodo[]
@@ -427,6 +490,7 @@ function collectOneNote(vaultRoot: string, relPath: string): CollectedNote {
   const tags = extractTags(content)
   const aliases = normalizeAliases(frontmatter?.aliases)
   const links = extractLinks(content)
+  const fields = extractInlineFields(content)
   const headings: NoteHeading[] = []
   const blocks: NoteBlock[] = []
   const todos: NoteTodo[] = []
@@ -446,12 +510,19 @@ function collectOneNote(vaultRoot: string, relPath: string): CollectedNote {
     }
     const todo = TODO_LINE_RE.exec(line)
     if (todo) {
+      const text = (todo[2] ?? '').trim()
+      const taskFields = extractTaskFields(text)
       todos.push({
         notePath: relPath,
         noteName: name,
         line: lineNumber,
-        text: (todo[2] ?? '').trim(),
+        text,
         done: (todo[1] ?? ' ').toLowerCase() === 'x',
+        ...(taskFields.due ? { due: taskFields.due } : {}),
+        ...(taskFields.start ? { start: taskFields.start } : {}),
+        ...(taskFields.scheduled ? { scheduled: taskFields.scheduled } : {}),
+        ...(taskFields.recurrence ? { recurrence: taskFields.recurrence } : {}),
+        priority: taskFields.priority,
       })
     }
   }
@@ -468,6 +539,7 @@ function collectOneNote(vaultRoot: string, relPath: string): CollectedNote {
     links: links.map(link => ({ target: link.target, ...(link.alias ? { alias: link.alias } : {}) })),
     frontmatter,
     content,
+    fields,
     headings,
     blocks,
     todos,
@@ -575,4 +647,56 @@ function resolveIndexedLink(
 function targetFolder(path: string): string {
   const index = path.lastIndexOf('/')
   return index < 0 ? '' : path.slice(0, index)
+}
+
+type TaskRow = {
+  note_path: string
+  name: string
+  folder?: string
+  tags_json?: string
+  line: number
+  text: string
+  done: number
+  due: string | null
+  start: string | null
+  scheduled: string | null
+  recurrence: string | null
+  priority: NoteTaskPriority
+}
+
+type MetaRow = {
+  path: string
+  name: string
+  folder: string
+  title: string
+  tags_json: string
+  fields_json: string
+  mtime_ms: number
+}
+
+function mapTask(row: TaskRow): NoteQueryTask {
+  return {
+    notePath: row.note_path,
+    noteName: row.name,
+    line: row.line,
+    text: row.text,
+    done: row.done === 1,
+    ...(row.due ? { due: row.due } : {}),
+    ...(row.start ? { start: row.start } : {}),
+    ...(row.scheduled ? { scheduled: row.scheduled } : {}),
+    ...(row.recurrence ? { recurrence: row.recurrence } : {}),
+    priority: row.priority,
+  }
+}
+
+function mapQueryNote(row: MetaRow): NoteQueryNote {
+  return {
+    path: row.path,
+    name: row.name,
+    folder: row.folder,
+    title: row.title,
+    tags: JSON.parse(row.tags_json) as string[],
+    fields: JSON.parse(row.fields_json) as Array<{ key: string; value: string }>,
+    modifiedAt: new Date(row.mtime_ms).toISOString(),
+  }
 }

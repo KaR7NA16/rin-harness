@@ -34,6 +34,7 @@
       "@rin/monitor": ["./rin/core/monitor/src"],
       "@rin/doctor": ["./rin/core/doctor/src"],
       "@rin/knowledge": ["./rin/memory/knowledge/src"],
+      "@rin/knowledge-graph": ["./rin/memory/knowledge-graph/src"],
       "@rin/prompt-memory": ["./rin/memory/prompt-memory/src"],
       "@rin/skill-memory": ["./rin/memory/skill-memory/src"],
       "@rin/session-search": ["./rin/memory/session-search/src"],

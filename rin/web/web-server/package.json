@@ -45,6 +45,7 @@
     "@rin/evolution": "workspace:^",
     "@rin/filesystem": "workspace:^",
     "@rin/knowledge": "workspace:^",
+    "@rin/knowledge-graph": "workspace:^",
     "@rin/mcp": "workspace:^",
     "@rin/monitor": "workspace:^",
     "@rin/notes": "workspace:^",

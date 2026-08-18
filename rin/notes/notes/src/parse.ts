@@ -11,7 +11,7 @@
  */
 
 import { parse as parseYaml } from 'yaml'
-import type { NoteLink } from './types.ts'
+import type { NoteLink, NoteTaskPriority } from './types.ts'
 
 /** Matches `[[target]]` and `[[target|alias]]`. */
 export const WIKILINK_RE = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g
@@ -171,4 +171,89 @@ export function extractLinks(content: string): NoteLink[] {
     links.push({ raw: match[0], target, ...(alias ? { alias } : {}) })
   }
   return links
+}
+
+/**
+ * Extract Dataview-style inline fields (`key:: value`) from note content.
+ * One field per line: the first `key::` on a line takes the rest of the line
+ * as its value. Fields inside frontmatter are excluded by splitting first.
+ *
+ * @param content - the raw markdown note text.
+ * @returns the fields in document order, deduplicated by key (first wins).
+ */
+export function extractInlineFields(content: string): Array<{ key: string; value: string }> {
+  const { body } = splitFrontmatter(content)
+  const fields: Array<{ key: string; value: string }> = []
+  const seen = new Set<string>()
+  for (const line of body.split('\n')) {
+    const match = /(?:^|\s)([A-Za-z][A-Za-z0-9_-]*)::\s*(.+)$/.exec(line)
+    if (!match || !match[1] || !match[2]) continue
+    const key = match[1]
+    if (seen.has(key)) continue
+    seen.add(key)
+    fields.push({ key, value: match[2].trim() })
+  }
+  return fields
+}
+
+/** Task scheduling fields parsed from Obsidian Tasks emoji syntax. */
+export interface NoteTaskFields {
+  /** Due date from `📅 YYYY-MM-DD`. */
+  due?: string
+  /** Start date from `🛫 YYYY-MM-DD`. */
+  start?: string
+  /** Scheduled date from `⏳ YYYY-MM-DD`. */
+  scheduled?: string
+  /** Recurrence rule from `🔁 every ...`. */
+  recurrence?: string
+  priority: NoteTaskPriority
+}
+
+const TASK_DATE_RE = /(\d{4}-\d{2}-\d{2})/
+const TASK_DUE_RE = /📅\s*(\d{4}-\d{2}-\d{2})/
+const TASK_START_RE = /🛫\s*(\d{4}-\d{2}-\d{2})/
+const TASK_SCHEDULED_RE = /⏳\s*(\d{4}-\d{2}-\d{2})/
+const TASK_RECURRENCE_RE = /🔁\s*(.+)/
+const TASK_PRIORITY_RE = /(⏫|🔺|🔼|🔽|⏬)/
+
+/** Priority emoji → level mapping (Obsidian Tasks: 🔼 = Medium, 🔽 = Low). */
+const PRIORITY_BY_EMOJI: ReadonlyArray<readonly [string, NoteTaskPriority]> = [
+  ['⏫', 'highest'],
+  ['🔺', 'high'],
+  ['🔼', 'medium'],
+  ['🔽', 'low'],
+  ['⏬', 'lowest'],
+]
+
+/**
+ * Extract Obsidian Tasks scheduling fields from one task line.
+ *
+ * @param text - the task text after the `- [ ]` checkbox marker.
+ * @returns the parsed due/start/scheduled/recurrence dates and priority.
+ */
+export function extractTaskFields(text: string): NoteTaskFields {
+  const fields: NoteTaskFields = { priority: 'medium' }
+  const due = TASK_DUE_RE.exec(text)
+  if (due?.[1]) fields.due = due[1]
+  const start = TASK_START_RE.exec(text)
+  if (start?.[1]) fields.start = start[1]
+  const scheduled = TASK_SCHEDULED_RE.exec(text)
+  if (scheduled?.[1]) fields.scheduled = scheduled[1]
+  const recurrence = TASK_RECURRENCE_RE.exec(text)
+  if (recurrence?.[1]) {
+    const value = recurrence[1].trim().replace(/\s*[⏫🔺🔼🔽⏬]\s*$/u, '').trim()
+    if (value) fields.recurrence = value
+  }
+  const priority = TASK_PRIORITY_RE.exec(text)
+  if (priority?.[1]) {
+    const level = PRIORITY_BY_EMOJI.find(([emoji]) => emoji === priority[1])?.[1]
+    if (level) fields.priority = level
+  }
+  return fields
+}
+
+/** Normalize a date-like value into an ISO date string, or undefined. */
+export function normalizeDateValue(value: string): string | undefined {
+  const match = TASK_DATE_RE.exec(value.trim())
+  return match?.[1]
 }

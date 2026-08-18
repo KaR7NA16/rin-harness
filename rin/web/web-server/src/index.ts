@@ -12,6 +12,7 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { Config as RinWebConfig, SmartPruningRef, TokenOptimizationRef } from './types.ts'
+import type { KnowledgeGraphService } from '@rin/knowledge-graph'
 import { errorMessage } from './http.ts'
 import { createWebServer } from './server.ts'
 import type { AgentMigrationService } from '@rin/agent-migration'
@@ -102,6 +103,7 @@ export class WebServerService extends Service {
       sessionBackup: () => ctx.get('sessionBackup') as unknown as SessionBackupService | undefined,
       smartPruning: () => ctx.get('smartPruning'),
       knowledge: () => ctx.get('knowledge'),
+      knowledgeGraph: () => ctx.get('knowledgeGraph') as KnowledgeGraphService | undefined,
       sessionSearch: () => ctx.get('sessionSearch'),
       promptMemory: () => ctx.get('promptMemory'),
       evolution: () => ctx.get('evolution'),

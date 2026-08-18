@@ -23,6 +23,7 @@ import type {
   NoteDocument,
   NoteGraph,
   NoteMeta,
+  NoteQueryResult,
   NoteSearchResult,
   NoteSnapshotMeta,
   NoteTemplate,
@@ -481,6 +482,16 @@ export class NotesVault {
   async todos(): Promise<NoteTodo[]> {
     this.index.refresh()
     return this.index.todos()
+  }
+
+  /**
+   * Execute a live query (Dataview/Tasks subset) over indexed notes or tasks.
+   * @param dsl - the query text, e.g. `FROM #project WHERE due < date(today) SORT due ASC`.
+   * @returns the matched notes or tasks.
+   */
+  async query(dsl: string): Promise<NoteQueryResult> {
+    this.index.refresh()
+    return this.index.query(dsl)
   }
 
   /**
