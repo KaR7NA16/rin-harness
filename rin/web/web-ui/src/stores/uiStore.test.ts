@@ -6,7 +6,6 @@ describe('uiStore settings routes', () => {
   beforeEach(() => {
     useUIStore.setState({
       settingsOpen: false,
-      settingsPanelView: 'settings',
       pendingSettingsTab: null,
       activeSettingsTab: 'overview',
     })
@@ -17,20 +16,18 @@ describe('uiStore settings routes', () => {
 
     expect(useUIStore.getState()).toMatchObject({
       settingsOpen: true,
-      settingsPanelView: 'settings',
       pendingSettingsTab: 'memory',
       activeSettingsTab: 'memory',
     })
   })
 
-  it('keeps workspace panels outside the settings route', () => {
-    useUIStore.getState().openSettings('codeGraph')
+  it('opens the settings home from the settings shell view', () => {
+    useUIStore.getState().openSettings('settings')
 
     expect(useUIStore.getState()).toMatchObject({
-      settingsOpen: false,
-      settingsPanelView: 'settings',
-      pendingSettingsTab: null,
-      workspaceView: 'codeGraph',
+      settingsOpen: true,
+      pendingSettingsTab: 'overview',
+      activeSettingsTab: 'overview',
     })
   })
 })

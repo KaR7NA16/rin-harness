@@ -178,7 +178,7 @@ export async function handle(
   if (pathname === '/api/computer-use/status') return computerUseStatusRoute(services)
   if (pathname === '/api/computer-use/apps') return computerUseAppsRoute(services)
   if (pathname === '/api/computer-use/authorized-apps') return computerUseAuthorizedAppsRoute(method, body, services)
-  if (pathname === '/api/computer-use/setup') return computerUseSetupRoute(method)
+  if (pathname === '/api/computer-use/setup') return computerUseSetupRoute(method, services)
   if (pathname === '/api/agent-migration/scan' || pathname === '/api/agent-migration') return agentMigrationRoute(services)
   if (pathname === '/api/agent-migration/migrate') return agentMigrationMigrateRoute(method, body, services)
   const migrationItem = /^\/api\/agent-migration\/items\/([^/]+)$/.exec(pathname)
@@ -2044,7 +2044,18 @@ async function computerUseStatusRoute(services: RinServiceRefs): Promise<JsonRes
     })
   }
   try {
-    return json(200, await computerUse.getStatus())
+    // Map the service RuntimeStatus onto the web UI contract: the panel reads
+    // `permissions.*` while the runtime module reports the same booleans under
+    // `preflight.*` (plus a status/detail the UI does not render).
+    const rt = await computerUse.getRuntimeStatus()
+    return json(200, {
+      platform: rt.platform,
+      supported: rt.supported,
+      python: { installed: rt.python.installed, version: rt.python.version, path: rt.python.path },
+      venv: { created: rt.venv.created, path: rt.venv.path },
+      dependencies: { installed: rt.dependencies.installed, requirementsFound: rt.dependencies.requirementsFound },
+      permissions: { accessibility: rt.preflight.accessibility, screenRecording: rt.preflight.screenRecording },
+    })
   } catch (err) {
     return error(500, errorMessage(err))
   }
@@ -2090,12 +2101,20 @@ async function computerUseAuthorizedAppsRoute(method: string, body: unknown, ser
   }
 }
 
-async function computerUseSetupRoute(method: string): Promise<JsonResponse> {
+async function computerUseSetupRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
   if (method !== 'POST') return error(405, 'method not allowed')
-  return json(200, {
-    success: false,
-    steps: [{ name: 'python-environment', ok: false, message: 'computer-use runtime setup is not available on this host yet' }],
-  })
+  const computerUse = services.computerUse()
+  if (computerUse === undefined) {
+    return json(200, {
+      success: false,
+      steps: [{ name: 'python-environment', ok: false, message: 'computer-use runtime setup is not available on this host yet' }],
+    })
+  }
+  try {
+    return json(200, await computerUse.installRuntime())
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
 }
 
 async function agentMigrationRoute(services: RinServiceRefs): Promise<JsonResponse> {
@@ -2548,14 +2567,28 @@ async function sessionsItemRoute(
   if (action === 'messages') {
     if (method !== 'GET') return error(405, 'method not allowed')
     try {
-      let session = store?.get(id)
-      if (session === undefined && persistence !== undefined) {
-        await persistence.prepare(id)
-        session = store?.get(id)
+      const live = store?.get(id)
+      if (live !== undefined) return json(200, { messages: mapSessionEvents(live), hasMore: false })
+      // Not live: read the durable log read-only. dsh's prepare() builds the
+      // session WITHOUT entering it into the live store, so the previous
+      // prepare-then-get flow always 404'd (and an unbounded prepare could
+      // hang the request forever when the coordinator stalled). load()
+      // returns the header + balanced events directly and never publishes.
+      if (persistence !== undefined && typeof persistence.load === 'function') {
+        const snapshot = await withRestoreTimeout(persistence.load(id), id)
+        return json(200, { messages: mapSessionEvents(snapshot), hasMore: false })
       }
-      if (session === undefined) return error(404, 'session not found')
-      return json(200, { messages: mapSessionEvents(session), hasMore: false })
+      // Fallback for persistence without load(): bring the session live,
+      // bounded by the restore timeout so a stalled coordinator cannot hang
+      // the request forever.
+      if (persistence !== undefined) {
+        await withRestoreTimeout(persistence.prepare(id), id)
+        const restored = store?.get(id)
+        if (restored !== undefined) return json(200, { messages: mapSessionEvents(restored), hasMore: false })
+      }
+      return error(404, 'session not found')
     } catch (err) {
+      if (err instanceof SessionRestoreTimeoutError) return error(504, 'session restore timed out')
       return error(404, errorMessage(err))
     }
   }
@@ -2638,6 +2671,42 @@ function sessionListItemDto(session: { id: string; events: readonly { type: stri
   }
 }
 
+/** Upper bound for one persisted-session restore before the request fails. */
+const SESSION_PREPARE_TIMEOUT_MS = 15_000
+
+/** Thrown when the dsh persistence coordinator never resolves a restore. */
+class SessionRestoreTimeoutError extends Error {
+  constructor() {
+    super(`session restore timed out after ${SESSION_PREPARE_TIMEOUT_MS}ms`)
+    this.name = 'SessionRestoreTimeoutError'
+  }
+}
+
+/** Run one persistence operation with a hard timeout.
+
+    The dsh persistence coordinator can stall indefinitely when restoring a
+    session; without this bound the HTTP request hangs forever and the UI
+    spinner never resolves. */
+function withRestoreTimeout<T>(
+  op: Promise<T>,
+  id: string,
+): Promise<T> {
+  void id
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new SessionRestoreTimeoutError()), SESSION_PREPARE_TIMEOUT_MS)
+    op.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (err: unknown) => {
+        clearTimeout(timer)
+        reject(err)
+      },
+    )
+  })
+}
+
 /** Ensure a persisted session is live, returning its store entry or undefined. */
 async function ensureLiveSession(id: string, services: RinServiceRefs): Promise<ReturnType<RinServiceRefs['sessions']> extends undefined ? never : { id: string; events: readonly { type: string; seq: number; time: number; data: unknown }[]; header?: { cwd?: string } } | undefined> {
   const store = services.sessions()
@@ -2645,7 +2714,7 @@ async function ensureLiveSession(id: string, services: RinServiceRefs): Promise<
   let session = store?.get(id)
   if (session === undefined && persistence !== undefined) {
     try {
-      await persistence.prepare(id)
+      await withRestoreTimeout(persistence.prepare(id), id)
       session = store?.get(id)
     } catch {
       // Persisted session does not exist — leave undefined for the 404 path.

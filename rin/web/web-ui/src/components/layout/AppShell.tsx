@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { IconRail } from './IconRail'
 import { Sidebar } from './Sidebar'
 import { ContentRouter } from './ContentRouter'
 import { ToastContainer } from '../shared/Toast'
@@ -154,9 +153,9 @@ export function AppShell() {
           <TabBar />
           <ContentRouter />
           <StatusBar />
+          {/* 全屏设置 sheet：覆盖内容区（TabBar / 内容 / StatusBar），左侧 Sidebar 保持可见可点 */}
+          <SettingsPanel visible={settingsOpen} />
         </main>
-        <IconRail />
-        <SettingsPanel visible={settingsOpen} reserveRightRail />
         <ToastContainer />
       </div>
     </div>

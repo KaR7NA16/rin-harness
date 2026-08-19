@@ -18,8 +18,6 @@ export function useCreateAndOpenSession() {
 
       useTabStore.getState().openTab(newSessionId, getDefaultSessionTitle(t), 'session', createdSession?.projectPath)
       void useChatStore.getState().ensureSessionReady(newSessionId, createdSession?.projectPath)
-      useUIStore.getState().setActiveView('code')
-      useUIStore.getState().setRailSettingsView(null)
       return true
     } catch (error) {
       useUIStore.getState().addToast({

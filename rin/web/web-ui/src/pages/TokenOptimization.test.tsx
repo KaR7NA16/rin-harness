@@ -393,7 +393,8 @@ describe('TokenOptimization', () => {
     render(<TokenOptimization />)
 
     const overview = await screen.findByTestId('savings-overview')
-    expect(overview).toHaveTextContent('18–27%')
+    expect(overview).toHaveTextContent('18%')
+    expect(overview).toHaveTextContent('27%')
     expect(overview).not.toHaveTextContent('80%')
     expect(screen.getByTestId('rtk-toolbar')).toHaveTextContent('工具输出 预计18–27%')
   })
@@ -410,7 +411,8 @@ describe('TokenOptimization', () => {
     render(<TokenOptimization />)
 
     const overview = await screen.findByTestId('savings-overview')
-    expect(overview).toHaveTextContent('18–27%')
+    expect(overview).toHaveTextContent('18%')
+    expect(overview).toHaveTextContent('27%')
     expect(screen.getByTestId('rtk-toolbar')).toHaveTextContent('工具输出 预计18–27%')
   })
 
@@ -425,7 +427,7 @@ describe('TokenOptimization', () => {
     expect(await screen.findByTestId('codegraph-toolbar')).toHaveTextContent('代码上下文 预计23–64%')
   })
 
-  it('aggregates enabled full-cycle estimates and renders animated rings', async () => {
+  it('aggregates enabled full-cycle estimates and renders the compact range summary', async () => {
     vi.mocked(tokenOptimizationApi.liteStatus).mockResolvedValue({
       enabled: true,
       mode: 'deterministic',
@@ -465,12 +467,13 @@ describe('TokenOptimization', () => {
     const { container } = render(<TokenOptimization />)
 
     const overview = await screen.findByTestId('savings-overview')
-    expect(overview).toHaveTextContent('65–96%')
+    expect(overview).toHaveTextContent('65%')
+    expect(overview).toHaveTextContent('96%')
     expect(overview).toHaveTextContent('当前已启用方案递减叠加，高区间按重叠折算，上限为 96%')
     expect(overview).toHaveTextContent('6/6')
     expect(screen.getByLabelText('最低预估 65%')).toBeInTheDocument()
     expect(screen.getByLabelText('最高预估 96%')).toBeInTheDocument()
-    expect(container.querySelectorAll('.token-savings-ring')).toHaveLength(2)
+    expect(container.querySelectorAll('.token-savings-ring')).toHaveLength(0)
   })
 
   it('shows an upper estimate above 92% for Lite, RTK, and Code Graph together', async () => {
@@ -490,7 +493,8 @@ describe('TokenOptimization', () => {
     render(<TokenOptimization />)
 
     const overview = await screen.findByTestId('savings-overview')
-    expect(overview).toHaveTextContent('43–93%')
+    expect(overview).toHaveTextContent('43%')
+    expect(overview).toHaveTextContent('93%')
     expect(overview).toHaveTextContent('3/6')
     expect(screen.getByLabelText('最低预估 43%')).toBeInTheDocument()
     expect(screen.getByLabelText('最高预估 93%')).toBeInTheDocument()
@@ -518,7 +522,8 @@ describe('TokenOptimization', () => {
     render(<TokenOptimization />)
 
     const overview = await screen.findByTestId('savings-overview')
-    expect(overview).toHaveTextContent('49–93%')
+    expect(overview).toHaveTextContent('49%')
+    expect(overview).toHaveTextContent('93%')
     expect(overview).toHaveTextContent('3/6')
     expect(screen.getByLabelText('最高预估 93%')).toBeInTheDocument()
   })
@@ -548,7 +553,8 @@ describe('TokenOptimization', () => {
     render(<TokenOptimization />)
 
     const overview = await screen.findByTestId('savings-overview')
-    expect(overview).toHaveTextContent('57–94%')
+    expect(overview).toHaveTextContent('57%')
+    expect(overview).toHaveTextContent('94%')
     expect(overview).toHaveTextContent('4/6')
     expect(screen.getByLabelText('最低预估 57%')).toBeInTheDocument()
     expect(screen.getByLabelText('最高预估 94%')).toBeInTheDocument()
@@ -579,7 +585,8 @@ describe('TokenOptimization', () => {
     render(<TokenOptimization />)
 
     const overview = await screen.findByTestId('savings-overview')
-    expect(overview).toHaveTextContent('57–95%')
+    expect(overview).toHaveTextContent('57%')
+    expect(overview).toHaveTextContent('95%')
     expect(overview).toHaveTextContent('5/6')
     expect(screen.getByLabelText('最低预估 57%')).toBeInTheDocument()
     expect(screen.getByLabelText('最高预估 95%')).toBeInTheDocument()
@@ -594,7 +601,8 @@ describe('TokenOptimization', () => {
     render(<TokenOptimization />)
 
     const overview = await screen.findByTestId('savings-overview')
-    expect(overview).toHaveTextContent('0–22%')
+    expect(overview).toHaveTextContent('0%')
+    expect(overview).toHaveTextContent('22%')
     expect(overview).toHaveTextContent('1/6')
     expect(screen.getByLabelText('最低预估 0%')).toBeInTheDocument()
     expect(screen.getByLabelText('最高预估 22%')).toBeInTheDocument()
@@ -614,13 +622,14 @@ describe('TokenOptimization', () => {
     render(<TokenOptimization />)
 
     const overview = await screen.findByTestId('savings-overview')
-    expect(overview).toHaveTextContent('14–43%')
+    expect(overview).toHaveTextContent('14%')
+    expect(overview).toHaveTextContent('43%')
     expect(screen.getByLabelText('最低预估 14%')).toBeInTheDocument()
     expect(screen.getByLabelText('最高预估 43%')).toBeInTheDocument()
     expect(overview).toHaveTextContent('2/6')
   })
 
-  it('keeps the Caveman row and full-cycle rings on the same official range', async () => {
+  it('keeps the Caveman row and overview on the same official range', async () => {
     vi.mocked(tokenOptimizationApi.cavemanStatus).mockResolvedValue({
       enabled: true,
       mode: 'full',
@@ -629,7 +638,8 @@ describe('TokenOptimization', () => {
     render(<TokenOptimization />)
 
     const overview = await screen.findByTestId('savings-overview')
-    expect(overview).toHaveTextContent('14–21%')
+    expect(overview).toHaveTextContent('14%')
+    expect(overview).toHaveTextContent('21%')
     expect(screen.getByLabelText('最低预估 14%')).toBeInTheDocument()
     expect(screen.getByLabelText('最高预估 21%')).toBeInTheDocument()
     expect(screen.getByTestId('caveman-toolbar')).toHaveTextContent('响应 预计14–21%')

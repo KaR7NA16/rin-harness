@@ -298,19 +298,20 @@
 
   /* Layout dimensions */
   --sidebar-width: 260px;
-  --sidebar-rail-width: 72px;
-  --titlebar-height: 40px;
-  --statusbar-height: 36px;
+  --titlebar-height: 48px;
+  --statusbar-height: 28px;
   --motion-sidebar-duration: 240ms;
   --motion-sidebar-easing: cubic-bezier(0.16, 1, 0.3, 1);
   --motion-route-duration: 160ms;
   --motion-route-easing: cubic-bezier(0.16, 1, 0.3, 1);
   --motion-panel-duration: 180ms;
+  --motion-sheet-duration: 220ms;
 
   /* Surface aliases */
   --color-surface-sidebar: #fafafa;
   --color-surface-hover: rgba(0, 0, 0, 0.05);
   --color-surface-selected: rgba(0, 0, 0, 0.06);
+  --color-surface-search-bg: rgba(0, 0, 0, 0.05);
 
   /* Border aliases */
   --color-border: rgba(0, 0, 0, 0.22);
@@ -493,6 +494,7 @@
   --color-surface-sidebar: #15181c;
   --color-surface-hover: rgba(244, 244, 245, 0.06);
   --color-surface-selected: rgba(244, 244, 245, 0.10);
+  --color-surface-search-bg: rgba(244, 244, 245, 0.07);
 
   /* Borders */
   --color-border: rgba(244, 244, 245, 0.16);
@@ -811,49 +813,6 @@ h6 { font-size: 12px; line-height: 1.4; }
 
 /* ─── Layout primitives ────────────────────────────────────────── */
 
-.icon-rail-glass {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: saturate(1.2) blur(18px);
-  -webkit-backdrop-filter: saturate(1.2) blur(18px);
-  box-shadow: inset 1px 0 0 var(--color-border-separator);
-}
-
-html[data-runtime="tauri"] .icon-rail-glass {
-  background: rgba(255, 255, 255, 0.48);
-  backdrop-filter: saturate(1.4) blur(22px);
-  -webkit-backdrop-filter: saturate(1.4) blur(22px);
-}
-
-[data-theme="dark"] .icon-rail-glass {
-  background: rgba(15, 17, 20, 0.72);
-  backdrop-filter: saturate(1.15) blur(16px);
-  -webkit-backdrop-filter: saturate(1.15) blur(16px);
-}
-
-html[data-runtime="tauri"][data-theme="dark"] .icon-rail-glass {
-  background: rgba(16, 18, 21, 0.52);
-  backdrop-filter: saturate(1.28) blur(22px);
-  -webkit-backdrop-filter: saturate(1.28) blur(22px);
-}
-
-html[data-runtime="tauri"][data-webview="webkit2gtk"] .icon-rail-glass {
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: saturate(1.15) blur(8px);
-  -webkit-backdrop-filter: saturate(1.15) blur(8px);
-}
-
-html[data-runtime="tauri"][data-webview="webkit2gtk"][data-theme="dark"] .icon-rail-glass {
-  background: rgba(16, 18, 21, 0.86);
-  backdrop-filter: saturate(1.1) blur(8px);
-  -webkit-backdrop-filter: saturate(1.1) blur(8px);
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .icon-rail-glass {
-    background: var(--color-surface-container-lowest);
-  }
-}
-
 /* Tauri drag region */
 [data-tauri-drag-region] {
   -webkit-app-region: drag;
@@ -884,17 +843,19 @@ button, input, textarea, select, a, [role="button"] {
     transform var(--motion-route-duration) var(--motion-route-easing);
 }
 
-.settings-panel-overlay {
-  animation: fade-in 120ms var(--motion-route-easing) both;
-}
-
-.settings-panel-card {
-  transform-origin: 50% 48%;
-  animation: settings-panel-in var(--motion-panel-duration) var(--motion-route-easing) both;
+/* Full-screen settings sheet — macOS System Settings style: slides up
+   over the content area with a gentle scale-in, sidebar stays interactive. */
+.settings-panel-sheet {
+  animation: settings-sheet-in var(--motion-sheet-duration) var(--motion-route-easing) both;
 }
 
 .settings-panel-content {
   animation: content-route-in 140ms var(--motion-route-easing) both;
+}
+
+@keyframes settings-sheet-in {
+  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.996); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
 .settings-shell-header-title {
@@ -902,14 +863,6 @@ button, input, textarea, select, a, [role="button"] {
   min-width: 0;
   align-items: baseline;
   gap: 10px;
-}
-
-.settings-shell-eyebrow {
-  color: var(--color-text-tertiary);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .settings-shell-context {
@@ -1041,19 +994,38 @@ button, input, textarea, select, a, [role="button"] {
   color: var(--color-text-tertiary);
 }
 
+.settings-navigation-group-label {
+  margin: 0;
+  padding: 12px 10px 4px;
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
 .settings-navigation-subitems,
 .settings-navigation-results {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin: 3px 0 5px 12px;
-  border-left: 1px solid var(--color-border-separator);
-  padding-left: 12px;
+  margin: 0;
+  padding: 0;
 }
 
 .settings-navigation-item {
   min-height: 30px;
+  gap: 8px;
   padding: 0 10px;
+}
+
+.settings-navigation-item-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+}
+
+.settings-navigation-item.is-active .settings-navigation-item-icon {
+  color: var(--color-text-primary);
 }
 
 .settings-navigation-item.is-active {
@@ -1126,15 +1098,6 @@ button, input, textarea, select, a, [role="button"] {
   gap: 18px;
   border-bottom: 1px solid var(--color-border-separator);
   padding-bottom: 22px;
-}
-
-.settings-overview-eyebrow {
-  margin: 0 0 9px;
-  color: var(--color-brand);
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
 }
 
 .settings-overview-header h1 {
@@ -1497,11 +1460,6 @@ button, input, textarea, select, a, [role="button"] {
 }
 
 @media (max-width: 720px) {
-  .settings-panel-card {
-    max-width: calc(100vw - 32px);
-    max-height: calc(100vh - 32px);
-  }
-
   .settings-main-layout {
     flex-direction: column;
   }
@@ -1623,10 +1581,6 @@ button, input, textarea, select, a, [role="button"] {
     gap: 7px;
   }
 
-  .settings-shell-eyebrow {
-    font-size: 9px;
-  }
-
   .settings-shell-context {
     font-size: 12px;
   }
@@ -1663,8 +1617,7 @@ button, input, textarea, select, a, [role="button"] {
   }
 
   .content-route-panel--active,
-  .settings-panel-overlay,
-  .settings-panel-card,
+  .settings-panel-sheet,
   .settings-panel-content {
     animation: none !important;
   }
@@ -1883,10 +1836,6 @@ button, input, textarea, select, a, [role="button"] {
   from { opacity: 0; transform: translate3d(0, 5px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
-@keyframes settings-panel-in {
-  from { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.985); }
-  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-}
 @keyframes modal-in {
   from { opacity: 0; transform: scale(0.96) translateY(8px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
@@ -2013,25 +1962,4 @@ button, input, textarea, select, a, [role="button"] {
 
 [data-theme="dark"] .message-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.28);
-}
-
-.token-savings-ring {
-  stroke-dasharray: var(--ring-circumference);
-  stroke-dashoffset: var(--ring-offset);
-  animation: token-savings-ring-fill 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes token-savings-ring-fill {
-  from {
-    stroke-dashoffset: var(--ring-circumference);
-  }
-  to {
-    stroke-dashoffset: var(--ring-offset);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .token-savings-ring {
-    animation: none;
-  }
 }

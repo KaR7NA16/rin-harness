@@ -51,8 +51,13 @@ export type KnowledgeStats = {
   indexingCount: number
 }
 
+/** GET responses from the knowledge routes arrive in a { mounted, ... } envelope. */
+type KnowledgeEnvelope<T> = { mounted: boolean } & T
+
 export const knowledgeApi = {
-  sources: () => api.get<KnowledgeSource[]>('/api/knowledge/sources'),
+  sources: () =>
+    api.get<KnowledgeEnvelope<{ sources: KnowledgeSource[] }>>('/api/knowledge/sources')
+      .then((body) => body.mounted ? body.sources : []),
 
   addSources: (paths: string[]) =>
     api.post<KnowledgeSource[]>('/api/knowledge/sources', { paths }),
@@ -66,13 +71,15 @@ export const knowledgeApi = {
   documents: (sourceId?: string, limit = 500) => {
     const query = new URLSearchParams({ limit: String(limit) })
     if (sourceId) query.set('sourceId', sourceId)
-    return api.get<KnowledgeDocument[]>(`/api/knowledge/documents?${query.toString()}`)
+    return api.get<KnowledgeEnvelope<{ documents: KnowledgeDocument[] }>>(`/api/knowledge/documents?${query.toString()}`)
+      .then((body) => body.mounted ? body.documents : [])
   },
 
   search: (queryText: string, sourceId?: string, limit = 30) => {
-    const query = new URLSearchParams({ q: queryText, limit: String(limit) })
+    const query = new URLSearchParams({ query: queryText, limit: String(limit) })
     if (sourceId) query.set('sourceId', sourceId)
-    return api.get<KnowledgeSearchResult[]>(`/api/knowledge/search?${query.toString()}`)
+    return api.get<KnowledgeEnvelope<{ results: KnowledgeSearchResult[] }>>(`/api/knowledge/search?${query.toString()}`)
+      .then((body) => body.mounted ? body.results : [])
   },
 
   stats: () => api.get<KnowledgeStats>('/api/knowledge/stats'),

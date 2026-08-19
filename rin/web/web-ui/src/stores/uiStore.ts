@@ -32,9 +32,7 @@ export type SettingsTab =
   | 'permissions'
   | 'general'
   | 'adapters'
-  | 'terminal'
   | 'mcp'
-  | 'agents'
   | 'memory'
   | 'skills'
   | 'plugins'
@@ -43,14 +41,6 @@ export type SettingsTab =
   | 'agentMigration'
   | 'about'
   | 'behavior'
-
-export type SettingsPanelView =
-  | SettingsTab
-  | 'settings'
-  | 'scheduled'
-  | 'notes'
-  | 'codeGraph'
-  | 'agentMigration'
 
 export type WorkspaceView =
   | 'notes'
@@ -63,9 +53,6 @@ export type WorkspaceView =
   | 'sandbox'
   | 'repository'
   | 'agents'
-  | 'monitor'
-
-type ActiveView = 'code' | 'scheduled' | 'terminal' | 'history' | 'settings'
 
 export type SidebarGrouping = 'project' | 'time'
 
@@ -79,15 +66,10 @@ function getStoredSidebarGrouping(): SidebarGrouping {
 type UIStore = {
   theme: ThemeMode
   sidebarOpen: boolean
-  activeView: ActiveView
   pendingSettingsTab: SettingsTab | null
   activeSettingsTab: SettingsTab
   settingsOpen: boolean
-  settingsPanelView: SettingsPanelView
   workspaceView: WorkspaceView | null
-  /** Which settings page is shown directly in the content area via the icon rail.
-   * Deprecated: rail entries now open the shared floating settings panel. */
-  railSettingsView: SettingsTab | null
   activeModal: string | null
   toasts: Toast[]
   sidebarGrouping: SidebarGrouping
@@ -98,14 +80,12 @@ type UIStore = {
   toggleTheme: () => void
   toggleSidebar: () => void
   setSidebarOpen: (open: boolean) => void
-  setActiveView: (view: ActiveView) => void
   setPendingSettingsTab: (tab: SettingsTab | null) => void
   setActiveSettingsTab: (tab: SettingsTab) => void
-  openSettings: (view?: SettingsPanelView) => void
+  openSettings: (view?: SettingsTab | 'settings') => void
   openWorkspaceView: (view: WorkspaceView) => void
   closeWorkspaceView: () => void
   closeSettings: () => void
-  setRailSettingsView: (view: SettingsTab | null) => void
   openModal: (id: string) => void
   closeModal: () => void
   addToast: (toast: Omit<Toast, 'id'>) => void
@@ -119,13 +99,10 @@ let toastCounter = 0
 export const useUIStore = create<UIStore>((set) => ({
   theme: getStoredTheme(),
   sidebarOpen: true,
-  activeView: 'code',
   pendingSettingsTab: null,
   activeSettingsTab: 'overview',
   settingsOpen: false,
-  settingsPanelView: 'settings',
   workspaceView: null,
-  railSettingsView: null,
   activeModal: null,
   toasts: [],
   sidebarGrouping: getStoredSidebarGrouping(),
@@ -148,46 +125,23 @@ export const useUIStore = create<UIStore>((set) => ({
 
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
-  setActiveView: (view) => set({ activeView: view }),
   setPendingSettingsTab: (tab) => set({ pendingSettingsTab: tab }),
   setActiveSettingsTab: (tab) => set({ activeSettingsTab: tab }),
   openSettings: (view = 'settings') => set(() => {
-    const isDirectPanel = view === 'scheduled' || view === 'notes' || view === 'codeGraph'
-    const nextTab = view === 'settings' || isDirectPanel ? 'overview' : view
-    if (isDirectPanel) {
-      return {
-        settingsOpen: false,
-        settingsPanelView: 'settings',
-        pendingSettingsTab: null,
-        workspaceView: view,
-        railSettingsView: null,
-      }
-    }
+    const nextTab = view === 'settings' ? 'overview' : view
     return {
       settingsOpen: true,
-      settingsPanelView: 'settings',
       pendingSettingsTab: nextTab,
       activeSettingsTab: nextTab,
       workspaceView: null,
-      railSettingsView: null,
     }
   }),
   closeSettings: () => set({ settingsOpen: false }),
   openWorkspaceView: (workspaceView) => set({
     workspaceView,
     settingsOpen: false,
-    railSettingsView: null,
   }),
   closeWorkspaceView: () => set({ workspaceView: null }),
-  setRailSettingsView: (view) => set(view
-    ? {
-        settingsOpen: true,
-        settingsPanelView: 'settings',
-        pendingSettingsTab: view,
-        activeSettingsTab: view,
-        railSettingsView: null,
-      }
-    : { settingsOpen: false, railSettingsView: null }),
   openModal: (id) => set({ activeModal: id }),
   closeModal: () => set({ activeModal: null }),
 

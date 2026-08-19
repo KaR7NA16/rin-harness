@@ -74,6 +74,12 @@ export interface DshSessionStoreLike {
 export interface DshSessionPersistenceLike {
   list(): Promise<Array<{ readonly id: string; readonly createdAt: number; readonly cwd?: string }>>
   prepare(id: string): Promise<void>
+  /**
+   * Read-only restore: returns the header plus balanced events WITHOUT
+   * entering the session into the live store (dsh's prepare() leaves the
+   * session unpublished; only the agent factory enters it).
+   */
+  load?(id: string): Promise<{ readonly events: readonly DshSessionEventLike[] }>
 }
 
 /** Minimal structural view of the dsh agent registry used by the legacy chat bridge. */

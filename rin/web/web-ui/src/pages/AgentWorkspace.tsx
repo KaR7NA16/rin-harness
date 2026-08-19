@@ -227,7 +227,7 @@ export function AgentWorkspace() {
       <div className="mx-auto flex max-w-[1180px] flex-col gap-[18px]">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-signal)]"><Bot size={14} />Agent Studio</div>
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-signal)]"><Bot size={14} />{copy('Agent 工作台', 'Agent Studio')}</div>
             <h1 className="mt-1 text-[22px] font-semibold text-[var(--color-text-primary)]">{copy('Agent 配置', 'Agent configuration')}</h1>
             <p className="mt-1 max-w-[720px] text-[13px] leading-5 text-[var(--color-text-tertiary)]">
               {copy('创建可审计的静态 Agent 定义，并引用仓库中的环境配置、Skill 与工作流。', 'Create auditable static Agent definitions that reference environment profiles, Skills, and workflows.')}
@@ -249,7 +249,7 @@ export function AgentWorkspace() {
             <aside className="border-r border-[var(--color-border-separator)] p-3">
               <div className="mb-4 px-2 py-2">
                 <div className="flex items-center gap-2 text-[12px] font-semibold text-[var(--color-text-primary)]"><FolderGit2 size={15} />{repository.name}</div>
-                <div className="mt-2 break-all font-mono text-[10.5px] leading-4 text-[var(--color-text-tertiary)]">{repository.rootPath}\agents</div>
+                <div className="mt-2 break-all font-mono text-[10.5px] leading-4 text-[var(--color-text-tertiary)]">{repository.rootPath.replace(/\\/g, '/')}/agents</div>
               </div>
               <div className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">{copy('仓库配置', 'Repository configurations')}</div>
               <div className="flex flex-col gap-1">
@@ -282,18 +282,27 @@ export function AgentWorkspace() {
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <Input label={copy('标识名', 'Identifier')} value={draft.name} onChange={event => setDraft({ ...draft, name: event.target.value })} disabled={Boolean(selectedName)} placeholder="research-analyst" />
-                <Input label={copy('模型', 'Model')} value={draft.model ?? ''} onChange={event => setDraft({ ...draft, model: event.target.value })} placeholder="inherit" />
-                <div className="md:col-span-2"><Input label={copy('职责描述', 'Responsibility')} value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} placeholder={copy('说明何时调用该 Agent', 'Describe when this Agent should be used')} /></div>
-                <div className="md:col-span-2"><Textarea label={copy('系统指令', 'System instructions')} value={draft.systemPrompt} onChange={event => setDraft({ ...draft, systemPrompt: event.target.value })} rows={7} placeholder={copy('定义目标、证据边界与完成标准', 'Define goals, evidence boundaries, and completion criteria')} /></div>
-                <Input label={copy('工具（逗号分隔）', 'Tools (comma separated)')} value={toolsText} onChange={event => setToolsText(event.target.value)} placeholder="Read, Grep, WebFetch" />
-                <label className="flex flex-col gap-1 text-[13px] font-medium text-[var(--color-text-primary)]">
-                  {copy('权限模式', 'Permission mode')}
-                  <select value={draft.permissionMode} onChange={event => { setDraft({ ...draft, permissionMode: event.target.value as RepositoryAgentInput['permissionMode'] }); setManualBypassAcknowledged(false) }} className="h-[40px] rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-container-low)] px-3 text-[13px]">
-                    <option value="read-only">Read only</option><option value="workspace-write">Workspace write</option><option value="danger-full-access">Full access</option>
-                  </select>
-                </label>
+              <div className="mt-5 flex flex-col gap-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">{copy('基本定义', 'Definition')}</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input label={copy('标识名', 'Identifier')} value={draft.name} onChange={event => setDraft({ ...draft, name: event.target.value })} disabled={Boolean(selectedName)} placeholder="research-analyst" />
+                  <Input label={copy('模型', 'Model')} value={draft.model ?? ''} onChange={event => setDraft({ ...draft, model: event.target.value })} placeholder="inherit" />
+                  <div className="md:col-span-2"><Input label={copy('职责描述', 'Responsibility')} value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} placeholder={copy('说明何时调用该 Agent', 'Describe when this Agent should be used')} /></div>
+                  <div className="md:col-span-2"><Textarea label={copy('系统指令', 'System instructions')} value={draft.systemPrompt} onChange={event => setDraft({ ...draft, systemPrompt: event.target.value })} rows={7} placeholder={copy('定义目标、证据边界与完成标准', 'Define goals, evidence boundaries, and completion criteria')} /></div>
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">{copy('能力与权限', 'Capabilities and permissions')}</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input label={copy('工具（逗号分隔）', 'Tools (comma separated)')} value={toolsText} onChange={event => setToolsText(event.target.value)} placeholder="Read, Grep, WebFetch" />
+                  <label className="flex flex-col gap-1 text-[13px] font-medium text-[var(--color-text-primary)]">
+                    {copy('权限模式', 'Permission mode')}
+                    <select value={draft.permissionMode} onChange={event => { setDraft({ ...draft, permissionMode: event.target.value as RepositoryAgentInput['permissionMode'] }); setManualBypassAcknowledged(false) }} className="h-[40px] rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-container-low)] px-3 text-[13px]">
+                      <option value="read-only">Read only</option><option value="workspace-write">Workspace write</option><option value="danger-full-access">Full access</option>
+                    </select>
+                  </label>
+                </div>
               </div>
 
               {draft.permissionMode === 'danger-full-access' && (
@@ -303,10 +312,13 @@ export function AgentWorkspace() {
                 </label>
               )}
 
-              <div className="mt-6 grid gap-3 lg:grid-cols-3">
-                <EnvironmentProfileSelector profiles={environmentProfiles} selected={draft.resources.environmentProfileId} onChange={environmentProfileId => setDraft({ ...draft, resources: { ...draft.resources, ...(environmentProfileId ? { environmentProfileId } : { environmentProfileId: undefined }) } })} copy={copy} />
-                <ResourceSelector icon={Sparkles} title="Skills" items={skills} selected={draft.resources.skillIds} onChange={skillIds => setDraft({ ...draft, resources: { ...draft.resources, skillIds } })} empty={copy('仓库中暂无 Skill', 'No Skills in repository')} />
-                <ResourceSelector icon={Workflow} title={copy('工作流', 'Workflows')} items={workflows} selected={draft.resources.workflowIds} onChange={workflowIds => setDraft({ ...draft, resources: { ...draft.resources, workflowIds } })} empty={copy('仓库中暂无工作流', 'No workflows in repository')} />
+              <div className="mt-6 flex flex-col gap-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">{copy('仓库资源引用', 'Repository resources')}</p>
+                <div className="grid gap-3 lg:grid-cols-3">
+                  <EnvironmentProfileSelector profiles={environmentProfiles} selected={draft.resources.environmentProfileId} onChange={environmentProfileId => setDraft({ ...draft, resources: { ...draft.resources, ...(environmentProfileId ? { environmentProfileId } : { environmentProfileId: undefined }) } })} copy={copy} />
+                  <ResourceSelector icon={Sparkles} title="Skills" items={skills} selected={draft.resources.skillIds} onChange={skillIds => setDraft({ ...draft, resources: { ...draft.resources, skillIds } })} empty={copy('仓库中暂无 Skill', 'No Skills in repository')} />
+                  <ResourceSelector icon={Workflow} title={copy('工作流', 'Workflows')} items={workflows} selected={draft.resources.workflowIds} onChange={workflowIds => setDraft({ ...draft, resources: { ...draft.resources, workflowIds } })} empty={copy('仓库中暂无工作流', 'No workflows in repository')} />
+                </div>
               </div>
 
               <div className="mt-5 flex items-center gap-2 border-t border-[var(--color-border-separator)] px-1 pt-4 text-[11.5px] text-[var(--color-text-tertiary)]">

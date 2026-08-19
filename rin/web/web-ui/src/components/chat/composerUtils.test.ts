@@ -89,10 +89,12 @@ describe('composerUtils', () => {
   it('routes desktop settings commands to settings tabs', () => {
     expect(resolveSlashUiAction('config')).toEqual({ type: 'settings', tab: 'general' })
     expect(resolveSlashUiAction('permissions')).toEqual({ type: 'settings', tab: 'permissions' })
-    expect(resolveSlashUiAction('terminal-setup')).toEqual({ type: 'settings', tab: 'terminal' })
     expect(resolveSlashUiAction('login')).toEqual({ type: 'settings', tab: 'providers' })
     expect(resolveSlashUiAction('logout')).toEqual({ type: 'settings', tab: 'providers' })
-    expect(resolveSlashUiAction('agents')).toEqual({ type: 'settings', tab: 'agents' })
+  })
+
+  it('routes /agents to the agent workspace', () => {
+    expect(resolveSlashUiAction('agents')).toEqual({ type: 'workspace', view: 'agents' })
   })
 
   it('routes completed desktop-only commands to local panels', () => {

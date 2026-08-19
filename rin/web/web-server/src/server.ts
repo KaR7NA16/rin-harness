@@ -182,7 +182,7 @@ async function handleRequest(
       respondError(res, 404, 'not found')
       return
     }
-    respondStatic(res, file, headOnly)
+    respondStatic(res, file, headOnly, url.pathname)
     return
   }
 
@@ -328,10 +328,17 @@ function respondError(res: ServerResponse, status: number, message: string): voi
   respondJson(res, { status, body: { error: message } }, false)
 }
 
-function respondStatic(res: ServerResponse, file: StaticFile, headOnly: boolean): void {
+function respondStatic(res: ServerResponse, file: StaticFile, headOnly: boolean, pathname: string): void {
+  // Cache policy: hashed build assets (dist/assets/**) are immutable, so a
+  // content-addressed filename can be cached forever; every other file —
+  // index.html above all — must revalidate so a redeployed UI is picked up
+  // on the next reload instead of serving a heuristic-cached stale shell
+  // that references chunk filenames which no longer exist.
+  const isHashedAsset = pathname.startsWith('/assets/')
   res.writeHead(200, {
     'content-type': file.contentType,
     'content-length': file.content.length,
+    'cache-control': isHashedAsset ? 'public, max-age=31536000, immutable' : 'no-cache',
   })
   if (headOnly) {
     res.end()

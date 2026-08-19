@@ -91,10 +91,6 @@ vi.mock('../../i18n', () => ({
       'sidebar.timeGroup.last7days': 'Last 7 Days',
       'sidebar.timeGroup.last30days': 'Last 30 Days',
       'sidebar.timeGroup.older': 'Older',
-      'sidebar.skillsConfigDir': 'Skills directory',
-      'skillsConfigBrowser.title': 'Skills config directory',
-      'skillsConfigBrowser.empty': 'This directory is empty.',
-      'skillsConfigBrowser.loadFailed': 'Failed to load the skills directory.',
       'common.up': 'Up',
       'sidebar.missingDir': 'Missing',
       'sidebar.confirmDelete': 'Delete this session? This cannot be undone.',
@@ -103,6 +99,12 @@ vi.mock('../../i18n', () => ({
       'sidebar.groupingLabel': 'Sidebar grouping',
       'sidebar.groupingProject': 'By project',
       'sidebar.groupingTime': 'By date',
+      'sidebar.groupingProjectShort': 'Pro',
+      'sidebar.groupingTimeShort': 'Date',
+      'sidebar.section.workspaces': 'Workspace',
+      'sidebar.section.sessions': 'Sessions',
+      'sidebar.sessionsHome': 'Chat',
+      'sidebar.more': 'More',
     }
 
     return translations[key] ?? key
@@ -494,7 +496,7 @@ describe('Sidebar', () => {
     expect(screen.getByText('project').closest('button')).toHaveAttribute('title', '/workspace/project')
     const sessionRow = screen.getByText('Discuss release').closest('button')
     expect(sessionRow).toHaveAttribute('title', '/workspace/project')
-    expect(sessionRow).toHaveClass('px-[15px]', 'py-[11px]')
+    expect(sessionRow).toHaveClass('px-[8px]', 'py-[6px]', 'pl-[16px]')
     expect(within(sessionRow!).queryByText('P', { exact: true })).not.toBeInTheDocument()
   })
 
@@ -830,12 +832,11 @@ describe('Sidebar', () => {
   it('keeps the session list section in a constrained flex column for scrolling', () => {
     render(<Sidebar />)
 
-    expect(screen.getByTestId('sidebar-session-list-section')).toHaveClass(
-      'flex-1',
-      'overflow-y-auto',
-      'no-scrollbar',
-    )
-    expect(screen.getByTestId('sidebar-session-list-section')).not.toHaveClass('scroll-smooth')
+    const section = screen.getByTestId('sidebar-session-list-section')
+    expect(section).toHaveClass('flex-1', 'min-h-0')
+    const scrollArea = section.querySelector('.scrollbar-no-track')
+    expect(scrollArea).not.toBeNull()
+    expect(scrollArea).toHaveClass('overflow-y-auto', 'no-scrollbar')
   })
 
   it('groups sessions by date when time grouping is selected', async () => {
@@ -910,15 +911,5 @@ describe('Sidebar', () => {
     expect(within(list).getAllByRole('region')[0]?.getAttribute('aria-label')).toBe('alpha')
 
     nowSpy.mockRestore()
-  })
-
-  it('opens the skills config directory browser from the sidebar footer', async () => {
-    render(<Sidebar />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Skills directory' }))
-
-    expect(await screen.findByText('Skills config directory')).toBeInTheDocument()
-    expect(screen.getByText('alpha')).toBeInTheDocument()
-    expect(screen.getByText('beta')).toBeInTheDocument()
   })
 })

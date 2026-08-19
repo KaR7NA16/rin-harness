@@ -25,7 +25,7 @@ const sections: SettingsNavSection[] = [
 ]
 
 describe('SettingsNavigation', () => {
-  it('shows the overview and only expands the active settings section', () => {
+  it('shows the overview and all tabs as a flat list with group labels', () => {
     render(
       <SettingsNavigation
         sections={sections}
@@ -39,8 +39,9 @@ describe('SettingsNavigation', () => {
 
     expect(screen.getByRole('button', { name: '设置概览' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '通用' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '模型供应商' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '基础体验' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: '模型供应商' })).toBeInTheDocument()
+    expect(screen.getByText('基础体验')).toBeInTheDocument()
+    expect(screen.getByText('模型与执行')).toBeInTheDocument()
   })
 
   it('searches across collapsed sections and selects the matched page', () => {

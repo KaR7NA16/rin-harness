@@ -1,6 +1,5 @@
 import {
   ArrowLeft,
-  Gauge,
   MessageSquareText,
   Minimize2,
   Network,
@@ -9,7 +8,7 @@ import {
   Sparkles,
   Terminal,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   tokenOptimizationApi,
   type CavemanStatus,
@@ -25,6 +24,7 @@ import {
 import { CodeGraphVisualization } from '../components/codegraph/CodeGraphVisualization'
 import {
   SettingsPage,
+  SettingsSection,
   Switch,
 } from '../components/settings/SettingsLayout'
 import { useTranslation } from '../i18n'
@@ -552,60 +552,42 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
   }
 
   return (
-    <div className="flex flex-col gap-[16px]">
-      <section
+    <div className="flex flex-col">
+      {/* 节省概览：紧凑摘要行（最低/最高预估 + 启用计数），随所在 SettingsSection 卡片呈现 */}
+      <div
         data-testid="savings-overview"
-        className="relative overflow-hidden rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-container)] px-[20px] py-[16px]"
+        className="flex min-h-[60px] flex-wrap items-center justify-between gap-x-[16px] gap-y-[6px] border-b border-[var(--color-border-separator)] px-[20px] py-[12px]"
       >
-        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px] bg-[linear-gradient(90deg,var(--color-info)_0%,var(--color-attention)_52%,var(--color-highlight)_100%)]" />
-        <div className="grid min-w-0 grid-cols-1 items-center gap-[18px] sm:grid-cols-[minmax(0,1fr)_210px]">
-          <div className="min-w-0">
-            <div className="flex items-center gap-[7px] text-[11px] font-bold uppercase text-[var(--color-text-tertiary)]">
-              <Gauge size={14} />
-              {t('tokenOptimization.savings.title')}
-            </div>
-            <div className="mt-[8px] flex flex-wrap items-end gap-x-[12px] gap-y-[5px]">
-              <strong className="text-[42px] font-black leading-none text-[var(--color-text-primary)] tabular-nums">
-                {savingsEstimate.display}
-              </strong>
-              <span className="pb-[3px] text-[12px] text-[var(--color-text-secondary)]">
-                {savingsEstimate.hasCycleEstimate
-                  ? t('tokenOptimization.savings.scenarioRange')
-                  : t('tokenOptimization.savings.off')}
-              </span>
-            </div>
-            <div className="mt-[14px] flex items-center gap-[8px] text-[11px] text-[var(--color-text-tertiary)]">
-              <span className="font-bold text-[var(--color-text-primary)] tabular-nums">{activeOptimizerCount}/6</span>
-              {t('tokenOptimization.savings.active')}
-            </div>
+        <div className="min-w-0">
+          <div className="text-[13px] font-semibold leading-[18px] text-[var(--color-text-primary)]">
+            {t('tokenOptimization.savings.title')}
           </div>
-
-          <div className="flex items-center justify-center gap-[10px]">
-            <SavingsRing
-              label={t('tokenOptimization.savings.minimum')}
-              value={savingsEstimate.min}
-              color="var(--color-info)"
-            />
-            <SavingsRing
-              label={t('tokenOptimization.savings.maximum')}
-              value={savingsEstimate.max}
-              color="var(--color-highlight)"
-              delayMs={100}
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="overflow-hidden rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-container)]">
-        <div className="border-b border-[var(--color-border)] px-[16px] pt-[16px]">
-          <h2 className="text-[13px] font-bold text-[var(--color-text-primary)]">
-            {t('tokenOptimization.groups.context.title')}
-          </h2>
-          <p className="pb-[10px] pt-[3px] text-[11px] text-[var(--color-text-tertiary)]">
-            {t('tokenOptimization.groups.context.description')}
+          <p className="mt-[3px] text-[11px] leading-[16px] text-[var(--color-text-tertiary)]">
+            <span className="font-bold tabular-nums text-[var(--color-text-secondary)]">{activeOptimizerCount}/6</span>
+            {' '}
+            {t('tokenOptimization.savings.active')}
+            {savingsEstimate.hasCycleEstimate
+              ? ` · ${t('tokenOptimization.savings.scenarioRange')}`
+              : ` · ${t('tokenOptimization.savings.off')}`}
           </p>
         </div>
-        <div data-testid="token-group-context">
+        <div className="flex items-center gap-[20px]">
+          <SavingsStat
+            label={t('tokenOptimization.savings.minimum')}
+            value={savingsEstimate.min}
+          />
+          <SavingsStat
+            label={t('tokenOptimization.savings.maximum')}
+            value={savingsEstimate.max}
+          />
+        </div>
+      </div>
+
+      <OptimizerGroupHeader
+        title={t('tokenOptimization.groups.context.title')}
+        description={t('tokenOptimization.groups.context.description')}
+      />
+      <div data-testid="token-group-context">
         <OptimizerRow
           testId="lite-toolbar"
           icon={<Sparkles size={17} />}
@@ -665,14 +647,11 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
         />
 
         </div>
-        <div className="border-y border-[var(--color-border)] px-[16px] pt-[16px]">
-          <h2 className="text-[13px] font-bold text-[var(--color-text-primary)]">
-            {t('tokenOptimization.groups.response.title')}
-          </h2>
-          <p className="pb-[10px] pt-[3px] text-[11px] text-[var(--color-text-tertiary)]">
-            {t('tokenOptimization.groups.response.description')}
-          </p>
-        </div>
+        <OptimizerGroupHeader
+          title={t('tokenOptimization.groups.response.title')}
+          description={t('tokenOptimization.groups.response.description')}
+          bordered
+        />
         <div data-testid="token-group-response">
         <OptimizerRow
           testId="ponytail-toolbar"
@@ -725,14 +704,11 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
           )}
         />
         </div>
-        <div className="border-y border-[var(--color-border)] px-[16px] pt-[16px]">
-          <h2 className="text-[13px] font-bold text-[var(--color-text-primary)]">
-            {t('tokenOptimization.groups.tools.title')}
-          </h2>
-          <p className="pb-[10px] pt-[3px] text-[11px] text-[var(--color-text-tertiary)]">
-            {t('tokenOptimization.groups.tools.description')}
-          </p>
-        </div>
+        <OptimizerGroupHeader
+          title={t('tokenOptimization.groups.tools.title')}
+          description={t('tokenOptimization.groups.tools.description')}
+          bordered
+        />
         <div data-testid="token-group-tools">
 
         <OptimizerRow
@@ -835,7 +811,6 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
           )}
         />
         </div>
-      </section>
 
       {[liteError, pruningError, ponytailError, cavemanError, rtkError, error].filter(Boolean).map((message) => (
         <div
@@ -859,7 +834,9 @@ export function TokenOptimization(props: TokenOptimizationProps = {}) {
       description={t('tokenOptimization.description')}
       saveMode="immediate"
     >
-      <TokenOptimizationContent {...props} />
+      <SettingsSection>
+        <TokenOptimizationContent {...props} />
+      </SettingsSection>
     </SettingsPage>
   )
 }
@@ -1055,60 +1032,44 @@ function combineEstimatedPercentages(percentages: number[]) {
   return Math.min(countAwareCeiling, 92 + Math.ceil((total - 92) / 20))
 }
 
-function SavingsRing({
+/** 概览摘要中的单个数值统计（最低/最高预估），aria-label 保持 "标签 值%" 的可读格式。 */
+function SavingsStat({
   label,
   value,
-  color,
-  delayMs = 0,
 }: {
   label: string
   value: number
-  color: string
-  delayMs?: number
 }) {
-  const radius = 38
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference * (1 - value / 100)
-
   return (
-    <div
-      aria-label={`${label} ${value}%`}
-      className="relative h-[94px] w-[94px] shrink-0"
-    >
-      <svg aria-hidden="true" viewBox="0 0 94 94" className="h-full w-full -rotate-90">
-        <circle
-          cx="47"
-          cy="47"
-          r={radius}
-          fill="none"
-          stroke="var(--color-border-separator)"
-          strokeWidth="7"
-        />
-        <circle
-          key={`${value}-${color}`}
-          cx="47"
-          cy="47"
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeLinecap="round"
-          strokeWidth="7"
-          className="token-savings-ring"
-          style={{
-            '--ring-circumference': circumference,
-            '--ring-offset': offset,
-            animationDelay: `${delayMs}ms`,
-          } as CSSProperties}
-        />
-      </svg>
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <strong className="text-[16px] font-black leading-none text-[var(--color-text-primary)] tabular-nums">
-          {value}%
-        </strong>
-        <span className="mt-[4px] text-[11px] font-bold text-[var(--color-text-tertiary)]">
-          {label}
-        </span>
-      </div>
+    <div aria-label={`${label} ${value}%`} className="flex min-w-[64px] flex-col items-end">
+      <span className="text-[10px] font-semibold leading-[13px] text-[var(--color-text-tertiary)]">
+        {label}
+      </span>
+      <strong className="mt-[3px] text-[17px] font-black leading-none text-[var(--color-text-primary)] tabular-nums">
+        {value}%
+      </strong>
+    </div>
+  )
+}
+
+/** 优化器分组小标题：设置卡片内的子分组（上下文 / 响应 / 工具输出）。 */
+function OptimizerGroupHeader({
+  title,
+  description,
+  bordered,
+}: {
+  title: string
+  description: string
+  bordered?: boolean
+}) {
+  return (
+    <div className={`px-[20px] pb-[10px] pt-[14px] ${bordered ? 'border-t border-[var(--color-border-separator)]' : ''}`}>
+      <h3 className="text-[12px] font-semibold leading-[16px] text-[var(--color-text-secondary)]">
+        {title}
+      </h3>
+      <p className="mt-[3px] text-[11px] leading-[16px] text-[var(--color-text-tertiary)]">
+        {description}
+      </p>
     </div>
   )
 }

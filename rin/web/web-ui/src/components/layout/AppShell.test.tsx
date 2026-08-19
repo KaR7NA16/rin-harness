@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 import { initializeDesktopServerUrl } from '../../lib/desktopRuntime'
@@ -17,10 +17,6 @@ vi.mock('../../hooks/useKeyboardShortcuts', () => ({
   useKeyboardShortcuts: vi.fn(),
 }))
 
-vi.mock('./IconRail', () => ({
-  IconRail: () => <div data-testid="icon-rail" />,
-}))
-
 vi.mock('./Sidebar', () => ({
   Sidebar: () => <aside data-testid="sidebar" />,
 }))
@@ -34,8 +30,8 @@ vi.mock('./TabBar', () => ({
 }))
 
 vi.mock('./SettingsPanel', () => ({
-  SettingsPanel: ({ reserveRightRail }: { reserveRightRail?: boolean }) => (
-    <div data-testid="settings-panel" data-reserve-right-rail={String(Boolean(reserveRightRail))} />
+  SettingsPanel: ({ visible }: { visible?: boolean }) => (
+    <div data-testid="settings-panel" data-visible={String(Boolean(visible))} />
   ),
 }))
 
@@ -64,9 +60,6 @@ describe('AppShell bootstrap', () => {
     useUIStore.setState({
       sidebarOpen: true,
       settingsOpen: false,
-      activeView: 'code',
-      settingsPanelView: 'settings',
-      railSettingsView: null,
       activeModal: null,
       toasts: [],
     })
@@ -169,18 +162,22 @@ describe('AppShell bootstrap', () => {
     expect(screen.getByText('sidecar missing')).toBeInTheDocument()
   })
 
-  it('places the fixed icon rail on the right side of the main content', async () => {
+  it('places the settings sheet inside the main content area, after the sidebar', async () => {
     vi.mocked(initializeDesktopServerUrl).mockResolvedValue('http://127.0.0.1:3456')
 
     render(<AppShell />)
+    await screen.findByTestId('content-router')
 
-    const sidebar = await screen.findByTestId('sidebar')
+    act(() => useUIStore.getState().openSettings('settings'))
+
+    const sidebar = screen.getByTestId('sidebar')
     const content = screen.getByTestId('content-router')
-    const iconRail = screen.getByTestId('icon-rail')
+    const settingsPanel = screen.getByTestId('settings-panel')
 
     expect(sidebar.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(content.compareDocumentPosition(iconRail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(screen.getByTestId('settings-panel')).toHaveAttribute('data-reserve-right-rail', 'true')
+    expect(content.compareDocumentPosition(settingsPanel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(settingsPanel).toHaveAttribute('data-visible', 'true')
+    expect(screen.queryByTestId('icon-rail')).not.toBeInTheDocument()
   })
 
   it('does not render the legacy chat mode sidebar in a session', async () => {

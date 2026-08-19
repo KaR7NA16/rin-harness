@@ -12,7 +12,6 @@ const Atlas = lazy(() => import('../../pages/Atlas').then((module) => ({ default
 const Queries = lazy(() => import('../../pages/Queries').then((module) => ({ default: module.Queries })))
 const Tags = lazy(() => import('../../pages/Tags').then((module) => ({ default: module.Tags })))
 const Sandboxes = lazy(() => import('../../pages/Sandboxes').then((module) => ({ default: module.Sandboxes })))
-const Monitor = lazy(() => import('../../pages/Monitor').then((module) => ({ default: module.Monitor })))
 const RepositoryWorkspace = lazy(() => import('../../pages/RepositoryWorkspace').then((module) => ({ default: module.RepositoryWorkspace })))
 const AgentWorkspace = lazy(() => import('../../pages/AgentWorkspace').then((module) => ({ default: module.AgentWorkspace })))
 const Terminal = lazy(() => import('../../pages/Terminal').then((module) => ({ default: module.Terminal })))
@@ -58,7 +57,6 @@ export function ContentRouter() {
   const legacyWorkspaceView =
     activeTabType === 'scheduled' || activeTabType === 'notes' || activeTabType === 'files' || activeTabType === 'codeGraph'
       || activeTabType === 'sandbox' || activeTabType === 'repository' || activeTabType === 'agents'
-      || activeTabType === 'monitor'
       ? activeTabType
       : null
   const resolvedWorkspaceView = workspaceView ?? legacyWorkspaceView
@@ -73,7 +71,6 @@ export function ContentRouter() {
     : resolvedWorkspaceView === 'sandbox' ? <Suspended><Sandboxes /></Suspended>
     : resolvedWorkspaceView === 'repository' ? <Suspended><RepositoryWorkspace /></Suspended>
     : resolvedWorkspaceView === 'agents' ? <Suspended><AgentWorkspace /></Suspended>
-    : resolvedWorkspaceView === 'monitor' ? <Suspended><Monitor /></Suspended>
     : null
 
   const showEmptySession = !resolvedWorkspaceView && (!activeTabId || !activeTabType)

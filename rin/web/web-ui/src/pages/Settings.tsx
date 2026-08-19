@@ -73,16 +73,55 @@ const SETTINGS_SECTIONS: Array<{
   icon: string
   labelKey: string
   descriptionKey: string
-  tabs: SettingsTab[]
+  tabs: Array<{ id: SettingsTab; icon: string }>
 }> = [
-  { id: 'general', icon: 'tune', labelKey: 'settings.tab.general', descriptionKey: 'settings.general.description', tabs: ['general'] },
-  { id: 'execution', icon: 'dns', labelKey: 'settings.group.execution', descriptionKey: 'settings.category.execution', tabs: ['providers', 'behavior'] },
-  { id: 'extensions', icon: 'extension', labelKey: 'settings.group.extensions', descriptionKey: 'settings.category.extensions', tabs: ['skills', 'plugins', 'mcp', 'adapters'] },
-  { id: 'data', icon: 'database', labelKey: 'settings.group.data', descriptionKey: 'settings.category.data', tabs: ['memory', 'sessionBackup', 'agentMigration'] },
-  { id: 'security', icon: 'shield', labelKey: 'settings.group.runtime', descriptionKey: 'settings.category.runtime', tabs: ['permissions', 'computerUse'] },
+  { id: 'general', icon: 'tune', labelKey: 'settings.tab.general', descriptionKey: 'settings.general.description', tabs: [{ id: 'general', icon: 'tune' }] },
+  {
+    id: 'execution',
+    icon: 'dns',
+    labelKey: 'settings.group.execution',
+    descriptionKey: 'settings.category.execution',
+    tabs: [
+      { id: 'providers', icon: 'dns' },
+      { id: 'behavior', icon: 'bolt' },
+    ],
+  },
+  {
+    id: 'extensions',
+    icon: 'extension',
+    labelKey: 'settings.group.extensions',
+    descriptionKey: 'settings.category.extensions',
+    tabs: [
+      { id: 'skills', icon: 'auto_awesome' },
+      { id: 'plugins', icon: 'extension' },
+      { id: 'mcp', icon: 'plug_one' },
+      { id: 'adapters', icon: 'forum' },
+    ],
+  },
+  {
+    id: 'data',
+    icon: 'database',
+    labelKey: 'settings.group.data',
+    descriptionKey: 'settings.category.data',
+    tabs: [
+      { id: 'memory', icon: 'psychology' },
+      { id: 'sessionBackup', icon: 'archive' },
+      { id: 'agentMigration', icon: 'smart_toy' },
+    ],
+  },
+  {
+    id: 'security',
+    icon: 'shield',
+    labelKey: 'settings.group.runtime',
+    descriptionKey: 'settings.category.runtime',
+    tabs: [
+      { id: 'permissions', icon: 'lock' },
+      { id: 'computerUse', icon: 'monitor' },
+    ],
+  },
 ]
 
-const ALL_SETTINGS_TABS: SettingsTab[] = ['overview', 'about', ...SETTINGS_SECTIONS.flatMap(section => section.tabs)]
+const ALL_SETTINGS_TABS: SettingsTab[] = ['overview', 'about', ...SETTINGS_SECTIONS.flatMap(section => section.tabs.map(tab => tab.id))]
 
 const TAB_RENDERERS: Partial<Record<SettingsTab, () => ReactNode>> = {
   overview: () => null,
@@ -145,7 +184,6 @@ function SettingsOverviewPage({ onSelect }: { onSelect: (tab: SettingsTab) => vo
     <SettingsOverview
       title={t('settings.overview.title')}
       description={t('settings.overview.description')}
-      eyebrow={t('settings.overview.eyebrow')}
       statusCards={statusCards}
       emptyStatusLabel={t('settings.overview.allClear')}
       onSelect={(tab) => onSelect(tab as SettingsTab)}
@@ -180,8 +218,9 @@ export function Settings() {
     icon: section.icon,
     label: t(section.labelKey as never) as string,
     tabs: section.tabs.map((tab) => ({
-      id: tab,
-      label: t(`settings.tab.${tab}` as never) as string,
+      id: tab.id,
+      label: t(`settings.tab.${tab.id}` as never) as string,
+      icon: tab.icon,
     })),
   })), [t])
 
@@ -216,10 +255,7 @@ export function Settings() {
       {/* 顶栏: 当前位置 + 关闭 */}
       <header className="settings-shell-header flex h-[56px] shrink-0 items-center justify-between border-b border-[var(--color-border-separator)] px-[20px]">
         <div className="settings-shell-header-title">
-          <span className="settings-shell-eyebrow">{t('settings.title')}</span>
-          <span className="settings-shell-context">
-            {activeTab === 'overview' ? t('settings.overview.title') : t(`settings.tab.${activeTab}` as never)}
-          </span>
+          <span className="settings-shell-context">{t('settings.title')}</span>
         </div>
         <button
           onClick={() => useUIStore.getState().closeSettings()}

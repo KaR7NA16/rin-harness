@@ -307,7 +307,6 @@ export function Sandboxes() {
       useTabStore.getState().openTab(created.sessionId, `${profile.name} · Sandbox`, 'session', repository.rootPath)
       await useChatStore.getState().ensureSessionReady(created.sessionId, repository.rootPath)
       useChatStore.getState().queueComposerPrefill(created.sessionId, { text: prompt })
-      useUIStore.getState().setActiveView('code')
     } catch (error) {
       addToast({ type: 'error', message: error instanceof Error ? error.message : String(error) })
     } finally {

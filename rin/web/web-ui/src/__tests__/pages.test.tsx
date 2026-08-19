@@ -82,11 +82,8 @@ beforeEach(() => {
   })
   useChatStore.setState({ sessions: {} })
   useUIStore.setState({
-    activeView: 'code',
     pendingSettingsTab: null,
     settingsOpen: false,
-    settingsPanelView: 'settings',
-    railSettingsView: null,
     activeModal: null,
     toasts: [],
   })
@@ -401,7 +398,6 @@ describe('Content-only pages render without errors', () => {
     expect(await screen.findByText('Available MCP tools')).toBeInTheDocument()
     fireEvent.click(screen.getByText('deepwiki'))
     expect(useUIStore.getState().settingsOpen).toBe(true)
-    expect(useUIStore.getState().settingsPanelView).toBe('settings')
     expect(useUIStore.getState().pendingSettingsTab).toBe('mcp')
 
     useTabStore.setState({ tabs: [], activeTabId: null })
@@ -536,7 +532,6 @@ describe('Content-only pages render without errors', () => {
 
     expect(sendMessage).not.toHaveBeenCalled()
     expect(useUIStore.getState().settingsOpen).toBe(true)
-    expect(useUIStore.getState().settingsPanelView).toBe('settings')
     expect(useUIStore.getState().pendingSettingsTab).toBe('plugins')
 
     useTabStore.setState({ tabs: [], activeTabId: null })

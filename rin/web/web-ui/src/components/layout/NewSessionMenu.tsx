@@ -25,13 +25,6 @@ const MENU_MAX_HEIGHT = 460
 const MENU_MIN_HEIGHT = 200
 const VIEWPORT_MARGIN = 12
 
-function cssPixelVar(name: string, fallback: number): number {
-  if (typeof window === 'undefined') return fallback
-  const value = window.getComputedStyle(document.documentElement).getPropertyValue(name)
-  const parsed = Number.parseFloat(value)
-  return Number.isFinite(parsed) ? parsed : fallback
-}
-
 export function NewSessionMenu({
   open,
   anchorRef,
@@ -47,10 +40,8 @@ export function NewSessionMenu({
     const anchor = anchorRef.current
     if (!anchor) return
     const rect = anchor.getBoundingClientRect()
-    const railWidth = cssPixelVar('--sidebar-rail-width', 72)
     const width = Math.min(MENU_WIDTH, Math.max(260, window.innerWidth - VIEWPORT_MARGIN * 2))
     const maxLeft = Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN)
-    const minLeft = Math.min(railWidth + VIEWPORT_MARGIN, maxLeft)
     const top = rect.bottom + 8
     const availableBelow = window.innerHeight - top - VIEWPORT_MARGIN
     const maxHeight = Math.min(
@@ -59,7 +50,7 @@ export function NewSessionMenu({
     )
     setPosition({
       top,
-      left: Math.min(Math.max(rect.right - width, minLeft), maxLeft),
+      left: Math.min(Math.max(rect.right - width, VIEWPORT_MARGIN), maxLeft),
       width,
       maxHeight,
     })

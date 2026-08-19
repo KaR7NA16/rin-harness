@@ -6,10 +6,15 @@ const Settings = lazy(() => import('../../pages/Settings').then((module) => ({ d
 
 type Props = {
   visible: boolean
-  reserveRightRail?: boolean
 }
 
-export function SettingsPanel({ visible, reserveRightRail = false }: Props) {
+/**
+ * macOS System Settings 式全屏 sheet。
+ *
+ * 覆盖整个内容区（TabBar / ContentRouter / StatusBar），左侧 Sidebar 保持可见可点；
+ * 无遮罩、无圆角浮层 —— 设置是一个"窗口级"体验，而非模态弹窗。
+ */
+export function SettingsPanel({ visible }: Props) {
   const closeSettings = useUIStore((s) => s.closeSettings)
   const t = useTranslation()
   const panelRef = useRef<HTMLElement | null>(null)
@@ -44,20 +49,13 @@ export function SettingsPanel({ visible, reserveRightRail = false }: Props) {
       tabIndex={-1}
       aria-label={t('sidebar.settings')}
       data-testid="settings-panel"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) closeSettings()
-      }}
-      className={`settings-ui settings-panel-overlay native-ui-text absolute bottom-0 left-0 top-0 z-[90] flex flex-col items-center justify-center bg-black/10 p-[16px] dark:bg-black/45 ${reserveRightRail ? 'right-[var(--sidebar-rail-width)]' : 'right-0'}`}
+      className="settings-ui settings-panel-sheet native-ui-text absolute inset-0 z-[90] flex flex-col overflow-hidden bg-[var(--color-background)]"
     >
-      <div className="settings-panel-card flex h-[88vh] w-full max-w-[1100px] flex-col overflow-hidden rounded-[14px] border border-[var(--color-border-separator)] bg-[var(--color-background)] shadow-[var(--shadow-window)]">
-        <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
-          <div key="settings-home" className="settings-panel-content min-h-0 flex flex-1 flex-col overflow-hidden">
-            <Suspense fallback={<div className="flex h-full items-center justify-center text-[13px] text-[var(--color-text-tertiary)]">Loading settings...</div>}>
-              <Settings />
-            </Suspense>
-          </div>
+      <Suspense fallback={<div className="flex h-full items-center justify-center text-[13px] text-[var(--color-text-tertiary)]">Loading settings...</div>}>
+        <div key="settings-home" className="settings-panel-content flex min-h-0 flex-1 flex-col overflow-hidden">
+          <Settings />
         </div>
-      </div>
+      </Suspense>
     </section>
   )
 }

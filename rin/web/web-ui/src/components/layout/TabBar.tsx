@@ -29,12 +29,12 @@ export function TabBar() {
   const canGoBack = useTabStore((s) => s.navIndex >= 1)
   const canGoForward = useTabStore((s) => s.navIndex >= 0 && s.navIndex < s.navHistory.length - 1)
 
-  const navButtonClass = 'flex h-[28px] w-[28px] items-center justify-center rounded-[8px] text-[var(--color-text-tertiary)] transition-colors duration-100 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]'
+  const navButtonClass = 'flex h-[26px] w-[26px] items-center justify-center rounded-[7px] text-[var(--color-text-tertiary)] transition-colors duration-100 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)]'
 
   return (
     <div
       data-testid="tab-bar"
-      className="native-ui-text flex relative h-[76px] w-full shrink-0 select-none items-center border-b border-[var(--color-border-separator)] bg-[var(--color-background)] px-[24px] md:px-[32px]"
+      className="native-ui-text flex relative h-[48px] w-full shrink-0 select-none items-center border-b border-[var(--color-border-separator)] bg-[var(--color-background)] px-[10px]"
     >
       {/* Back/forward navigation */}
       <div className="flex shrink-0 items-center gap-[4px]" onMouseDown={(e) => e.stopPropagation()}>
@@ -46,7 +46,7 @@ export function TabBar() {
           onClick={goBack}
           className={navButtonClass}
         >
-          <Icon name="chevron_left" size={18} />
+          <Icon name="chevron_left" size={16} />
         </button>
         <button
           type="button"
@@ -56,12 +56,13 @@ export function TabBar() {
           onClick={goForward}
           className={navButtonClass}
         >
-          <Icon name="chevron_right" size={18} />
+          <Icon name="chevron_right" size={16} />
         </button>
       </div>
 
       {/* Tab strip + drag area */}
       <div className="flex h-full min-w-0 flex-1 items-center gap-[4px]">
+        <div className="no-scrollbar flex h-full min-w-0 items-center gap-[4px] overflow-x-auto">
         {workObjectTabs.map((tab) => {
           const isActive = workspaceView === null && tab.sessionId === activeTabId
           const closeLabel = `${t('tabs.close')} ${tab.title}`
@@ -72,7 +73,7 @@ export function TabBar() {
               className="group flex h-full shrink-0 items-center"
             >
               <div
-                className={`flex h-[40px] max-w-[220px] items-center rounded-[10px] border transition-colors duration-100 ${
+                className={`flex h-[32px] max-w-[200px] items-center rounded-[8px] border transition-colors duration-100 ${
                   isActive
                     ? 'border-[var(--color-border-separator)] bg-[var(--color-surface-container)]'
                     : 'border-transparent hover:bg-[var(--color-surface-hover)]'
@@ -83,7 +84,7 @@ export function TabBar() {
                   onClick={() => setActiveTab(tab.sessionId)}
                   title={tab.title}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`flex h-full min-w-0 items-center gap-[8px] pl-[12px] pr-[4px] text-[13px] ${
+                  className={`flex h-full min-w-0 items-center gap-[8px] pl-[11px] pr-[4px] text-[13px] ${
                     isActive
                       ? 'font-semibold text-[var(--color-text-primary)]'
                       : 'font-medium text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'
@@ -97,22 +98,23 @@ export function TabBar() {
                   onClick={() => closeTab(tab.sessionId, tab.projectPath)}
                   aria-label={closeLabel}
                   title={closeLabel}
-                  className={`mr-[6px] flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full transition-colors duration-100 hover:bg-[var(--color-surface-container-highest)] hover:text-[var(--color-text-primary)] ${
+                  className={`mr-[5px] flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full transition-colors duration-100 hover:bg-[var(--color-surface-container-highest)] hover:text-[var(--color-text-primary)] ${
                     isActive
                       ? 'text-[var(--color-text-tertiary)] opacity-100'
                       : 'text-[var(--color-text-tertiary)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100'
                   }`}
                 >
-                  <Icon name="close_one" size={13} />
+                  <Icon name="close_one" size={12} />
                 </button>
               </div>
             </div>
           )
         })}
+        </div>
         {/* Remaining space doubles as the window drag gutter */}
         <div
           data-testid="tab-bar-drag-gutter"
-          className="h-full min-w-[24px] flex-1 self-stretch"
+          className="h-full min-w-[24px] shrink-0 flex-1 self-stretch"
           {...(isTauri ? { 'data-tauri-drag-region': true } : {})}
         />
       </div>

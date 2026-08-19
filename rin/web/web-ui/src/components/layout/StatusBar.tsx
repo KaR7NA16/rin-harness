@@ -73,9 +73,9 @@ export function StatusBar() {
   }
 
   return (
-    <div className="flex h-[32px] shrink-0 items-center gap-[12px] border-t border-[var(--color-border-separator)] bg-[var(--color-surface-footer)] px-[12px] text-[11px] text-[var(--color-text-secondary)]">
-      <span className="flex min-w-0 items-center gap-[8px]">
-        <Icon name="code" size={13} className="text-[var(--color-text-tertiary)]" />
+    <div className="flex h-[28px] shrink-0 items-center gap-[10px] border-t border-[var(--color-border-separator)] bg-[var(--color-surface-footer)] px-[10px] text-[11px] text-[var(--color-text-secondary)]">
+      <span className="flex min-w-0 items-center gap-[7px]">
+        <Icon name="code" size={12} className="text-[var(--color-text-tertiary)]" />
         <span className="max-w-[190px] truncate font-medium text-[var(--color-text-primary)]">
           {git?.repoName || t('statusbar.noRepository')}
         </span>
@@ -87,7 +87,7 @@ export function StatusBar() {
         )}
       </span>
 
-      <div className="flex flex-1 items-center justify-end gap-[8px]">
+      <div className="flex flex-1 items-center justify-end gap-[6px]">
         <button
           type="button"
           data-testid="statusbar-worktree"

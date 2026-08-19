@@ -558,6 +558,15 @@ export function ChatInput({ variant = 'default', sessionId: sessionIdProp, proje
       return
     }
 
+    if (slashUiAction?.type === 'workspace') {
+      useUIStore.getState().openWorkspaceView(slashUiAction.view)
+      setInput('')
+      setSlashMenuOpen(false)
+      setFileSearchOpen(false)
+      setPlusMenuOpen(false)
+      return
+    }
+
     if (slashUiAction?.type === 'model') {
       setModelSelectorOpenSignal((value) => value + 1)
       setInput('')

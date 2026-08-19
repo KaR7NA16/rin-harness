@@ -9,6 +9,11 @@ type Props = {
   className?: string
 }
 
+/** Windows absolute paths (C:\ or C:/) get drive-relative breadcrumbs; everything else is POSIX. */
+function isWindowsDrivePath(path: string): boolean {
+  return /^[A-Za-z]:[\\/]/.test(path)
+}
+
 /**
  * Path-contained file explorer.
  *
@@ -59,7 +64,7 @@ export function FileExplorer({ initialPath, className = '' }: Props) {
     const parts = path.split(/[\\/]/).filter(Boolean)
     return parts.map((part, index) => ({
       label: part,
-      path: (process.platform === 'win32' ? '' : '/') + parts.slice(0, index + 1).join('/'),
+      path: (isWindowsDrivePath(path) ? '' : '/') + parts.slice(0, index + 1).join('/'),
     }))
   }, [currentPath])
 

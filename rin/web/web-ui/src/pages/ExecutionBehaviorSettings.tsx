@@ -1,4 +1,3 @@
-import { Sparkles } from 'lucide-react'
 import type { EffortLevel } from '../types/settings'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useTranslation, type TranslationKey } from '../i18n'
@@ -54,21 +53,12 @@ export function ExecutionBehaviorSettings() {
         )}
       </SettingsSection>
 
-      <div className="flex items-center gap-[10px]">
-        <span className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-[9px] bg-[var(--color-surface-container-low)] text-[var(--color-text-secondary)]">
-          <Sparkles size={16} />
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-[14px] font-semibold leading-[20px] text-[var(--color-text-primary)]">
-            {t('settings.execution.tokenTitle')}
-          </h2>
-          <p className="mt-[2px] text-[12px] leading-[18px] text-[var(--color-text-tertiary)]">
-            {t('settings.execution.tokenDescription')}
-          </p>
-        </div>
-      </div>
-
-      <TokenOptimizationContent />
+      <SettingsSection
+        title={t('settings.execution.tokenTitle')}
+        description={t('settings.execution.tokenDescription')}
+      >
+        <TokenOptimizationContent />
+      </SettingsSection>
     </SettingsPage>
   )
 }

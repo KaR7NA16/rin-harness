@@ -47,9 +47,7 @@ describe('SettingsPanel content routing', () => {
     useSettingsStore.setState({ locale: 'zh' })
     useUIStore.setState({
       settingsOpen: true,
-      settingsPanelView: 'settings',
       pendingSettingsTab: null,
-      railSettingsView: null,
     })
   })
 
@@ -60,31 +58,17 @@ describe('SettingsPanel content routing', () => {
     expect(screen.getByTestId('settings-panel')).toHaveAttribute('role', 'dialog')
     expect(screen.getByTestId('settings-panel')).toHaveAttribute('aria-modal', 'true')
     expect(screen.getByTestId('settings-panel')).toHaveClass('z-[90]')
-    expect(screen.getByTestId('settings-panel')).toHaveClass('right-0')
-  })
-
-  it('keeps the chat-side rail clickable when opened from a project session', async () => {
-    render(<SettingsPanel visible reserveRightRail />)
-
-    expect(screen.getByTestId('settings-panel')).toHaveClass('right-[var(--sidebar-rail-width)]')
-    expect(screen.getByTestId('settings-panel')).not.toHaveClass('right-0')
+    expect(screen.getByTestId('settings-panel')).toHaveClass('inset-0')
+    expect(screen.getByTestId('settings-panel')).toHaveClass('settings-panel-sheet')
   })
 
   it('does not duplicate scheduled tasks inside the settings shell', async () => {
-    useUIStore.setState({ settingsPanelView: 'scheduled' })
+    useUIStore.getState().openSettings('overview')
 
     render(<SettingsPanel visible />)
 
     expect(await screen.findByTestId('settings-home')).toBeInTheDocument()
     expect(screen.queryByTestId('scheduled-panel')).not.toBeInTheDocument()
-  })
-
-  it('routes terminal into the settings home (terminal lives in main-area tabs)', async () => {
-    useUIStore.setState({ settingsPanelView: 'terminal' })
-
-    render(<SettingsPanel visible />)
-
-    expect(await screen.findByTestId('settings-home')).toBeInTheDocument()
   })
 
   it('closes the settings shell when Escape is pressed and no child modal is open', async () => {
@@ -102,7 +86,7 @@ describe('SettingsPanel content routing', () => {
   })
 
   it('renders prompt memory via the settings home nav', async () => {
-    useUIStore.setState({ settingsPanelView: 'memory', pendingSettingsTab: 'memory' })
+    useUIStore.getState().openSettings('memory')
 
     render(<SettingsPanel visible />)
 
@@ -110,7 +94,7 @@ describe('SettingsPanel content routing', () => {
   })
 
   it('renders execution behavior via the settings home nav', async () => {
-    useUIStore.setState({ settingsPanelView: 'behavior', pendingSettingsTab: 'behavior' })
+    useUIStore.getState().openSettings('behavior')
 
     render(<SettingsPanel visible />)
 
@@ -118,11 +102,11 @@ describe('SettingsPanel content routing', () => {
   })
 
   it('does not duplicate Code Graph inside the settings shell', async () => {
-    useUIStore.setState({ settingsPanelView: 'codeGraph' })
+    useUIStore.getState().openWorkspaceView('codeGraph')
 
     render(<SettingsPanel visible />)
 
-    expect(await screen.findByTestId('settings-home')).toBeInTheDocument()
+    expect(useUIStore.getState().settingsOpen).toBe(false)
     expect(screen.queryByTestId('knowledge-space-panel')).not.toBeInTheDocument()
   })
 })

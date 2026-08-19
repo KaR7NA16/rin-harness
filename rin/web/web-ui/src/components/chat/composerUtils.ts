@@ -1,4 +1,4 @@
-import type { SettingsTab } from '../../stores/uiStore'
+import type { SettingsTab, WorkspaceView } from '../../stores/uiStore'
 
 export const PANEL_SLASH_COMMANDS = [
   { name: 'mcp', description: 'Open available MCP tools for the current chat context' },
@@ -16,10 +16,13 @@ export const SETTINGS_SLASH_COMMANDS = [
   { name: 'plugin', description: 'Open desktop plugin controls in Settings', tab: 'plugins' as const },
   { name: 'config', description: 'Open desktop configuration', tab: 'general' as const },
   { name: 'permissions', description: 'View or manage tool permissions', tab: 'permissions' as const },
-  { name: 'terminal-setup', description: 'Set up terminal integration', tab: 'terminal' as const },
   { name: 'login', description: 'Open account and provider sign-in settings', tab: 'providers' as const },
   { name: 'logout', description: 'Open account and provider sign-out settings', tab: 'providers' as const },
-  { name: 'agents', description: 'Open agent configuration', tab: 'agents' as const },
+] as const
+
+/** Commands that open a workspace view instead of a settings panel. */
+export const WORKSPACE_SLASH_COMMANDS = [
+  { name: 'agents', description: 'Open agent configuration', view: 'agents' as const },
 ] as const
 
 export const SLASH_COMMAND_ALIASES = [
@@ -71,6 +74,7 @@ export const DESKTOP_UNSUPPORTED_SLASH_COMMANDS = [
 export const FALLBACK_SLASH_COMMANDS = [
   ...PANEL_SLASH_COMMANDS,
   ...SETTINGS_SLASH_COMMANDS.map(({ name, description }) => ({ name, description })),
+  ...WORKSPACE_SLASH_COMMANDS.map(({ name, description }) => ({ name, description })),
   { name: 'compact', description: 'Compact conversation context' },
   { name: 'clear', description: 'Clear conversation history' },
   { name: 'review', description: 'Review code changes' },
@@ -93,6 +97,10 @@ export type SlashUiAction =
   | {
       type: 'settings'
       tab: SettingsTab
+    }
+  | {
+      type: 'workspace'
+      view: WorkspaceView
     }
   | {
       type: 'model'
@@ -135,6 +143,11 @@ export function resolveSlashUiAction(value: string): SlashUiAction | null {
   const settingsCommand = SETTINGS_SLASH_COMMANDS.find((command) => command.name === normalizedValue)
   if (settingsCommand) {
     return { type: 'settings', tab: settingsCommand.tab }
+  }
+
+  const workspaceCommand = WORKSPACE_SLASH_COMMANDS.find((command) => command.name === normalizedValue)
+  if (workspaceCommand) {
+    return { type: 'workspace', view: workspaceCommand.view }
   }
 
   return null

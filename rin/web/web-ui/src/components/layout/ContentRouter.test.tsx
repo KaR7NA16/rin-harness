@@ -52,7 +52,7 @@ import { useUIStore } from '../../stores/uiStore'
 describe('ContentRouter content routing', () => {
   afterEach(() => {
     useTabStore.setState({ tabs: [], activeTabId: null })
-    useUIStore.setState({ settingsOpen: false, settingsPanelView: 'settings', pendingSettingsTab: null })
+    useUIStore.setState({ settingsOpen: false, pendingSettingsTab: null })
   })
 
   it('renders the empty session page when no tab is active', () => {
@@ -165,7 +165,6 @@ describe('ContentRouter content routing', () => {
     render(<ContentRouter />)
 
     expect(useUIStore.getState().settingsOpen).toBe(true)
-    expect(useUIStore.getState().settingsPanelView).toBe('settings')
     expect(useUIStore.getState().pendingSettingsTab).toBe('sessionBackup')
   })
 })

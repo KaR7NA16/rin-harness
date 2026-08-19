@@ -159,8 +159,11 @@ describe('Settings > General tab', () => {
   it('shows all settings categories in the home nav', () => {
     render(<Settings />)
 
-    for (const name of ['General', 'Model & execution', 'Extensions & connections', 'Data & memory', 'Security & runtime']) {
-      expect(screen.getByRole('button', { name })).toBeInTheDocument()
+    // Single-tab sections render as nav buttons; multi-tab groups render as
+    // non-interactive group labels with flat tab buttons underneath.
+    expect(screen.getByRole('button', { name: 'General' })).toBeInTheDocument()
+    for (const name of ['Model & execution', 'Extensions & connections', 'Data & memory', 'Security & runtime']) {
+      expect(screen.getByText(name)).toBeInTheDocument()
     }
     expect(screen.getByRole('button', { name: 'Settings overview' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'About' })).toBeInTheDocument()
@@ -171,9 +174,10 @@ describe('Settings > General tab', () => {
   it('places session backup inside the data and memory settings category', () => {
     render(<Settings />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Data & memory' }))
+    const memoryGroup = screen.getByText('Data & memory').closest('div')
 
-    expect(screen.getByRole('button', { name: 'Session backup' })).toBeInTheDocument()
+    expect(memoryGroup).not.toBeNull()
+    expect(within(memoryGroup as HTMLElement).getByRole('button', { name: 'Session backup' })).toBeInTheDocument()
   })
 })
 

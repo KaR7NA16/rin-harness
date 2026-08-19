@@ -80,8 +80,6 @@ describe('ChatInput composer controls', () => {
     useUIStore.setState({
       pendingSettingsTab: null,
       settingsOpen: false,
-      settingsPanelView: 'settings',
-      railSettingsView: null,
       toasts: [],
     })
   })
@@ -236,10 +234,8 @@ describe('ChatInput composer controls', () => {
   it.each([
     ['/config', 'general'],
     ['/permissions', 'permissions'],
-    ['/terminal-setup', 'terminal'],
     ['/login', 'providers'],
     ['/logout', 'providers'],
-    ['/agents', 'agents'],
   ] as const)('opens the desktop settings panel for %s', async (command, expectedTab) => {
     const onSubmit = vi.fn()
     render(<ChatInput onSubmit={onSubmit} />)
@@ -252,8 +248,23 @@ describe('ChatInput composer controls', () => {
     fireEvent.click(runButton)
 
     expect(useUIStore.getState().settingsOpen).toBe(true)
-    expect(useUIStore.getState().settingsPanelView).toBe('settings')
     expect(useUIStore.getState().pendingSettingsTab).toBe(expectedTab)
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('opens the agent workspace for /agents', async () => {
+    const onSubmit = vi.fn()
+    render(<ChatInput onSubmit={onSubmit} />)
+
+    const textarea = screen.getByRole('textbox')
+    fireEvent.change(textarea, { target: { value: '/agents', selectionStart: 7 } })
+
+    const runButton = screen.getByRole('button', { name: 'Run' })
+    fireEvent.mouseDown(runButton)
+    fireEvent.click(runButton)
+
+    expect(useUIStore.getState().workspaceView).toBe('agents')
+    expect(useUIStore.getState().settingsOpen).toBe(false)
     expect(onSubmit).not.toHaveBeenCalled()
   })
 

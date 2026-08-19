@@ -278,6 +278,34 @@ describe('legacy: sessions', () => {
     expect(prepared).toBe(true)
   })
 
+  test('item messages reads a persisted log read-only via load()', async () => {
+    const events = [
+      { type: 'user/message', seq: 1, time: 1000, data: { content: 'persisted hi' } },
+    ]
+    let loaded = false
+    const s = makeServices({
+      sessions: () => ({ get: () => undefined }),
+      sessionPersistence: () => ({
+        load: async () => { loaded = true; return { meta: { id: 's3' }, events } },
+      }),
+    })
+    const res = await handle('/api/sessions/s3/messages', '', 'GET', undefined, s, config)
+    expect(res?.status).toBe(200)
+    expect(loaded).toBe(true)
+    expect(res?.body.messages).toEqual([
+      { id: 'evt-1', type: 'user', content: 'persisted hi', timestamp: new Date(1000).toISOString() },
+    ])
+  })
+
+  test('item messages load missing session returns 404', async () => {
+    const s = makeServices({
+      sessions: () => ({ get: () => undefined }),
+      sessionPersistence: () => ({ load: async () => { throw new Error('session "s4" not found') } }),
+    })
+    const res = await handle('/api/sessions/s4/messages', '', 'GET', undefined, s, config)
+    expect(res?.status).toBe(404)
+  })
+
   test('item messages missing returns 404', async () => {
     const s = makeServices({ sessions: () => ({ get: () => undefined }) })
     const res = await handle('/api/sessions/s1/messages', '', 'GET', undefined, s, config)
@@ -1249,13 +1277,41 @@ describe('legacy: A/B/D services', () => {
 
   test('computer-use mounted', async () => {
     const s = makeServices({ computerUse: () => ({
-      async getStatus() { return { enabled: true } },
+      async getRuntimeStatus() {
+        return {
+          platform: 'darwin' as const,
+          supported: true,
+          python: { installed: true, version: '3.12.1', path: '/usr/bin/python3', command: 'python3', prefixArgs: [], source: 'system' as const },
+          venv: { created: true, path: '~/.rin/computer-use/venv' },
+          dependencies: { installed: true, requirementsFound: true, sha256: 'abc' },
+          preflight: { status: 'ok' as const, accessibility: true, screenRecording: false, detail: null },
+        }
+      },
+      async installRuntime() { return { success: true, steps: [{ name: 'venv', ok: true, message: 'created' }] } },
       async listAuthorizedApps() { return [{ bundleId: 'com.app' }] },
       async getGrantFlags() { return { clipboardRead: true } },
     }) })
-    expect(await handle('/api/computer-use/status', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { enabled: true } })
+    const status = await handle('/api/computer-use/status', '', 'GET', undefined, s, config)
+    expect(status?.status).toBe(200)
+    expect(status?.body).toEqual({
+      platform: 'darwin',
+      supported: true,
+      python: { installed: true, version: '3.12.1', path: '/usr/bin/python3' },
+      venv: { created: true, path: '~/.rin/computer-use/venv' },
+      dependencies: { installed: true, requirementsFound: true },
+      permissions: { accessibility: true, screenRecording: false },
+    })
     expect(await handle('/api/computer-use/apps', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { apps: [{ bundleId: 'com.app' }] } })
     expect(await handle('/api/computer-use/authorized-apps', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { authorizedApps: [{ bundleId: 'com.app' }], grantFlags: { clipboardRead: true } } })
+    expect(await handle('/api/computer-use/setup', '', 'POST', undefined, s, config)).toEqual({ status: 200, body: { success: true, steps: [{ name: 'venv', ok: true, message: 'created' }] } })
+  })
+
+  test('computer-use unmounted setup reports unavailable', async () => {
+    expect(await handle('/api/computer-use/setup', '', 'POST', undefined, makeServices(), config)).toEqual({
+      status: 200,
+      body: { success: false, steps: [{ name: 'python-environment', ok: false, message: 'computer-use runtime setup is not available on this host yet' }] },
+    })
+    expect(await handle('/api/computer-use/setup', '', 'GET', undefined, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
   })
 
   test('agent-migration unmounted scan', async () => {

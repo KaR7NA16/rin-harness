@@ -25,6 +25,14 @@ function replaceRepository(list: RepositoryConnection[], next: RepositoryConnect
   return list.map(item => item.id === next.id ? next : item)
 }
 
+/** 展示层路径缩写：保留末两段，完整路径由 title 提示承载 */
+function shortenPath(path: string): string {
+  const normalized = path.replace(/\\/g, '/')
+  const segments = normalized.split('/').filter(Boolean)
+  if (segments.length <= 2) return normalized
+  return `…/${segments.slice(-2).join('/')}`
+}
+
 export function RepositoryWorkspace() {
   const t = useTranslation()
   const locale = useSettingsStore(state => state.locale)
@@ -126,7 +134,7 @@ export function RepositoryWorkspace() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="secondary" onClick={() => void refresh(true)} loading={refreshing}>
-              <RefreshCw size={14} className="mr-1" />{t('common.retry')}
+              <RefreshCw size={14} className="mr-1" />{t('common.refresh')}
             </Button>
             <Button size="sm" variant="secondary" onClick={() => openConnectionDialog('connect')}>
               <FolderOpen size={14} className="mr-1" />{t('repository.connect')}
@@ -158,7 +166,7 @@ export function RepositoryWorkspace() {
                     {t('repository.configuredPackages', { count: packages.length })}
                   </span>
                 </div>
-                <span className="text-[12px] text-[var(--color-text-tertiary)]">{t('repository.root')}: <code className="font-mono">{selected.rootPath}</code></span>
+                <span className="text-[12px] text-[var(--color-text-tertiary)]" title={selected.rootPath}>{t('repository.root')}: <code className="font-mono">{shortenPath(selected.rootPath)}</code></span>
               </div>
 
               <div className="px-[20px] py-[16px]">

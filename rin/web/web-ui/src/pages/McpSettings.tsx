@@ -968,11 +968,13 @@ export function McpSettings() {
         </Button>
       )}
     >
-      <div className="grid gap-[12px] md:grid-cols-3">
-        <StatCard label={t('settings.mcp.stats.total')} value={stats.total} icon="dns" />
-        <StatCard label={t('settings.mcp.stats.connected')} value={stats.connected} icon="check_circle" />
-        <StatCard label={t('settings.mcp.stats.attention')} value={stats.attention} icon="error" />
-      </div>
+      {stats.total > 0 && (
+        <div className="grid gap-[12px] md:grid-cols-3">
+          <StatCard label={t('settings.mcp.stats.total')} value={stats.total} icon="dns" />
+          <StatCard label={t('settings.mcp.stats.connected')} value={stats.connected} icon="check_circle" />
+          <StatCard label={t('settings.mcp.stats.attention')} value={stats.attention} icon="error" />
+        </div>
+      )}
 
       {isLoading && servers.length === 0 ? (
         <div className="flex justify-center py-[64px]">

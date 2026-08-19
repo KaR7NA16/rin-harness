@@ -1389,7 +1389,7 @@ const COMMAND_GROUPS = [
   },
   {
     titleKey: 'slash.help.group.desktop',
-    names: ['help', 'model', 'config', 'permissions', 'terminal-setup', 'login', 'logout', 'agents', 'mcp', 'skills', 'plugin', 'doctor', 'bug'],
+    names: ['help', 'model', 'config', 'permissions', 'login', 'logout', 'agents', 'mcp', 'skills', 'plugin', 'doctor', 'bug'],
   },
 ] satisfies Array<{ titleKey: TranslationKey; names: string[] }>
 

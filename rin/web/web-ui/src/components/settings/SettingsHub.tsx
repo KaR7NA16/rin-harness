@@ -6,6 +6,7 @@ export type SettingsNavItem = {
   id: string
   label: string
   searchText?: string
+  icon?: string
 }
 
 export type SettingsNavSection = {
@@ -45,7 +46,6 @@ export function SettingsNavigation({
   onSelect: (tab: string, target?: string) => void
 }) {
   const [query, setQuery] = useState('')
-  const activeSection = sections.find((section) => section.tabs.some((tab) => tab.id === activeTab))
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const searchableEntries = useMemo<SettingsSearchEntry[]>(() => searchEntries ?? sections.flatMap((section) => section.tabs.map((tab) => ({
     id: tab.id,
@@ -121,7 +121,6 @@ export function SettingsNavigation({
       ) : (
         <div className="settings-navigation-sections">
           {sections.map((section) => {
-            const isExpanded = activeSection?.id === section.id
             const tab = section.tabs[0]
             if (section.tabs.length === 1 && tab) {
               return (
@@ -141,33 +140,25 @@ export function SettingsNavigation({
             }
             return (
               <div className="settings-navigation-section" key={section.id}>
-                <button
-                  type="button"
-                  className={`settings-navigation-section-button ${isExpanded ? 'is-active' : ''}`}
-                  aria-expanded={isExpanded}
-                  onClick={() => selectTab(section.tabs[0]?.id ?? 'overview')}
-                >
-                  <span className="settings-navigation-section-icon">
-                    <Icon name={section.icon} size={15} />
-                  </span>
-                  <span>{section.label}</span>
-                  <Icon name={isExpanded ? 'expand_less' : 'chevron_right'} size={14} />
-                </button>
-                {isExpanded && (
-                  <div className="settings-navigation-subitems">
-                    {section.tabs.map((tab) => (
-                      <button
-                        type="button"
-                        key={tab.id}
-                        className={`settings-navigation-item ${activeTab === tab.id ? 'is-active' : ''}`}
-                        aria-current={activeTab === tab.id ? 'page' : undefined}
-                        onClick={() => selectTab(tab.id)}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <p className="settings-navigation-group-label">{section.label}</p>
+                <div className="settings-navigation-subitems">
+                  {section.tabs.map((tab) => (
+                    <button
+                      type="button"
+                      key={tab.id}
+                      className={`settings-navigation-item ${activeTab === tab.id ? 'is-active' : ''}`}
+                      aria-current={activeTab === tab.id ? 'page' : undefined}
+                      onClick={() => selectTab(tab.id)}
+                    >
+                      {tab.icon && (
+                        <span className="settings-navigation-item-icon">
+                          <Icon name={tab.icon} size={14} />
+                        </span>
+                      )}
+                      <span className="settings-navigation-item-label">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )
           })}
@@ -192,14 +183,12 @@ export function SettingsNavigation({
 export function SettingsOverview({
   title,
   description,
-  eyebrow = 'CONTROL CENTER',
   statusCards,
   emptyStatusLabel,
   onSelect,
 }: {
   title: string
   description: string
-  eyebrow?: string
   statusCards: SettingsOverviewStatus[]
   emptyStatusLabel?: string
   onSelect: (tab: string) => void
@@ -208,7 +197,6 @@ export function SettingsOverview({
     <div className="settings-overview" data-testid="settings-overview">
       <header className="settings-overview-header">
         <div>
-          <p className="settings-overview-eyebrow">{eyebrow}</p>
           <h1>{title}</h1>
           <p className="settings-overview-description">{description}</p>
         </div>

@@ -74,7 +74,7 @@ export function PluginDetail() {
     }
   }
 
-  const openSettingsTab = (tab: 'skills' | 'agents' | 'mcp') => {
+  const openSettingsTab = (tab: 'skills' | 'mcp') => {
     useUIStore.getState().openSettings(tab)
   }
 
@@ -103,7 +103,7 @@ export function PluginDetail() {
       })
       return
     }
-    openSettingsTab('agents')
+    useUIStore.getState().openWorkspaceView('agents')
     await fetchAgents(currentWorkDir)
 
     const state = useAgentStore.getState()
