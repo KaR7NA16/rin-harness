@@ -17,7 +17,6 @@ import type {
   JsonResponse,
   PromptMemoryTarget,
   RepositoryQuery,
-  ResponseStyle,
   SmartPruningLevel,
   SmartPruningStatusBody,
 } from './types.ts'
@@ -164,11 +163,6 @@ export function errorMessage(err: unknown): string {
 /** Narrow a value to one of the three smart-pruning levels. */
 export function isSmartPruningLevel(value: unknown): value is SmartPruningLevel {
   return value === 'conservative' || value === 'balanced' || value === 'aggressive'
-}
-
-/** Narrow a value to one of the three response-compression styles. */
-export function isResponseStyle(value: unknown): value is ResponseStyle {
-  return value === 'off' || value === 'caveman' || value === 'ponytail'
 }
 
 /** Narrow an unknown JSON body to a plain object, or undefined when not an object. */

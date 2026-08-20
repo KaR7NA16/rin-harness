@@ -110,8 +110,15 @@ const services = {
     },
   }),
   computerUse: () => ({
-    async getStatus() {
-      return { enabled: true, pendingApproval: false, authorizedAppCount: 1, queuedApprovalCount: 0 }
+    async getRuntimeStatus() {
+      return {
+        platform: process.platform,
+        supported: true,
+        python: { installed: true, version: '3.12', path: '/usr/bin/python3' },
+        venv: { created: true, path: '/tmp/rin-cu-venv' },
+        dependencies: { installed: true, requirementsFound: true, sha256: 'abc123' },
+        preflight: { accessibility: true, screenRecording: true },
+      }
     },
     async listAuthorizedApps() {
       return [{ bundleId: 'com.app', displayName: 'App', authorizedAt: '2026-01-01T00:00:00.000Z' }]
@@ -254,8 +261,9 @@ async function main() {
 
   // A4 computer-use
   res = await handle('/api/computer-use/status', '', 'GET', undefined, services, config)
-  expect('computer-use status enabled', res.body.enabled, true)
-  expect('computer-use status authorizedAppCount', res.body.authorizedAppCount, 1)
+  expect('computer-use status supported', res.body.supported, true)
+  expect('computer-use status permissions accessibility', res.body.permissions.accessibility, true)
+  expect('computer-use status permissions screenRecording', res.body.permissions.screenRecording, true)
 
   res = await handle('/api/computer-use/apps', '', 'GET', undefined, services, config)
   expect('computer-use apps length', res.body.apps.length, 1)

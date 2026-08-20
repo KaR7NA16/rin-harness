@@ -1,4 +1,4 @@
-import { TokenOptimizationCore, SECTION_NAME, validateResponseStyle } from '../src/store-core.ts'
+import { TokenOptimizationCore } from '../src/store-core.ts'
 
 const installed: string[] = []
 const listeners: string[] = []
@@ -23,23 +23,14 @@ const fakeSeam = {
   effect: (fn) => disposers.push(fn),
 }
 
-const core = new TokenOptimizationCore(fakeSeam, { responseStyle: 'off', cleanPrompt: false })
-if (installed.length !== 0) throw new Error('off should install nothing, got ' + installed)
+const core = new TokenOptimizationCore(fakeSeam, { cleanPrompt: false })
+if (installed.length !== 0) throw new Error('cleanPrompt off should install nothing')
 if (listeners.length !== 0) throw new Error('cleanPrompt off should register nothing')
-core.setResponseStyle('ponytail')
-if (installed.length !== 1 || installed[0] !== SECTION_NAME) throw new Error('ponytail should install section, got ' + installed)
-core.setResponseStyle('caveman')
-if (installed.length !== 1) throw new Error('style swap should not duplicate sections, got ' + installed)
-core.setResponseStyle('off')
-if (installed.length !== 0) throw new Error('off should remove section, got ' + installed)
 core.setCleanPrompt(true)
 if (listeners.length !== 1 || listeners[0] !== 'system-prompt/assemble') throw new Error('cleaner should register listener')
 core.setCleanPrompt(false)
 if (listeners.length !== 0) throw new Error('cleaner off should remove listener')
-if (core.getStatus().responseStyle !== 'off' || core.getStatus().cleanPrompt !== false) throw new Error('status wrong')
-let threw = false
-try { validateResponseStyle('bogus') } catch { threw = true }
-if (!threw) throw new Error('bogus style should throw')
+if (core.getStatus().cleanPrompt !== false) throw new Error('status wrong')
 disposers.forEach(fn => fn())
-if (installed.length !== 0 || listeners.length !== 0) throw new Error('dispose should clean everything')
+if (listeners.length !== 0) throw new Error('dispose should clean everything')
 console.log('TOKEN-STORE-SMOKE-OK', JSON.stringify(core.getStatus()))

@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url'
 import { buildPromptMemoryInsights } from '@rin/prompt-memory'
 import type { DiscoveryInput, ProviderTestInput } from '@rin/provider-probe'
 import type { BrowseInput } from '@rin/filesystem'
-import type { Config, JsonResponse, ResponseStyle } from '../types.ts'
+import type { Config, JsonResponse } from '../types.ts'
 import {
   asRecord,
   error,
@@ -541,30 +541,126 @@ async function agentsRepositoryRoute(
 const DEFAULT_PROVIDER_PRESETS = [
   {
     id: 'deepseek', name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', apiFormat: 'openai_chat',
-    defaultModels: { main: 'deepseek-v4-flash', haiku: 'deepseek-v4-flash', sonnet: 'deepseek-v4-pro', opus: 'deepseek-v4-pro' },
-    defaultModelContextWindows: {}, modelOptions: [
-      { id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' },
-      { id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro' },
+    defaultModels: { main: 'deepseek-chat', haiku: 'deepseek-chat', sonnet: 'deepseek-chat', opus: 'deepseek-reasoner' },
+    defaultModelContextWindows: { main: 128_000, haiku: 128_000, sonnet: 128_000, opus: 128_000 },
+    modelOptions: [
+      { id: 'deepseek-chat', label: 'DeepSeek Chat (V3)', contextWindow: 128_000 },
+      { id: 'deepseek-reasoner', label: 'DeepSeek Reasoner (R1)', contextWindow: 128_000 },
     ],
     supportsImages: false, needsApiKey: true, websiteUrl: 'https://platform.deepseek.com', apiKeyUrl: 'https://platform.deepseek.com/api_keys',
   },
   {
     id: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', apiFormat: 'openai_chat',
     defaultModels: { main: 'gpt-4.1', haiku: 'gpt-4.1-mini', sonnet: 'gpt-4.1', opus: 'gpt-4.1' },
-    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: true, websiteUrl: 'https://platform.openai.com',
+    defaultModelContextWindows: {}, modelOptions: [
+      { id: 'gpt-4.1', label: 'GPT-4.1', contextWindow: 1_000_000 },
+      { id: 'gpt-4.1-mini', label: 'GPT-4.1 mini', contextWindow: 1_000_000 },
+      { id: 'gpt-4o', label: 'GPT-4o', contextWindow: 128_000 },
+    ],
+    supportsImages: true, needsApiKey: true, websiteUrl: 'https://platform.openai.com', apiKeyUrl: 'https://platform.openai.com/api-keys',
   },
   {
     id: 'anthropic', name: 'Anthropic', baseUrl: 'https://api.anthropic.com', apiFormat: 'anthropic',
     defaultModels: { main: 'claude-sonnet-4', haiku: 'claude-haiku-4', sonnet: 'claude-sonnet-4', opus: 'claude-opus-4' },
-    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: true, websiteUrl: 'https://console.anthropic.com',
+    defaultModelContextWindows: {}, modelOptions: [
+      { id: 'claude-opus-4', label: 'Claude Opus 4', contextWindow: 200_000 },
+      { id: 'claude-sonnet-4', label: 'Claude Sonnet 4', contextWindow: 200_000 },
+      { id: 'claude-haiku-4', label: 'Claude Haiku 4', contextWindow: 200_000 },
+    ],
+    supportsImages: true, needsApiKey: true, websiteUrl: 'https://console.anthropic.com', apiKeyUrl: 'https://console.anthropic.com/settings/keys',
+  },
+  {
+    id: 'google', name: 'Google Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', apiFormat: 'openai_chat',
+    defaultModels: { main: 'gemini-2.5-pro', haiku: 'gemini-2.5-flash-lite', sonnet: 'gemini-2.5-flash', opus: 'gemini-2.5-pro' },
+    defaultModelContextWindows: {}, modelOptions: [
+      { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', contextWindow: 1_000_000 },
+      { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', contextWindow: 1_000_000 },
+      { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite', contextWindow: 1_000_000 },
+    ],
+    supportsImages: true, needsApiKey: true, websiteUrl: 'https://aistudio.google.com', apiKeyUrl: 'https://aistudio.google.com/apikey',
+  },
+  {
+    id: 'qwen', name: 'Tongyi Qwen', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', apiFormat: 'openai_chat',
+    defaultModels: { main: 'qwen-max', haiku: 'qwen-turbo', sonnet: 'qwen-plus', opus: 'qwen-max' },
+    defaultModelContextWindows: {}, modelOptions: [
+      { id: 'qwen-max', label: 'Qwen Max', contextWindow: 32_000 },
+      { id: 'qwen-plus', label: 'Qwen Plus', contextWindow: 131_072 },
+      { id: 'qwen-turbo', label: 'Qwen Turbo', contextWindow: 1_000_000 },
+    ],
+    supportsImages: true, needsApiKey: true, websiteUrl: 'https://bailian.console.aliyun.com', apiKeyUrl: 'https://bailian.console.aliyun.com/?apiKey=1',
+  },
+  {
+    id: 'zhipuglm', name: 'Zhipu GLM', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', apiFormat: 'openai_chat',
+    defaultModels: { main: 'glm-4.5', haiku: 'glm-4-flash', sonnet: 'glm-4.5-air', opus: 'glm-4.5' },
+    defaultModelContextWindows: {}, modelOptions: [
+      { id: 'glm-4.5', label: 'GLM-4.5', contextWindow: 128_000 },
+      { id: 'glm-4.5-air', label: 'GLM-4.5-Air', contextWindow: 128_000 },
+      { id: 'glm-4-flash', label: 'GLM-4-Flash (free)', contextWindow: 128_000 },
+    ],
+    supportsImages: true, needsApiKey: true, websiteUrl: 'https://open.bigmodel.cn', apiKeyUrl: 'https://open.bigmodel.cn/usercenter/apikeys',
+  },
+  {
+    id: 'kimi', name: 'Kimi', baseUrl: 'https://api.moonshot.cn/v1', apiFormat: 'openai_chat',
+    defaultModels: { main: 'moonshot-v1-32k', haiku: 'moonshot-v1-8k', sonnet: 'moonshot-v1-32k', opus: 'moonshot-v1-128k' },
+    defaultModelContextWindows: {}, modelOptions: [
+      { id: 'moonshot-v1-8k', label: 'Moonshot v1 8k', contextWindow: 8_000 },
+      { id: 'moonshot-v1-32k', label: 'Moonshot v1 32k', contextWindow: 32_000 },
+      { id: 'moonshot-v1-128k', label: 'Moonshot v1 128k', contextWindow: 128_000 },
+    ],
+    supportsImages: false, needsApiKey: true, websiteUrl: 'https://platform.moonshot.cn', apiKeyUrl: 'https://platform.moonshot.cn/console/api-keys',
+  },
+  {
+    id: 'minimax', name: 'MiniMax', baseUrl: 'https://api.minimax.chat/v1', apiFormat: 'openai_chat',
+    defaultModels: { main: 'MiniMax-Text-01', haiku: 'MiniMax-Text-01', sonnet: 'MiniMax-Text-01', opus: 'MiniMax-Text-01' },
+    defaultModelContextWindows: {}, modelOptions: [],
+    supportsImages: false, needsApiKey: true, websiteUrl: 'https://platform.minimaxi.com', apiKeyUrl: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
+  },
+  {
+    id: 'xiaomimimo', name: 'Xiaomi MiMo', baseUrl: 'https://api.xiaomimimo.com/v1', apiFormat: 'openai_chat',
+    defaultModels: { main: 'MiMo-7B-RL', haiku: 'MiMo-7B-RL', sonnet: 'MiMo-7B-RL', opus: 'MiMo-7B-RL' },
+    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: true, websiteUrl: 'https://platform.xiaomimimo.com',
+  },
+  {
+    id: 'mistral', name: 'Mistral', baseUrl: 'https://api.mistral.ai/v1', apiFormat: 'openai_chat',
+    defaultModels: { main: 'mistral-large-latest', haiku: 'mistral-small-latest', sonnet: 'mistral-medium-latest', opus: 'mistral-large-latest' },
+    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: true, websiteUrl: 'https://console.mistral.ai', apiKeyUrl: 'https://console.mistral.ai/api-keys',
+  },
+  {
+    id: 'xai', name: 'xAI (Grok)', baseUrl: 'https://api.x.ai/v1', apiFormat: 'openai_chat',
+    defaultModels: { main: 'grok-3', haiku: 'grok-3-mini', sonnet: 'grok-3', opus: 'grok-3' },
+    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: true, websiteUrl: 'https://console.x.ai', apiKeyUrl: 'https://console.x.ai/api-keys',
+  },
+  {
+    id: 'groq', name: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', apiFormat: 'openai_chat',
+    defaultModels: { main: 'llama-3.3-70b-versatile', haiku: 'llama-3.1-8b-instant', sonnet: 'llama-3.3-70b-versatile', opus: 'llama-3.3-70b-versatile' },
+    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: true, websiteUrl: 'https://console.groq.com', apiKeyUrl: 'https://console.groq.com/keys',
+  },
+  {
+    id: 'openrouter', name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', apiFormat: 'openai_chat',
+    defaultModels: { main: '', haiku: '', sonnet: '', opus: '' },
+    defaultModelContextWindows: {}, modelOptions: [], supportsImages: true, needsApiKey: true, websiteUrl: 'https://openrouter.ai', apiKeyUrl: 'https://openrouter.ai/settings/keys',
+  },
+  {
+    id: 'siliconflow', name: 'SiliconFlow', baseUrl: 'https://api.siliconflow.cn/v1', apiFormat: 'openai_chat',
+    defaultModels: { main: 'Qwen/Qwen2.5-72B-Instruct', haiku: 'Qwen/Qwen2.5-7B-Instruct', sonnet: 'Qwen/Qwen2.5-72B-Instruct', opus: 'Qwen/Qwen2.5-72B-Instruct' },
+    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: true, websiteUrl: 'https://siliconflow.cn', apiKeyUrl: 'https://cloud.siliconflow.cn/account/ak',
+  },
+  {
+    id: 'lmstudio', name: 'LM Studio', baseUrl: 'http://127.0.0.1:1234/v1', apiFormat: 'openai_chat',
+    defaultModels: { main: '', haiku: '', sonnet: '', opus: '' },
+    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: false, websiteUrl: 'https://lmstudio.ai',
   },
   {
     id: 'ollama', name: 'Ollama', baseUrl: 'http://127.0.0.1:11434', apiFormat: 'openai_chat',
     defaultModels: { main: 'llama3', haiku: 'llama3', sonnet: 'llama3', opus: 'llama3' },
     defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: false, websiteUrl: 'https://ollama.com',
   },
+  {
+    id: 'custom', name: 'Custom API', baseUrl: '', apiFormat: 'openai_chat',
+    defaultModels: { main: '', haiku: '', sonnet: '', opus: '' },
+    defaultModelContextWindows: {}, modelOptions: [], supportsImages: false, needsApiKey: true, websiteUrl: '',
+  },
 ] as const
-
 const PROVIDER_PRESETS = DEFAULT_PROVIDER_PRESETS
 
 function providerStorePath(): string {
@@ -1649,21 +1745,6 @@ async function tokenOptimizationRoute(
     const status = token.setCleanPrompt(enabled)
     return json(200, { enabled: status.cleanPrompt, mode: 'deterministic' })
   }
-  if (pathname === '/api/token-optimization/ponytail') return responseStyleStatus(method, 'ponytail', token)
-  if (pathname === '/api/token-optimization/ponytail/enable' || pathname === '/api/token-optimization/ponytail/disable') {
-    if (method !== 'POST') return error(405, 'method not allowed')
-    const enabled = pathname.endsWith('/enable')
-    token.setResponseStyle(enabled ? 'ponytail' : 'off')
-    return json(200, { enabled, mode: 'full' })
-  }
-  if (pathname === '/api/token-optimization/caveman') return responseStyleStatus(method, 'caveman', token)
-  if (pathname === '/api/token-optimization/caveman/enable' || pathname === '/api/token-optimization/caveman/disable') {
-    if (method !== 'POST') return error(405, 'method not allowed')
-    const enabled = pathname.endsWith('/enable')
-    token.setResponseStyle(enabled ? 'caveman' : 'off')
-    return json(200, { enabled, mode: 'full' })
-  }
-
   const pruning = services.smartPruning()
   if (pathname === '/api/token-optimization/pruning') {
     if (pruning === undefined) return json(200, { enabled: false, level: 'balanced', mode: 'deterministic' })
@@ -1695,16 +1776,6 @@ function tokenLiteStatus(
   if (method === 'POST') return error(405, 'method not allowed')
   return json(200, { enabled: token.getStatus().cleanPrompt, mode: 'deterministic' })
 }
-
-function responseStyleStatus(
-  method: string,
-  style: 'caveman' | 'ponytail',
-  token: { getStatus(): { responseStyle: ResponseStyle } },
-): JsonResponse {
-  if (method === 'POST') return error(405, 'method not allowed')
-  return json(200, { enabled: token.getStatus().responseStyle === style, mode: 'full' })
-}
-
 
 /* ------------------------- legacy A/B service routes ------------------------ */
 

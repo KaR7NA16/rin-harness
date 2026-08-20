@@ -3,6 +3,13 @@ import type { ThemeMode } from '../types/settings'
 import { readStoredValue, writeStoredValue } from '../lib/storage'
 
 const THEME_STORAGE_KEY = 'rin-theme'
+const SIDEBAR_WIDTH_STORAGE_KEY = 'rin.sidebar.width.v1'
+const SIDEBAR_WIDTH_DEFAULT = 260
+
+function getStoredSidebarWidth(): number {
+  const parsed = Number(readStoredValue(SIDEBAR_WIDTH_STORAGE_KEY))
+  return Number.isFinite(parsed) && parsed >= 180 && parsed <= 520 ? parsed : SIDEBAR_WIDTH_DEFAULT
+}
 
 function getStoredTheme(): ThemeMode {
   const stored = readStoredValue(THEME_STORAGE_KEY)
@@ -41,6 +48,7 @@ export type SettingsTab =
   | 'agentMigration'
   | 'about'
   | 'behavior'
+  | 'tokenOptimization'
 
 export type WorkspaceView =
   | 'notes'
@@ -54,18 +62,20 @@ export type WorkspaceView =
   | 'repository'
   | 'agents'
 
-export type SidebarGrouping = 'project' | 'time'
+export type SidebarGrouping = 'project' | 'time' | 'flat'
 
 const SIDEBAR_GROUPING_STORAGE_KEY = 'rin-sidebar-grouping'
 
 function getStoredSidebarGrouping(): SidebarGrouping {
   const stored = readStoredValue(SIDEBAR_GROUPING_STORAGE_KEY)
-  return stored === 'time' || stored === 'project' ? stored : 'project'
+  return stored === 'time' || stored === 'project' || stored === 'flat' ? stored : 'project'
 }
 
 type UIStore = {
   theme: ThemeMode
   sidebarOpen: boolean
+  sidebarWidth: number
+  setSidebarWidth: (width: number) => void
   pendingSettingsTab: SettingsTab | null
   activeSettingsTab: SettingsTab
   settingsOpen: boolean
@@ -99,6 +109,7 @@ let toastCounter = 0
 export const useUIStore = create<UIStore>((set) => ({
   theme: getStoredTheme(),
   sidebarOpen: true,
+  sidebarWidth: getStoredSidebarWidth(),
   pendingSettingsTab: null,
   activeSettingsTab: 'overview',
   settingsOpen: false,
@@ -124,6 +135,11 @@ export const useUIStore = create<UIStore>((set) => ({
   },
 
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  setSidebarWidth: (width) => {
+    const clamped = Math.min(520, Math.max(180, Math.round(width)))
+    writeStoredValue(SIDEBAR_WIDTH_STORAGE_KEY, String(clamped))
+    set({ sidebarWidth: clamped })
+  },
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   setPendingSettingsTab: (tab) => set({ pendingSettingsTab: tab }),
   setActiveSettingsTab: (tab) => set({ activeSettingsTab: tab }),

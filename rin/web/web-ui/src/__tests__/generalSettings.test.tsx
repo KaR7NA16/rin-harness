@@ -307,11 +307,14 @@ describe('Settings > Providers tab', () => {
 
     render(<ProviderSettings />)
 
-    expect(screen.getByAltText('DeepSeek logo')).toHaveAttribute('src', '/provider-icons/styled/rin-deepseek.png')
-    expect(screen.getByAltText('DeepSeek logo')).toHaveStyle({
+    const deepseekLogo = screen.getAllByAltText('DeepSeek logo')
+      .find((el) => el.parentElement?.getAttribute('data-provider-logo') === 'deepseek')
+    expect(deepseekLogo).toBeDefined()
+    expect(deepseekLogo).toHaveAttribute('src', '/provider-icons/styled/rin-deepseek.png')
+    expect(deepseekLogo).toHaveStyle({
       objectFit: 'contain',
     })
-    expect(screen.getByAltText('DeepSeek logo').parentElement).toHaveAttribute('data-provider-logo', 'deepseek')
+    expect(deepseekLogo!.parentElement).toHaveAttribute('data-provider-logo', 'deepseek')
 
     fireEvent.click(screen.getAllByRole('button', { name: /Configure/i })[0]!)
 

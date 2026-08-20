@@ -167,7 +167,30 @@ export type SessionInspectionResponse = {
   errors?: Record<string, string>
 }
 
+export type SessionSearchHit = {
+  sessionId: string
+  projectPath: string
+  workDir: string | null
+  title: string
+  snippet?: string
+  matchCount: number
+  matches?: Array<{ line: number; text: string }>
+}
+
+export type SessionSearchResponse = {
+  success: true
+  mode: 'discover'
+  query: string
+  results: SessionSearchHit[]
+  count: number
+}
+
 export const sessionsApi = {
+  /** Host 端会话内容搜索（@rin/session-search 索引）。 */
+  search(query: string) {
+    return api.post<SessionSearchResponse>('/api/search/sessions', { query })
+  },
+
   list(params?: { project?: string; limit?: number; offset?: number }) {
     const query = new URLSearchParams()
     if (params?.project) query.set('project', params.project)

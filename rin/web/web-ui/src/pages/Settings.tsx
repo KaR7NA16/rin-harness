@@ -65,6 +65,7 @@ import { SessionBackup } from './SessionBackup'
 import { resolveAboutVersion } from './aboutVersion'
 import { groupProviderCatalogRows } from './providerCatalog'
 import { ExecutionBehaviorSettings } from './ExecutionBehaviorSettings'
+import { TokenOptimizationContent } from './TokenOptimization'
 
 export { ExecutionBehaviorSettings } from './ExecutionBehaviorSettings'
 
@@ -84,6 +85,7 @@ const SETTINGS_SECTIONS: Array<{
     tabs: [
       { id: 'providers', icon: 'dns' },
       { id: 'behavior', icon: 'bolt' },
+      { id: 'tokenOptimization', icon: 'analytics' },
     ],
   },
   {
@@ -132,6 +134,7 @@ const TAB_RENDERERS: Partial<Record<SettingsTab, () => ReactNode>> = {
   plugins: () => <PluginSettings />,
   mcp: () => <McpSettings />,
   behavior: () => <ExecutionBehaviorSettings />,
+  tokenOptimization: () => <TokenOptimizationContent />,
   adapters: () => <AdapterSettings />,
   computerUse: () => <ComputerUseSettings />,
   memory: () => <MemorySettings />,
@@ -229,6 +232,7 @@ export function Settings() {
     { id: 'general.appearance', label: t('settings.general.appearanceTitle'), description: t('settings.general.appearanceDescription'), keywords: ['主题', '配色', 'dark', 'light'], sectionLabel: t('settings.tab.general'), tab: 'general', target: 'general.appearance' },
     { id: 'general.language', label: t('settings.general.languageTitle'), description: t('settings.general.languageDescription'), keywords: ['语言', 'locale'], sectionLabel: t('settings.tab.general'), tab: 'general', target: 'general.language' },
     { id: 'execution.effort', label: t('settings.execution.effortTitle'), description: t('settings.execution.effortDescription'), keywords: ['推理', '强度', 'effort'], sectionLabel: t('settings.group.execution'), tab: 'behavior', target: 'execution.effort' },
+    { id: 'execution.tokenOptimization', label: t('tokenOptimization.title'), description: t('tokenOptimization.description'), keywords: ['token', '优化', '裁剪', '压缩', '代码图谱', 'optimization', 'pruning'], sectionLabel: t('settings.group.execution'), tab: 'tokenOptimization' },
     { id: 'security.webFetchPreflight', label: t('settings.permissions.webFetchTitle'), description: t('settings.permissions.webFetchDescription'), keywords: ['WebFetch', '域名', '预检', '网络'], sectionLabel: t('settings.group.runtime'), tab: 'permissions', target: 'security.webFetchPreflight', advanced: true },
     { id: 'data.sessionBackup', label: t('backup.title'), description: t('backup.subtitle'), keywords: ['自动备份', '会话', '恢复', 'backup'], sectionLabel: t('settings.group.data'), tab: 'sessionBackup', target: 'data.sessionBackup' },
     { id: 'extensions.imSecret', label: 'App Secret', description: t('settings.adapters.description'), keywords: ['App Secret', '密钥', '飞书', 'Telegram'], sectionLabel: t('settings.group.extensions'), tab: 'adapters', target: 'extensions.imSecret' },
@@ -442,7 +446,7 @@ export function ProviderSettings() {
     <ProviderCatalogItem
       name={t('settings.providers.officialName')}
       description={t('settings.providers.officialDesc')}
-      detail="claude-opus-4-8 · claude-sonnet-5 · claude-haiku-4-5"
+      detail="deepseek-chat · deepseek-reasoner"
       providerId="official"
       isActive={isOfficialActive}
       isConfigured={true}

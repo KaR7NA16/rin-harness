@@ -95,19 +95,9 @@ export type RtkStatus = {
   error: string | null
 }
 
-export type CavemanStatus = {
-  enabled: boolean
-  mode: 'full'
-}
-
 export type LiteOptimizationStatus = {
   enabled: boolean
   mode: 'deterministic'
-}
-
-export type PonytailStatus = {
-  enabled: boolean
-  mode: 'full'
 }
 
 export type SmartPruningLevel = 'conservative' | 'balanced' | 'aggressive'
@@ -150,22 +140,6 @@ export const tokenOptimizationApi = {
 
   disableCodeGraphGlobally: () =>
     api.post<CodeGraphGlobalStatus>('/api/token-optimization/codegraph/global/disable', {}),
-
-  ponytailStatus: () => api.get<PonytailStatus>('/api/token-optimization/ponytail'),
-
-  enablePonytail: () =>
-    api.post<PonytailStatus>('/api/token-optimization/ponytail/enable', {}),
-
-  disablePonytail: () =>
-    api.post<PonytailStatus>('/api/token-optimization/ponytail/disable', {}),
-
-  cavemanStatus: () => api.get<CavemanStatus>('/api/token-optimization/caveman'),
-
-  enableCaveman: () =>
-    api.post<CavemanStatus>('/api/token-optimization/caveman/enable', {}),
-
-  disableCaveman: () =>
-    api.post<CavemanStatus>('/api/token-optimization/caveman/disable', {}),
 
   rtkStatus: () => api.get<RtkStatus>('/api/token-optimization/rtk'),
 

@@ -34,6 +34,7 @@ function dismissBootSplash() {
 export function AppShell() {
   const fetchSettings = useSettingsStore((s) => s.fetchAll)
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
+  const sidebarWidth = useUIStore((s) => s.sidebarWidth)
   const settingsOpen = useUIStore((s) => s.settingsOpen)
   const closeSettings = useUIStore((s) => s.closeSettings)
   const activeTabId = useTabStore((s) => s.activeTabId)
@@ -137,11 +138,12 @@ export function AppShell() {
     <div className="flex h-screen w-screen overflow-hidden bg-transparent font-sans text-[var(--color-text-primary)]">
       <div className="relative flex h-full w-full overflow-hidden bg-transparent">
         <div
-          className={`relative z-20 h-full shrink-0 overflow-hidden ${sidebarOpen ? 'w-[var(--sidebar-width)]' : 'w-0'}`}
-          style={sidebarOpen ? undefined : { transition: 'width 0s var(--motion-sidebar-duration)' }}
+          className={`relative z-20 h-full shrink-0 overflow-hidden ${sidebarOpen ? '' : 'w-0'}`}
+          style={{ width: sidebarOpen ? sidebarWidth : undefined, transition: sidebarOpen ? undefined : 'width 0s var(--motion-sidebar-duration)' }}
         >
           <div
-            className={`sidebar-panel-slider h-full w-[var(--sidebar-width)] border-r border-[var(--color-border-separator)] bg-[var(--color-surface-sidebar)] ${sidebarOpen ? '' : '-translate-x-full pointer-events-none'}`}
+            className={`sidebar-panel-slider h-full border-r border-[var(--color-border-separator)] bg-[var(--color-surface-sidebar)] ${sidebarOpen ? '' : '-translate-x-full pointer-events-none'}`}
+            style={{ width: sidebarWidth }}
           >
             <Sidebar />
           </div>

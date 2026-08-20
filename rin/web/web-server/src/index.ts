@@ -54,7 +54,6 @@ export {
   parsePromptMemoryTarget,
   errorMessage,
   isSmartPruningLevel,
-  isResponseStyle,
   asRecord,
   stringField,
   booleanField,

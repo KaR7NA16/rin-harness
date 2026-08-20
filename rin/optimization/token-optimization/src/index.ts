@@ -1,11 +1,10 @@
 /**
  * rin token-optimization — the slim knob set for the token-saving family.
  *
- * Two switches today, both live-switchable at runtime: a response-compression
- * style (caveman/ponytail) installed as a system-prompt section, and a
- * deterministic prompt cleaner on the assemble waterfall. Neither touches tool
- * schemas, tool results, or the session log. The TokenOptimizationStore
- * exposes the knob state; store-core.ts owns the effect swapping.
+ * One live-switchable knob: a deterministic prompt cleaner on the assemble
+ * waterfall. It does not touch tool schemas, tool results, or the session log.
+ * The TokenOptimizationStore exposes the knob state; store-core.ts owns the
+ * effect swapping.
  *
  * @module @rin/token-optimization
  */
@@ -15,7 +14,6 @@ import z from '@deepseek-ai/schemastery'
 import {
   TokenOptimizationCore,
   type PromptAssembly,
-  type ResponseStyle,
   type TokenOptimizationSeam,
   type TokenOptimizationStatus,
 } from './store-core.ts'
@@ -41,15 +39,10 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-export { CAVEMAN_PROMPT, PONYTAIL_PROMPT } from './prompts.ts'
 export { cleanPromptText, cleanSystemPromptParts } from './clean.ts'
 export {
-  SECTION_NAME,
-  SECTION_ORDER,
   TokenOptimizationCore,
-  validateResponseStyle,
   type PromptAssembly,
-  type ResponseStyle,
   type TokenKnobConfig,
   type TokenOptimizationSeam,
   type TokenOptimizationStatus,
@@ -58,14 +51,12 @@ export {
 export const name = 'token-optimization'
 export const inject = ['systemPrompt']
 
-/** Plugin configuration: the two knobs of the token-saving family. */
+/** Plugin configuration: the prompt-cleaner knob of the token-saving family. */
 export interface Config {
-  responseStyle?: ResponseStyle
   cleanPrompt?: boolean
 }
 
 export const Config: z<Config> = z.object({
-  responseStyle: z.union(['off', 'caveman', 'ponytail'] as const).default('off'),
   cleanPrompt: z.boolean().default(false),
 })
 
@@ -93,11 +84,6 @@ export class TokenOptimizationStore extends Service {
   /** @returns the current knob values. */
   getStatus(): TokenOptimizationStatus {
     return this.core.getStatus()
-  }
-
-  /** Switch the response-compression style; applies immediately. */
-  setResponseStyle(style: ResponseStyle): TokenOptimizationStatus {
-    return this.core.setResponseStyle(style)
   }
 
   /** Switch the prompt cleaner; applies immediately. */

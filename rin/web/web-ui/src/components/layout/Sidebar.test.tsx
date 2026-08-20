@@ -834,9 +834,9 @@ describe('Sidebar', () => {
 
     const section = screen.getByTestId('sidebar-session-list-section')
     expect(section).toHaveClass('flex-1', 'min-h-0')
-    const scrollArea = section.querySelector('.scrollbar-no-track')
+    const scrollArea = section.querySelector('.sidebar-scroll-area')
     expect(scrollArea).not.toBeNull()
-    expect(scrollArea).toHaveClass('overflow-y-auto', 'no-scrollbar')
+    expect(scrollArea).toHaveClass('flex-1', 'min-h-0')
   })
 
   it('groups sessions by date when time grouping is selected', async () => {
@@ -904,9 +904,8 @@ describe('Sidebar', () => {
     expect(screen.getByText('recent transcript')).toBeInTheDocument()
     expect(screen.getByText('old transcript')).toBeInTheDocument()
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'By project' }))
-    })
+    fireEvent.click(screen.getByRole('button', { name: 'By date' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /By project/ }))
     expect(useUIStore.getState().sidebarGrouping).toBe('project')
     expect(within(list).getAllByRole('region')[0]?.getAttribute('aria-label')).toBe('alpha')
 

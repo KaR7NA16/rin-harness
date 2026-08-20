@@ -690,13 +690,10 @@ describe('legacy: token optimization', () => {
     expect(await handle('/api/token-optimization/lite/enable', '', 'GET', undefined, s, config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
   })
 
-  test('ponytail and caveman status + enable/disable', async () => {
+  test('removed response-style endpoints return 404', async () => {
     const s = makeServices({ tokenOptimization: () => token })
-    expect(await handle('/api/token-optimization/ponytail', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { enabled: false, mode: 'full' } })
-    expect(await handle('/api/token-optimization/ponytail/enable', '', 'POST', undefined, s, config)).toEqual({ status: 200, body: { enabled: true, mode: 'full' } })
-    expect(await handle('/api/token-optimization/caveman', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { enabled: false, mode: 'full' } })
-    expect(await handle('/api/token-optimization/caveman/enable', '', 'POST', undefined, s, config)).toEqual({ status: 200, body: { enabled: true, mode: 'full' } })
-    expect(await handle('/api/token-optimization/caveman/disable', '', 'POST', undefined, s, config)).toEqual({ status: 200, body: { enabled: false, mode: 'full' } })
+    expect(await handle('/api/token-optimization/ponytail', '', 'GET', undefined, s, config)).toEqual({ status: 404, body: { error: 'unknown token optimization endpoint' } })
+    expect(await handle('/api/token-optimization/caveman/enable', '', 'POST', undefined, s, config)).toEqual({ status: 404, body: { error: 'unknown token optimization endpoint' } })
   })
 
   test('pruning status unmounted fallback', async () => {

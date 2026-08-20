@@ -14,7 +14,6 @@ import {
   mountedValue,
   errorMessage,
   isSmartPruningLevel,
-  isResponseStyle,
   asRecord,
   stringField,
   booleanField,
@@ -201,16 +200,6 @@ describe('isSmartPruningLevel', () => {
     expect(isSmartPruningLevel('bogus')).toBe(false)
     expect(isSmartPruningLevel(1)).toBe(false)
     expect(isSmartPruningLevel(null)).toBe(false)
-  })
-})
-
-describe('isResponseStyle', () => {
-  test('accepts off/caveman/ponytail and rejects others', () => {
-    expect(isResponseStyle('off')).toBe(true)
-    expect(isResponseStyle('caveman')).toBe(true)
-    expect(isResponseStyle('ponytail')).toBe(true)
-    expect(isResponseStyle('rtk')).toBe(false)
-    expect(isResponseStyle(undefined)).toBe(false)
   })
 })
 

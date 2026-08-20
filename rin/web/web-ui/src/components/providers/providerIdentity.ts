@@ -33,13 +33,13 @@ export type ProviderIdentityInput = {
 const KNOWN_PROVIDER_IDENTITIES: ProviderIdentityDefinition[] = [
   {
     id: 'official',
-    label: 'Claude',
-    initials: 'C',
-    accent: '#8a6f4d',
+    label: 'DeepSeek',
+    initials: 'DS',
+    accent: '#2563eb',
     motif: 'asset',
-    assetSrc: '/provider-icons/styled/rin-claude.png',
+    assetSrc: '/provider-icons/styled/rin-deepseek.png',
     assetScale: 0.9,
-    matchers: ['official', 'claude'],
+    matchers: ['official', 'deepseek'],
   },
   {
     id: 'deepseek',
@@ -110,6 +110,16 @@ const KNOWN_PROVIDER_IDENTITIES: ProviderIdentityDefinition[] = [
     assetSrc: '/provider-icons/styled/rin-ollama.png',
     assetScale: 0.9,
     matchers: ['ollama'],
+  },
+  {
+    id: 'anthropic',
+    label: 'Anthropic',
+    initials: 'A',
+    accent: '#c15f3c',
+    motif: 'asset',
+    assetSrc: '/provider-icons/styled/rin-claude.png',
+    assetScale: 0.9,
+    matchers: ['claude'],
   },
   {
     id: 'openai',

@@ -1,7 +1,6 @@
 import {
   ArrowLeft,
-  MessageSquareText,
-  Minimize2,
+  ChevronDown,
   Network,
   RefreshCw,
   Scissors,
@@ -11,17 +10,16 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   tokenOptimizationApi,
-  type CavemanStatus,
   type CodeGraphData,
   type CodeGraphState,
   type CodeGraphStatus,
   type LiteOptimizationStatus,
-  type PonytailStatus,
   type RtkStatus,
   type SmartPruningLevel,
   type SmartPruningStatus,
 } from '../api/tokenOptimization'
 import { CodeGraphVisualization } from '../components/codegraph/CodeGraphVisualization'
+import { Button } from '../components/shared/Button'
 import {
   SettingsPage,
   SettingsSection,
@@ -47,21 +45,17 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
   const [codeGraphGlobalEnabled, setCodeGraphGlobalEnabled] = useState<boolean | null>(null)
   const [graph, setGraph] = useState<CodeGraphData | null>(null)
   const [showGraph, setShowGraph] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState<Set<'context' | 'tools'>>(() => new Set(['context']))
+  const [codeGraphDetailsOpen, setCodeGraphDetailsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [graphLoading, setGraphLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [rtkStatus, setRtkStatus] = useState<RtkStatus | null>(null)
   const [rtkLoading, setRtkLoading] = useState(false)
   const [rtkError, setRtkError] = useState<string | null>(null)
-  const [cavemanStatus, setCavemanStatus] = useState<CavemanStatus | null>(null)
-  const [cavemanLoading, setCavemanLoading] = useState(false)
-  const [cavemanError, setCavemanError] = useState<string | null>(null)
   const [liteStatus, setLiteStatus] = useState<LiteOptimizationStatus | null>(null)
   const [liteLoading, setLiteLoading] = useState(false)
   const [liteError, setLiteError] = useState<string | null>(null)
-  const [ponytailStatus, setPonytailStatus] = useState<PonytailStatus | null>(null)
-  const [ponytailLoading, setPonytailLoading] = useState(false)
-  const [ponytailError, setPonytailError] = useState<string | null>(null)
   const [pruningStatus, setPruningStatus] = useState<SmartPruningStatus | null>(null)
   const [pruningLoading, setPruningLoading] = useState(false)
   const [pruningError, setPruningError] = useState<string | null>(null)
@@ -184,34 +178,6 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
       })
       .catch((loadError) => {
         if (active) setPruningError(getErrorMessage(loadError, t('tokenOptimization.pruning.loadFailed')))
-      })
-    return () => {
-      active = false
-    }
-  }, [t])
-
-  useEffect(() => {
-    let active = true
-    void tokenOptimizationApi.ponytailStatus()
-      .then((nextStatus) => {
-        if (active) setPonytailStatus(nextStatus)
-      })
-      .catch((loadError) => {
-        if (active) setPonytailError(getErrorMessage(loadError, t('tokenOptimization.ponytail.loadFailed')))
-      })
-    return () => {
-      active = false
-    }
-  }, [t])
-
-  useEffect(() => {
-    let active = true
-    void tokenOptimizationApi.cavemanStatus()
-      .then((nextStatus) => {
-        if (active) setCavemanStatus(nextStatus)
-      })
-      .catch((loadError) => {
-        if (active) setCavemanError(getErrorMessage(loadError, t('tokenOptimization.caveman.loadFailed')))
       })
     return () => {
       active = false
@@ -427,22 +393,6 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
     }
   }
 
-  const toggleCaveman = async (enabled: boolean) => {
-    if (cavemanLoading) return
-    setCavemanLoading(true)
-    setCavemanError(null)
-    try {
-      const nextStatus = enabled
-        ? await tokenOptimizationApi.enableCaveman()
-        : await tokenOptimizationApi.disableCaveman()
-      setCavemanStatus(nextStatus)
-    } catch (toggleError) {
-      setCavemanError(getErrorMessage(toggleError, t('tokenOptimization.caveman.updateFailed')))
-    } finally {
-      setCavemanLoading(false)
-    }
-  }
-
   const toggleLite = async (enabled: boolean) => {
     if (liteLoading) return
     setLiteLoading(true)
@@ -456,22 +406,6 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
       setLiteError(getErrorMessage(toggleError, t('tokenOptimization.lite.updateFailed')))
     } finally {
       setLiteLoading(false)
-    }
-  }
-
-  const togglePonytail = async (enabled: boolean) => {
-    if (ponytailLoading) return
-    setPonytailLoading(true)
-    setPonytailError(null)
-    try {
-      const nextStatus = enabled
-        ? await tokenOptimizationApi.enablePonytail()
-        : await tokenOptimizationApi.disablePonytail()
-      setPonytailStatus(nextStatus)
-    } catch (toggleError) {
-      setPonytailError(getErrorMessage(toggleError, t('tokenOptimization.ponytail.updateFailed')))
-    } finally {
-      setPonytailLoading(false)
     }
   }
 
@@ -507,8 +441,6 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
   const optimizerEstimates = getOptimizerEstimates(
     liteStatus,
     pruningStatus,
-    ponytailStatus,
-    cavemanStatus,
     rtkStatus,
     codeGraphGlobalEnabled ?? false,
   )
@@ -516,11 +448,22 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
   const activeOptimizerCount = [
     liteStatus?.enabled,
     pruningStatus?.enabled,
-    ponytailStatus?.enabled,
-    cavemanStatus?.enabled,
     rtkStatus?.enabled,
     codeGraphGlobalEnabled,
   ].filter(Boolean).length
+  const groupActiveCounts = {
+    context: [liteStatus?.enabled, pruningStatus?.enabled].filter(Boolean).length,
+    tools: [rtkStatus?.enabled, codeGraphGlobalEnabled].filter(Boolean).length,
+  }
+
+  const toggleAllOptimizers = async (enabled: boolean) => {
+    await Promise.all([
+      toggleLite(enabled),
+      togglePruning(enabled),
+      toggleRtk(enabled),
+      toggleCodeGraph(enabled),
+    ])
+  }
 
   if (showGraph && graph) {
     return (
@@ -553,7 +496,7 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
 
   return (
     <div className="flex flex-col">
-      {/* 节省概览：紧凑摘要行（最低/最高预估 + 启用计数），随所在 SettingsSection 卡片呈现 */}
+      {/* 总览行：预计节省 + 启用计数 + 一键全部启用/关闭 */}
       <div
         data-testid="savings-overview"
         className="flex min-h-[60px] flex-wrap items-center justify-between gap-x-[16px] gap-y-[6px] border-b border-[var(--color-border-separator)] px-[20px] py-[12px]"
@@ -563,256 +506,190 @@ export function TokenOptimizationContent({ initialView = 'overview' }: TokenOpti
             {t('tokenOptimization.savings.title')}
           </div>
           <p className="mt-[3px] text-[11px] leading-[16px] text-[var(--color-text-tertiary)]">
-            <span className="font-bold tabular-nums text-[var(--color-text-secondary)]">{activeOptimizerCount}/6</span>
+            <span className="font-bold tabular-nums text-[var(--color-text-secondary)]">{activeOptimizerCount}/4</span>
             {' '}
             {t('tokenOptimization.savings.active')}
-            {savingsEstimate.hasCycleEstimate
-              ? ` · ${t('tokenOptimization.savings.scenarioRange')}`
+            {savingsEstimate.enabled
+              ? ` · ${t('tokenOptimization.savings.estimated')} ${savingsEstimate.display}`
               : ` · ${t('tokenOptimization.savings.off')}`}
           </p>
         </div>
-        <div className="flex items-center gap-[20px]">
-          <SavingsStat
-            label={t('tokenOptimization.savings.minimum')}
-            value={savingsEstimate.min}
-          />
-          <SavingsStat
-            label={t('tokenOptimization.savings.maximum')}
-            value={savingsEstimate.max}
-          />
+        <div className="flex items-center gap-[8px]">
+          <Button size="sm" variant="secondary" onClick={() => void toggleAllOptimizers(true)}>
+            {t('tokenOptimization.savings.enableAll')}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => void toggleAllOptimizers(false)}>
+            {t('tokenOptimization.savings.disableAll')}
+          </Button>
         </div>
       </div>
 
-      <OptimizerGroupHeader
+      {/* 上下文控制组 */}
+      <OptimizerGroupToggle
         title={t('tokenOptimization.groups.context.title')}
         description={t('tokenOptimization.groups.context.description')}
+        activeCount={groupActiveCounts.context}
+        totalCount={2}
+        expanded={expandedGroups.has('context')}
+        onToggle={() => setExpandedGroups((current) => {
+          const next = new Set(current)
+          if (next.has('context')) next.delete('context')
+          else next.add('context')
+          return next
+        })}
       />
-      <div data-testid="token-group-context">
-        <OptimizerRow
-          testId="lite-toolbar"
-          icon={<Sparkles size={17} />}
-          title={t('tokenOptimization.lite.title')}
-          description={t('tokenOptimization.lite.description')}
-          active={liteStatus?.enabled ?? false}
-          status={liteStatus?.enabled
-            ? t('tokenOptimization.lite.active')
-            : t('tokenOptimization.lite.inactive')}
-          estimate={(
-            <SavingsEstimateLabel
-              estimate={optimizerEstimates.lite}
-              scope={t('tokenOptimization.savings.scope.context')}
-              estimatedLabel={t('tokenOptimization.savings.estimatedShort')}
-            />
-          )}
-          control={(
-            <Switch
-              checked={liteStatus?.enabled ?? false}
-              disabled={liteStatus === null || liteLoading}
-              onChange={(enabled) => void toggleLite(enabled)}
-              ariaLabel={t('tokenOptimization.lite.toggle')}
-            />
-          )}
-        />
-        <OptimizerRow
-          testId="pruning-toolbar"
-          icon={<Scissors size={17} />}
-          title={t('tokenOptimization.pruning.title')}
-          description={t('tokenOptimization.pruning.description')}
-          active={pruningStatus?.enabled ?? false}
-          status={pruningStatus?.enabled
-            ? t('tokenOptimization.pruning.active')
-            : t('tokenOptimization.pruning.inactive')}
-          estimate={(
-            <SavingsEstimateLabel
-              estimate={optimizerEstimates.pruning}
-              scope={t('tokenOptimization.savings.scope.context')}
-              estimatedLabel={t('tokenOptimization.savings.estimatedShort')}
-            />
-          )}
-          metrics={(
-            <PruningLevelControl
-              level={pruningStatus?.level ?? 'balanced'}
-              disabled={pruningStatus === null || pruningLoading}
-              onChange={(level) => void updatePruningLevel(level)}
-            />
-          )}
-          control={(
-            <Switch
-              checked={pruningStatus?.enabled ?? false}
-              disabled={pruningStatus === null || pruningLoading}
-              onChange={(enabled) => void togglePruning(enabled)}
-              ariaLabel={t('tokenOptimization.pruning.toggle')}
-            />
-          )}
-        />
+      {expandedGroups.has('context') && (
+        <div data-testid="token-group-context">
+          <OptimizerRow
+            testId="lite-toolbar"
+            icon={<Sparkles size={17} />}
+            title={t('tokenOptimization.lite.title')}
+            description={t('tokenOptimization.lite.description')}
+            active={liteStatus?.enabled ?? false}
+            control={(
+              <Switch
+                checked={liteStatus?.enabled ?? false}
+                disabled={liteStatus === null || liteLoading}
+                onChange={(enabled) => void toggleLite(enabled)}
+                ariaLabel={t('tokenOptimization.lite.toggle')}
+              />
+            )}
+          />
+          <OptimizerRow
+            testId="pruning-toolbar"
+            icon={<Scissors size={17} />}
+            title={t('tokenOptimization.pruning.title')}
+            description={t('tokenOptimization.pruning.description')}
+            active={pruningStatus?.enabled ?? false}
+            metrics={(
+              <PruningLevelControl
+                level={pruningStatus?.level ?? 'balanced'}
+                disabled={pruningStatus === null || pruningLoading}
+                onChange={(level) => void updatePruningLevel(level)}
+              />
+            )}
+            control={(
+              <Switch
+                checked={pruningStatus?.enabled ?? false}
+                disabled={pruningStatus === null || pruningLoading}
+                onChange={(enabled) => void togglePruning(enabled)}
+                ariaLabel={t('tokenOptimization.pruning.toggle')}
+              />
+            )}
+          />
+        </div>
+      )}
 
-        </div>
-        <OptimizerGroupHeader
-          title={t('tokenOptimization.groups.response.title')}
-          description={t('tokenOptimization.groups.response.description')}
-          bordered
-        />
-        <div data-testid="token-group-response">
-        <OptimizerRow
-          testId="ponytail-toolbar"
-          icon={<Minimize2 size={17} />}
-          title={t('tokenOptimization.ponytail.title')}
-          description={t('tokenOptimization.ponytail.description')}
-          active={ponytailStatus?.enabled ?? false}
-          status={ponytailStatus?.enabled
-            ? t('tokenOptimization.ponytail.active')
-            : t('tokenOptimization.ponytail.inactive')}
-          estimate={(
-            <SavingsEstimateLabel
-              estimate={optimizerEstimates.ponytail}
-              scope={t('tokenOptimization.savings.scope.response')}
-              estimatedLabel={t('tokenOptimization.savings.estimatedShort')}
-            />
-          )}
-          control={(
-            <Switch
-              checked={ponytailStatus?.enabled ?? false}
-              disabled={ponytailStatus === null || ponytailLoading}
-              onChange={(enabled) => void togglePonytail(enabled)}
-              ariaLabel={t('tokenOptimization.ponytail.toggle')}
-            />
-          )}
-        />
-        <OptimizerRow
-          testId="caveman-toolbar"
-          icon={<MessageSquareText size={17} />}
-          title={t('tokenOptimization.caveman.title')}
-          description={t('tokenOptimization.caveman.description')}
-          active={cavemanStatus?.enabled ?? false}
-          status={cavemanStatus?.enabled
-            ? t('tokenOptimization.caveman.active')
-            : t('tokenOptimization.caveman.inactive')}
-          estimate={(
-            <SavingsEstimateLabel
-              estimate={optimizerEstimates.caveman}
-              scope={t('tokenOptimization.savings.scope.response')}
-              estimatedLabel={t('tokenOptimization.savings.estimatedShort')}
-            />
-          )}
-          control={(
-            <Switch
-              checked={cavemanStatus?.enabled ?? false}
-              disabled={cavemanStatus === null || cavemanLoading}
-              onChange={(enabled) => void toggleCaveman(enabled)}
-              ariaLabel={t('tokenOptimization.caveman.toggle')}
-            />
-          )}
-        />
-        </div>
-        <OptimizerGroupHeader
-          title={t('tokenOptimization.groups.tools.title')}
-          description={t('tokenOptimization.groups.tools.description')}
-          bordered
-        />
+      {/* 工具与代码组 */}
+      <OptimizerGroupToggle
+        title={t('tokenOptimization.groups.tools.title')}
+        description={t('tokenOptimization.groups.tools.description')}
+        activeCount={groupActiveCounts.tools}
+        totalCount={2}
+        expanded={expandedGroups.has('tools')}
+        onToggle={() => setExpandedGroups((current) => {
+          const next = new Set(current)
+          if (next.has('tools')) next.delete('tools')
+          else next.add('tools')
+          return next
+        })}
+      />
+      {expandedGroups.has('tools') && (
         <div data-testid="token-group-tools">
-
-        <OptimizerRow
-          testId="rtk-toolbar"
-          icon={<Terminal size={17} />}
-          title={t('tokenOptimization.rtk.title')}
-          description={t('tokenOptimization.rtk.description')}
-          active={rtkStatus?.enabled ?? false}
-          status={rtkStatus?.available
-            ? t('tokenOptimization.rtk.ready')
-            : t('tokenOptimization.rtk.preparing')}
-          estimate={(
-            <SavingsEstimateLabel
-              estimate={optimizerEstimates.rtk}
-              scope={t('tokenOptimization.savings.scope.toolOutput')}
-              estimatedLabel={t('tokenOptimization.savings.estimatedShort')}
-            />
-          )}
-          metrics={rtkStatus?.stats && rtkStatus.stats.totalCommands > 0 ? (
-            <div className="grid grid-cols-2 gap-x-[16px] gap-y-[5px] sm:flex sm:items-center sm:gap-[18px]">
-              <CompactMetric label={t('tokenOptimization.rtk.commands')} value={rtkStatus.stats.totalCommands} />
-              <CompactMetric label={t('tokenOptimization.rtk.saved')} value={formatTokenCount(rtkStatus.stats.totalSaved)} />
-            </div>
-          ) : undefined}
-          meta={rtkStatus?.version ? `v${rtkStatus.version}` : undefined}
-          control={(
-            <Switch
-              checked={rtkStatus?.enabled ?? false}
-              disabled={rtkStatus === null || rtkLoading || (!rtkStatus.available && !rtkStatus.enabled)}
-              onChange={(enabled) => void toggleRtk(enabled)}
-              ariaLabel={t('tokenOptimization.rtk.toggle')}
-            />
-          )}
-        />
-
-        <OptimizerRow
-          testId="codegraph-toolbar"
-          icon={<Network size={17} />}
-          title={t('tokenOptimization.codeGraph.title')}
-          description={!projectPath || status?.indexable === false
-            ? t('tokenOptimization.noProject')
-            : t('tokenOptimization.codeGraph.description')}
-          active={codeGraphGlobalEnabled ?? false}
-          status={!projectPath && codeGraphGlobalEnabled
-            ? t('tokenOptimization.codeGraph.active')
-            : <StatusLabel state={status?.state ?? 'disabled'} />}
-          estimate={(
-            <SavingsEstimateLabel
-              estimate={optimizerEstimates.codeGraph}
-              scope={t('tokenOptimization.savings.scope.codeContext')}
-              estimatedLabel={t('tokenOptimization.savings.estimatedShort')}
-            />
-          )}
-          metrics={status?.stats ? (
-            <div className="grid grid-cols-2 gap-x-[16px] gap-y-[5px] sm:grid-cols-4 sm:gap-[18px]">
-              <CompactMetric label={t('tokenOptimization.stats.files')} value={status.stats.fileCount} />
-              <CompactMetric label={t('tokenOptimization.stats.symbols')} value={status.stats.nodeCount} />
-              <CompactMetric label={t('tokenOptimization.stats.relations')} value={status.stats.edgeCount} />
-              <CompactMetric label={t('tokenOptimization.stats.size')} value={formatBytes(status.stats.dbSizeBytes)} />
-            </div>
-          ) : status && (status.state === 'preparing' || status.state === 'indexing') ? (
-            <span className="text-[11px] text-[var(--color-text-tertiary)]">
-              {progressLabel(status, t)}
-              {status.progress && status.progress.total > 0
-                ? ` ${status.progress.current}/${status.progress.total}`
-                : ''}
-            </span>
-          ) : undefined}
-          actions={(
-            <div className="flex items-center gap-[3px]">
+          <OptimizerRow
+            testId="rtk-toolbar"
+            icon={<Terminal size={17} />}
+            title={t('tokenOptimization.rtk.title')}
+            description={t('tokenOptimization.rtk.description')}
+            active={rtkStatus?.enabled ?? false}
+            meta={rtkStatus?.version ? `v${rtkStatus.version}` : undefined}
+            control={(
+              <Switch
+                checked={rtkStatus?.enabled ?? false}
+                disabled={rtkStatus === null || rtkLoading || (!rtkStatus.available && !rtkStatus.enabled)}
+                onChange={(enabled) => void toggleRtk(enabled)}
+                ariaLabel={t('tokenOptimization.rtk.toggle')}
+              />
+            )}
+          />
+          <OptimizerRow
+            testId="codegraph-toolbar"
+            icon={<Network size={17} />}
+            title={t('tokenOptimization.codeGraph.title')}
+            description={!projectPath || status?.indexable === false
+              ? t('tokenOptimization.noProject')
+              : t('tokenOptimization.codeGraph.description')}
+            active={codeGraphGlobalEnabled ?? false}
+            actions={(
               <button
                 type="button"
-                aria-label={t('tokenOptimization.rebuild')}
-                title={t('tokenOptimization.rebuild')}
-                disabled={!status?.enabled || !['ready', 'empty'].includes(status.state) || loading}
-                onClick={() => void rebuild()}
-                className="flex h-[32px] w-[32px] items-center justify-center rounded-full text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] disabled:cursor-not-allowed disabled:opacity-35"
+                aria-label={t('tokenOptimization.details')}
+                title={t('tokenOptimization.details')}
+                aria-expanded={codeGraphDetailsOpen}
+                onClick={() => setCodeGraphDetailsOpen((open) => !open)}
+                className="flex h-[32px] w-[32px] items-center justify-center rounded-full text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
               >
-                <RefreshCw size={15} className={loading || status?.state === 'indexing' ? 'animate-spin' : undefined} />
+                <ChevronDown size={15} className={`transition-transform ${codeGraphDetailsOpen ? 'rotate-180' : ''}`} />
               </button>
-              <button
-                type="button"
-                aria-label={t('tokenOptimization.visualize')}
-                title={t('tokenOptimization.visualize')}
-                disabled={status?.state !== 'ready' || graphLoading}
-                onClick={() => void openGraph()}
-                className="flex h-[32px] w-[32px] items-center justify-center rounded-full text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] disabled:cursor-not-allowed disabled:opacity-35"
-              >
-                <Network size={16} className={graphLoading ? 'animate-pulse' : undefined} />
-              </button>
+            )}
+            control={(
+              <Switch
+                checked={codeGraphGlobalEnabled ?? false}
+                disabled={codeGraphGlobalEnabled === null || loading}
+                onChange={(enabled) => void toggleCodeGraph(enabled)}
+                ariaLabel={t('tokenOptimization.codeGraph.toggle')}
+              />
+            )}
+          />
+          {codeGraphDetailsOpen && (
+            <div data-testid="codegraph-details" className="flex flex-col gap-[10px] border-b border-[var(--color-border-separator)] px-[20px] py-[12px]">
+              <div className="flex flex-wrap items-center justify-between gap-x-[16px] gap-y-[10px]">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-[16px] gap-y-[5px]">
+                  <StatusLabel state={status?.state ?? 'disabled'} />
+                  {status?.stats && (
+                    <div className="grid grid-cols-2 gap-x-[16px] gap-y-[5px] sm:grid-cols-4 sm:gap-[18px]">
+                      <CompactMetric label={t('tokenOptimization.stats.files')} value={status.stats.fileCount} />
+                      <CompactMetric label={t('tokenOptimization.stats.symbols')} value={status.stats.nodeCount} />
+                      <CompactMetric label={t('tokenOptimization.stats.relations')} value={status.stats.edgeCount} />
+                      <CompactMetric label={t('tokenOptimization.stats.size')} value={formatBytes(status.stats.dbSizeBytes)} />
+                    </div>
+                  )}
+                  {status && (status.state === 'preparing' || status.state === 'indexing') && (
+                    <span className="text-[11px] text-[var(--color-text-tertiary)]">
+                      {progressLabel(status, t)}
+                      {status.progress && status.progress.total > 0
+                        ? ` ${status.progress.current}/${status.progress.total}`
+                        : ''}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-[8px]">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={!status?.enabled || !['ready', 'empty'].includes(status.state) || loading}
+                  onClick={() => void rebuild()}
+                >
+                  <RefreshCw size={13} className={`mr-1 ${loading || status?.state === 'indexing' ? 'animate-spin' : ''}`} />
+                  {t('tokenOptimization.rebuild')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={status?.state !== 'ready' || graphLoading}
+                  onClick={() => void openGraph()}
+                >
+                  <Network size={13} className={`mr-1 ${graphLoading ? 'animate-pulse' : ''}`} />
+                  {t('tokenOptimization.visualize')}
+                </Button>
+              </div>
+              </div>
             </div>
           )}
-          control={(
-            <Switch
-              checked={codeGraphGlobalEnabled ?? false}
-              disabled={codeGraphGlobalEnabled === null || loading}
-              onChange={(enabled) => void toggleCodeGraph(enabled)}
-              ariaLabel={t('tokenOptimization.codeGraph.toggle')}
-            />
-          )}
-        />
         </div>
+      )}
 
-      {[liteError, pruningError, ponytailError, cavemanError, rtkError, error].filter(Boolean).map((message) => (
+      {[liteError, pruningError, rtkError, error].filter(Boolean).map((message) => (
         <div
           key={message}
           role="alert"
@@ -859,8 +736,8 @@ function OptimizerRow({
   title: string
   description: string
   active: boolean
-  status: ReactNode
-  estimate: ReactNode
+  status?: ReactNode
+  estimate?: ReactNode
   metrics?: ReactNode
   meta?: string
   actions?: ReactNode
@@ -881,13 +758,15 @@ function OptimizerRow({
       <div className="min-w-0 self-center">
         <div className="flex min-w-0 flex-wrap items-center gap-x-[8px] gap-y-[2px]">
           <h2 className="text-[13px] font-semibold leading-[18px] text-[var(--color-text-primary)]">{title}</h2>
-          <div className={`flex items-center gap-[5px] text-[11px] font-semibold ${
-            active ? 'text-[var(--color-success)]' : 'text-[var(--color-text-tertiary)]'
-          }`}>
-            <span aria-hidden="true" className={`h-[5px] w-[5px] rounded-full ${active ? 'bg-current' : 'bg-[var(--color-border)]'}`} />
-            {status}
-          </div>
-          {estimate}
+          {status !== undefined && (
+            <div className={`flex items-center gap-[5px] text-[11px] font-semibold ${
+              active ? 'text-[var(--color-success)]' : 'text-[var(--color-text-tertiary)]'
+            }`}>
+              <span aria-hidden="true" className={`h-[5px] w-[5px] rounded-full ${active ? 'bg-current' : 'bg-[var(--color-border)]'}`} />
+              {status}
+            </div>
+          )}
+          {estimate !== undefined && estimate}
         </div>
         <p className="mt-[3px] max-w-[460px] text-[11px] leading-[1.45] text-[var(--color-text-tertiary)]">
           {description}
@@ -905,11 +784,6 @@ function OptimizerRow({
   )
 }
 
-function formatTokenCount(value: number) {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`
-  return String(value)
-}
 
 type OptimizerEstimate = {
   min: number
@@ -921,8 +795,6 @@ type OptimizerEstimate = {
 function getOptimizerEstimates(
   lite: LiteOptimizationStatus | null,
   pruning: SmartPruningStatus | null,
-  ponytail: PonytailStatus | null,
-  caveman: CavemanStatus | null,
   rtk: RtkStatus | null,
   codeGraphGlobalEnabled: boolean,
 ) {
@@ -933,10 +805,6 @@ function getOptimizerEstimates(
       pruning?.level === 'conservative' ? 12 : pruning?.level === 'aggressive' ? 40 : 24,
       pruning?.enabled ?? false,
     ),
-    // Ponytail's fair agentic benchmark measured up to 22% fewer tokens, but
-    // irreducible tasks and some reasoning models can land near zero savings.
-    ponytail: createEstimate(0, 22, ponytail?.enabled ?? false),
-    caveman: createEstimate(14, 21, caveman?.enabled ?? false),
     // RTK reports 60–90% command-output reduction. At an estimated 30% share
     // of a coding-agent cycle, that contributes roughly 18–27% end to end.
     rtk: createEstimate(18, 27, rtk?.enabled ?? false),
@@ -1032,68 +900,44 @@ function combineEstimatedPercentages(percentages: number[]) {
   return Math.min(countAwareCeiling, 92 + Math.ceil((total - 92) / 20))
 }
 
-/** 概览摘要中的单个数值统计（最低/最高预估），aria-label 保持 "标签 值%" 的可读格式。 */
-function SavingsStat({
-  label,
-  value,
-}: {
-  label: string
-  value: number
-}) {
-  return (
-    <div aria-label={`${label} ${value}%`} className="flex min-w-[64px] flex-col items-end">
-      <span className="text-[10px] font-semibold leading-[13px] text-[var(--color-text-tertiary)]">
-        {label}
-      </span>
-      <strong className="mt-[3px] text-[17px] font-black leading-none text-[var(--color-text-primary)] tabular-nums">
-        {value}%
-      </strong>
-    </div>
-  )
-}
 
-/** 优化器分组小标题：设置卡片内的子分组（上下文 / 响应 / 工具输出）。 */
-function OptimizerGroupHeader({
+/** 优化器分组折叠头：组名 + 启用计数 + 展开箭头。 */
+function OptimizerGroupToggle({
   title,
   description,
-  bordered,
+  activeCount,
+  totalCount,
+  expanded,
+  onToggle,
 }: {
   title: string
   description: string
-  bordered?: boolean
+  activeCount: number
+  totalCount: number
+  expanded: boolean
+  onToggle: () => void
 }) {
   return (
-    <div className={`px-[20px] pb-[10px] pt-[14px] ${bordered ? 'border-t border-[var(--color-border-separator)]' : ''}`}>
-      <h3 className="text-[12px] font-semibold leading-[16px] text-[var(--color-text-secondary)]">
-        {title}
-      </h3>
-      <p className="mt-[3px] text-[11px] leading-[16px] text-[var(--color-text-tertiary)]">
-        {description}
-      </p>
-    </div>
+    <button
+      type="button"
+      aria-expanded={expanded}
+      onClick={onToggle}
+      className="flex w-full items-center justify-between gap-[12px] border-t border-[var(--color-border-separator)] px-[20px] py-[12px] text-left transition-colors hover:bg-[var(--color-surface-hover)]"
+    >
+      <span className="min-w-0">
+        <span className="flex items-center gap-[8px]">
+          <span className="text-[12px] font-semibold leading-[16px] text-[var(--color-text-secondary)]">{title}</span>
+          <span className="rounded-full bg-[var(--color-surface-container-low)] px-[8px] py-[1px] text-[10px] font-semibold tabular-nums text-[var(--color-text-tertiary)]">
+            {activeCount}/{totalCount}
+          </span>
+        </span>
+        <span className="mt-[3px] block text-[11px] leading-[16px] text-[var(--color-text-tertiary)]">{description}</span>
+      </span>
+      <ChevronDown size={16} className={`shrink-0 text-[var(--color-text-tertiary)] transition-transform ${expanded ? 'rotate-180' : ''}`} />
+    </button>
   )
 }
 
-function SavingsEstimateLabel({
-  estimate,
-  scope,
-  estimatedLabel,
-}: {
-  estimate: OptimizerEstimate
-  scope: string
-  estimatedLabel: string
-}) {
-  return (
-    <span className="flex items-baseline gap-[4px] border-l border-[var(--color-border-separator)] pl-[8px] text-[11px]">
-      <span className="text-[var(--color-text-tertiary)]">
-        {scope} {estimatedLabel}
-      </span>
-      <strong className="font-black text-[var(--color-text-primary)] tabular-nums">
-        {estimate.display}
-      </strong>
-    </span>
-  )
-}
 
 function StatusLabel({ state }: { state: CodeGraphState }) {
   const t = useTranslation()

@@ -127,18 +127,13 @@ export interface SmartPruningRef {
   setLevel(level: SmartPruningLevel): SmartPruningStatus
 }
 
-/** The response-compression styles the token-optimization knob accepts. */
-export type ResponseStyle = 'off' | 'caveman' | 'ponytail'
-
 /** Current token-optimization knob values. */
 export interface TokenOptimizationStatus {
-  responseStyle: ResponseStyle
   cleanPrompt: boolean
 }
 
 /** Minimal token-optimization service surface read through ctx.get(). */
 export interface TokenOptimizationRef {
   getStatus(): TokenOptimizationStatus
-  setResponseStyle(style: ResponseStyle): TokenOptimizationStatus
   setCleanPrompt(enabled: boolean): TokenOptimizationStatus
 }

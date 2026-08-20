@@ -7,7 +7,6 @@ import {
   SettingsRow,
   SettingsSection,
 } from '../components/settings/SettingsLayout'
-import { TokenOptimizationContent } from './TokenOptimization'
 
 const EFFORT_LEVELS: Array<{ value: EffortLevel; labelKey: TranslationKey; descriptionKey: TranslationKey }> = [
   { value: 'low', labelKey: 'settings.general.effort.low', descriptionKey: 'settings.execution.effort.low.description' },
@@ -51,13 +50,6 @@ export function ExecutionBehaviorSettings() {
             </p>
           </div>
         )}
-      </SettingsSection>
-
-      <SettingsSection
-        title={t('settings.execution.tokenTitle')}
-        description={t('settings.execution.tokenDescription')}
-      >
-        <TokenOptimizationContent />
       </SettingsSection>
     </SettingsPage>
   )

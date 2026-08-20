@@ -80,7 +80,7 @@ describe('ModelSelector', () => {
 
     render(<ModelSelector runtimeKey="draft-session" compact variant="pill" />)
 
-    fireEvent.click(screen.getByRole('button', { name: /Opus 4\.8/i }))
+    fireEvent.click(screen.getByRole('button', { name: /DeepSeek Chat/i }))
 
     const volcanoHeader = screen
       .getAllByText('火山')
@@ -120,14 +120,14 @@ describe('ModelSelector', () => {
 
     render(
       <ModelSelector
-        runtimeValue={{ providerId: null, modelId: 'claude-opus-4-8' }}
+        runtimeValue={{ providerId: null, modelId: 'deepseek-chat' }}
         onRuntimeChange={onRuntimeChange}
         compact
         variant="pill"
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /Opus 4\.8/i }))
+    fireEvent.click(screen.getByRole('button', { name: /DeepSeek Chat/i }))
     fireEvent.click(screen.getByText('kimi-k2.6').closest('button')!)
 
     expect(onRuntimeChange).toHaveBeenCalledWith({

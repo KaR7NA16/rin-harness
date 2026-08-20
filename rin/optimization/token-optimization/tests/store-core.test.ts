@@ -1,10 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { CAVEMAN_PROMPT, PONYTAIL_PROMPT } from '../src/prompts.ts'
 import {
-  SECTION_NAME,
-  SECTION_ORDER,
   TokenOptimizationCore,
-  validateResponseStyle,
   type PromptAssembly,
   type TokenOptimizationSeam,
 } from '../src/store-core.ts'
@@ -42,38 +38,14 @@ function makeSeam() {
 
 const emptyAssembly: PromptAssembly = { sections: [], contexts: [], tools: [], variables: {} }
 
-describe('validateResponseStyle', () => {
-  test('accepts every known style', () => {
-    expect(validateResponseStyle('off')).toBe('off')
-    expect(validateResponseStyle('caveman')).toBe('caveman')
-    expect(validateResponseStyle('ponytail')).toBe('ponytail')
-  })
-
-  test('rejects an unknown style', () => {
-    expect(() => validateResponseStyle('bogus')).toThrow(/responseStyle must be off, caveman, or ponytail/)
-  })
-})
-
 describe('TokenOptimizationCore construction', () => {
-  test('installs nothing for the default off/disabled knobs', () => {
+  test('installs nothing for the default disabled knob', () => {
     const { seam, sections, listeners, effects } = makeSeam()
     const core = new TokenOptimizationCore(seam)
-    expect(core.getStatus()).toEqual({ responseStyle: 'off', cleanPrompt: false })
+    expect(core.getStatus()).toEqual({ cleanPrompt: false })
     expect(sections).toHaveLength(0)
     expect(listeners).toHaveLength(0)
     expect(effects).toHaveLength(1)
-  })
-
-  test('installs the caveman section when configured', () => {
-    const { seam, sections } = makeSeam()
-    new TokenOptimizationCore(seam, { responseStyle: 'caveman' })
-    expect(sections).toEqual([{ name: SECTION_NAME, order: SECTION_ORDER, text: CAVEMAN_PROMPT }])
-  })
-
-  test('installs the ponytail section when configured', () => {
-    const { seam, sections } = makeSeam()
-    new TokenOptimizationCore(seam, { responseStyle: 'ponytail' })
-    expect(sections).toEqual([{ name: SECTION_NAME, order: SECTION_ORDER, text: PONYTAIL_PROMPT }])
   })
 
   test('installs the cleaner listener when cleanPrompt is enabled', () => {
@@ -82,31 +54,13 @@ describe('TokenOptimizationCore construction', () => {
     expect(listeners).toHaveLength(1)
     expect(listeners[0]?.event).toBe('system-prompt/assemble')
   })
-
-  test('rejects an invalid configured style', () => {
-    const { seam } = makeSeam()
-    expect(() => new TokenOptimizationCore(seam, { responseStyle: 'bogus' as 'off' })).toThrow()
-  })
-})
-
-describe('setResponseStyle', () => {
-  test('swaps sections without duplicating them', () => {
-    const { seam, sections } = makeSeam()
-    const core = new TokenOptimizationCore(seam, { responseStyle: 'off' })
-    expect(core.setResponseStyle('caveman')).toEqual({ responseStyle: 'caveman', cleanPrompt: false })
-    expect(sections.map(section => section.text)).toEqual([CAVEMAN_PROMPT])
-    core.setResponseStyle('ponytail')
-    expect(sections.map(section => section.text)).toEqual([PONYTAIL_PROMPT])
-    core.setResponseStyle('off')
-    expect(sections).toHaveLength(0)
-  })
 })
 
 describe('setCleanPrompt', () => {
   test('registers and removes the assemble listener', () => {
     const { seam, listeners } = makeSeam()
     const core = new TokenOptimizationCore(seam, { cleanPrompt: false })
-    expect(core.setCleanPrompt(true)).toEqual({ responseStyle: 'off', cleanPrompt: true })
+    expect(core.setCleanPrompt(true)).toEqual({ cleanPrompt: true })
     expect(listeners).toHaveLength(1)
     core.setCleanPrompt(false)
     expect(listeners).toHaveLength(0)
@@ -134,13 +88,12 @@ describe('setCleanPrompt', () => {
 })
 
 describe('disposal', () => {
-  test('the registered effect disposes both installs', () => {
+  test('the registered effect disposes the install', () => {
     const { seam, sections, listeners, effects } = makeSeam()
-    new TokenOptimizationCore(seam, { responseStyle: 'ponytail', cleanPrompt: true })
-    expect(sections).toHaveLength(1)
+    new TokenOptimizationCore(seam, { cleanPrompt: true })
+    expect(sections).toHaveLength(0)
     expect(listeners).toHaveLength(1)
     effects.forEach(dispose => dispose())
-    expect(sections).toHaveLength(0)
     expect(listeners).toHaveLength(0)
   })
 })
