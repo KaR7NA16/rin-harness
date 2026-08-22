@@ -8,6 +8,7 @@ type AgentStore = {
   allAgents: AgentDefinition[]
   isLoading: boolean
   error: string | null
+  lastCheckedAt: number | null
   selectedAgent: AgentDefinition | null
   selectedAgentReturnTab: AgentDetailReturnTab
 
@@ -23,6 +24,7 @@ export const useAgentStore = create<AgentStore>((set) => ({
   allAgents: [],
   isLoading: false,
   error: null,
+  lastCheckedAt: null,
   selectedAgent: null,
   selectedAgentReturnTab: 'agents',
 
@@ -30,10 +32,10 @@ export const useAgentStore = create<AgentStore>((set) => ({
     set({ isLoading: true, error: null })
     try {
       const { activeAgents, allAgents } = await agentsApi.list(cwd)
-      set({ activeAgents, allAgents, isLoading: false })
+      set({ activeAgents, allAgents, isLoading: false, lastCheckedAt: Date.now() })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load agents'
-      set({ isLoading: false, error: message })
+      set({ isLoading: false, error: message, lastCheckedAt: Date.now() })
     }
   },
 

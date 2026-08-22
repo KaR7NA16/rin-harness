@@ -25,11 +25,12 @@ vi.mock('../../pages/Files', () => ({
 }))
 
 vi.mock('../../pages/Terminal', () => ({
-  Terminal: ({ terminalId, spawnCommand }: { terminalId: string; spawnCommand?: string[] }) => (
+  Terminal: ({ terminalId, spawnCommand, cwd }: { terminalId: string; spawnCommand?: string[]; cwd?: string }) => (
     <div
       data-testid="terminal-page"
       data-terminal-id={terminalId}
       data-spawn-command={spawnCommand?.join(' ')}
+      data-cwd={cwd}
     />
   ),
 }))
@@ -113,6 +114,7 @@ describe('ContentRouter content routing', () => {
         title: 'Terminal 1',
         type: 'terminal',
         status: 'idle',
+        cwd: '/workspace/research',
         spawnCommand: ['bash', '-l'],
       }],
       activeTabId: '__terminal__1',
@@ -124,6 +126,7 @@ describe('ContentRouter content routing', () => {
     const terminal = await screen.findByTestId('terminal-page')
     expect(terminal).toBeInTheDocument()
     expect(terminal).toHaveAttribute('data-terminal-id', '__terminal__1')
+    expect(terminal).toHaveAttribute('data-cwd', '/workspace/research')
     expect(terminal).toHaveAttribute('data-spawn-command', 'bash -l')
   })
 

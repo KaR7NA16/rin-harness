@@ -15,6 +15,7 @@ export type Tab = {
   sessionId: string
   /** 终端标签可选: 自定义启动命令 (如容器 exec) */
   spawnCommand?: string[]
+  cwd?: string
   projectPath?: string
   title: string
   type: TabType
@@ -22,7 +23,7 @@ export type Tab = {
 }
 
 type TabPersistence = {
-  openTabs: Array<{ sessionId: string; projectPath?: string; title: string; type?: TabType; status?: Tab['status']; spawnCommand?: string[] }>
+  openTabs: Array<{ sessionId: string; projectPath?: string; title: string; type?: TabType; status?: Tab['status']; spawnCommand?: string[]; cwd?: string }>
   activeTabId: string | null
 }
 
@@ -36,7 +37,7 @@ type TabStore = {
   navIndex: number
 
   openTab: (sessionId: string, title: string, type?: TabType, projectPath?: string) => void
-  openTerminalTab: (options?: { title?: string; spawnCommand?: string[] }) => string
+  openTerminalTab: (options?: { title?: string; spawnCommand?: string[]; cwd?: string }) => string
   switchToSession: (sessionId: string, title: string, projectPath?: string) => void
   closeTab: (sessionId: string, projectPath?: string) => void
   setActiveTab: (sessionId: string) => void
@@ -123,7 +124,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
     get().saveTabs()
   },
 
-  openTerminalTab: (options?: { title?: string; spawnCommand?: string[] }) => {
+  openTerminalTab: (options?: { title?: string; spawnCommand?: string[]; cwd?: string }) => {
     const tabs = get().tabs
     const nextNumber = nextTerminalNumber(tabs)
     let terminalId = `${TERMINAL_TAB_PREFIX}${nextNumber}`
@@ -134,10 +135,10 @@ export const useTabStore = create<TabStore>((set, get) => ({
     }
     const title = options?.title ?? `Terminal ${nextNumber}`
     get().openTab(terminalId, title, 'terminal')
-    if (options?.spawnCommand) {
+    if (options?.spawnCommand || options?.cwd) {
       set((s) => ({
         tabs: s.tabs.map((tab) =>
-          tab.sessionId === terminalId ? { ...tab, spawnCommand: options.spawnCommand } : tab,
+          tab.sessionId === terminalId ? { ...tab, ...(options.spawnCommand ? { spawnCommand: options.spawnCommand } : {}), ...(options.cwd ? { cwd: options.cwd } : {}) } : tab,
         ),
       }))
       get().saveTabs()
@@ -300,6 +301,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
         type: tab.type,
         status: tab.status,
         ...(tab.spawnCommand ? { spawnCommand: tab.spawnCommand } : {}),
+        ...(tab.cwd ? { cwd: tab.cwd } : {}),
       })),
       activeTabId: activeTabId && persistentTabs.some((tab) => tab.sessionId === activeTabId)
         ? activeTabId
@@ -350,6 +352,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
               title: tab.title || 'Terminal',
               type: 'terminal',
               status: 'idle',
+              ...(tab.cwd ? { cwd: tab.cwd } : {}),
               ...(tab.spawnCommand ? { spawnCommand: tab.spawnCommand } : {}),
             }
           }

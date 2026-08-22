@@ -44,6 +44,7 @@ describe('sessionStore', () => {
       projectDisplayNames: {},
     })
     useSettingsStore.setState({ locale: 'zh' })
+    localStorage.removeItem('rin.workspace.selection.v1')
   })
 
   afterEach(() => {
@@ -156,6 +157,16 @@ describe('sessionStore', () => {
 
     expect(useSessionStore.getState().selectedProjects).toEqual([])
     expect(useSessionStore.getState().selectedSessionScope).toBe('all')
+  })
+
+  it('persists the explicit workspace selection', () => {
+    useSessionStore.getState().setSelectedProjects(['-workspace-project'])
+
+    expect(localStorage.getItem('rin.workspace.selection.v1')).toBe('-workspace-project')
+
+    useSessionStore.getState().setSessionFilterScope('all')
+
+    expect(localStorage.getItem('rin.workspace.selection.v1')).toBeNull()
   })
 
   it('persists project display names without changing the project locator', () => {

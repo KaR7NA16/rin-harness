@@ -4,10 +4,17 @@ import { t } from '../i18n'
 import { useSessionRuntimeStore } from './sessionRuntimeStore'
 import type { CreateSessionInput, SessionListItem } from '../types/session'
 import { getDefaultSessionTitle } from '../utils/sessionTitle'
-import { readStoredJson, writeStoredJson } from '../lib/storage'
+import {
+  readStoredJson,
+  readStoredValue,
+  removeStoredValue,
+  writeStoredJson,
+  writeStoredValue,
+} from '../lib/storage'
 
 const HIDDEN_SIDEBAR_PROJECTS_KEY = 'rin.sidebar.hiddenProjects.v1'
 const PROJECT_DISPLAY_NAMES_KEY = 'rin.sidebar.projectDisplayNames.v1'
+const WORKSPACE_SELECTION_KEY = 'rin.workspace.selection.v1'
 
 type SessionFilterScope = 'all' | 'project' | 'temporary'
 
@@ -40,6 +47,20 @@ function readProjectDisplayNames(): Record<string, string> {
 
 function writeProjectDisplayNames(names: Record<string, string>) {
   writeStoredJson(PROJECT_DISPLAY_NAMES_KEY, names)
+}
+
+function readWorkspaceSelection(): string[] {
+  const projectPath = readStoredValue(WORKSPACE_SELECTION_KEY)?.trim()
+  return projectPath ? [projectPath] : []
+}
+
+function writeWorkspaceSelection(projects: string[]) {
+  const projectPath = projects[0]
+  if (projectPath) {
+    writeStoredValue(WORKSPACE_SELECTION_KEY, projectPath)
+  } else {
+    removeStoredValue(WORKSPACE_SELECTION_KEY)
+  }
 }
 
 function deriveAvailableProjects(
@@ -100,7 +121,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   activeSessionId: null,
   isLoading: false,
   error: null,
-  selectedProjects: [],
+  selectedProjects: readWorkspaceSelection(),
   selectedSessionScope: 'all',
   availableProjects: [],
   hiddenProjectPaths: readHiddenProjectPaths(),
@@ -117,16 +138,17 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       const sessions = [...byLocator.values()]
       const hiddenProjectPaths = get().hiddenProjectPaths
       const availableProjects = deriveAvailableProjects(sessions, hiddenProjectPaths)
-      set((state) => ({
-        sessions,
-        availableProjects,
-        selectedProjects: normalizeSelectedProjects(state.selectedProjects, availableProjects),
-        selectedSessionScope: resolveSessionScope(
-          state.selectedSessionScope,
-          normalizeSelectedProjects(state.selectedProjects, availableProjects),
-        ),
-        isLoading: false,
-      }))
+      set((state) => {
+        const selectedProjects = normalizeSelectedProjects(state.selectedProjects, availableProjects)
+        writeWorkspaceSelection(selectedProjects)
+        return {
+          sessions,
+          availableProjects,
+          selectedProjects,
+          selectedSessionScope: resolveSessionScope(state.selectedSessionScope, selectedProjects),
+          isLoading: false,
+        }
+      })
     } catch (err) {
       set({ error: (err as Error).message, isLoading: false })
     }
@@ -189,6 +211,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       const sessions = s.sessions.filter((session) => !matchesSessionLocator(session, id, projectPath))
       const availableProjects = deriveAvailableProjects(sessions, s.hiddenProjectPaths)
       const selectedProjects = normalizeSelectedProjects(s.selectedProjects, availableProjects)
+      writeWorkspaceSelection(selectedProjects)
       return {
         sessions,
         availableProjects,
@@ -222,6 +245,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   setActiveSession: (id) => set({ activeSessionId: id }),
   setSelectedProjects: (projects) => {
     const selectedProjects = normalizeSelectedProjects(projects)
+    writeWorkspaceSelection(selectedProjects)
     set({
       selectedProjects,
       selectedSessionScope: selectedProjects.length > 0 ? 'project' : 'all',
@@ -229,6 +253,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
   setSessionFilterScope: (scope, projectPath) => {
     if (scope === 'project' && projectPath) {
+      writeWorkspaceSelection([projectPath])
       set({
         selectedProjects: [projectPath],
         selectedSessionScope: 'project',
@@ -236,6 +261,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       return
     }
 
+    writeWorkspaceSelection([])
     set({
       selectedProjects: [],
       selectedSessionScope: scope === 'temporary' ? 'temporary' : 'all',
@@ -264,6 +290,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         state.selectedProjects.filter((selected) => selected !== projectPath),
         availableProjects,
       )
+      writeWorkspaceSelection(selectedProjects)
       return {
         hiddenProjectPaths,
         availableProjects,

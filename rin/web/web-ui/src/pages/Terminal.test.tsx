@@ -90,11 +90,12 @@ describe('Terminal page', () => {
   })
 
   /** Render the page and return the created socket and terminal fakes. */
-  function renderTerminal(props: { terminalId?: string; spawnCommand?: string[] } = {}) {
+  function renderTerminal(props: { terminalId?: string; spawnCommand?: string[]; cwd?: string } = {}) {
     render(
       <Terminal
         terminalId={props.terminalId ?? '__terminal__1'}
         spawnCommand={props.spawnCommand}
+        cwd={props.cwd}
       />,
     )
     return {
@@ -104,7 +105,10 @@ describe('Terminal page', () => {
   }
 
   it('connects to the terminal socket and spawns with argv from the tab', () => {
-    const { ws, terminal } = renderTerminal({ spawnCommand: ['bash', '-l'] })
+    const { ws, terminal } = renderTerminal({
+      cwd: '/workspace/research',
+      spawnCommand: ['bash', '-l'],
+    })
 
     expect(ws?.url).toBe('ws://127.0.0.1:8320/ws/terminal/__terminal__1')
     expect(terminal?.opened).toBe(true)
@@ -115,6 +119,7 @@ describe('Terminal page', () => {
       type: 'spawn',
       cols: 80,
       rows: 24,
+      cwd: '/workspace/research',
       argv: ['bash', '-l'],
     })
   })

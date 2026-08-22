@@ -47,6 +47,31 @@ describe('tabStore', () => {
     ])
   })
 
+  it('persists and restores a terminal cwd alongside its launch command', async () => {
+    const terminalId = useTabStore.getState().openTerminalTab({
+      cwd: '/workspace/project',
+      spawnCommand: ['bash', '-l'],
+    })
+
+    const persisted = JSON.parse(localStorage.getItem('rin-open-tabs') || '{}')
+    expect(persisted.openTabs).toContainEqual(expect.objectContaining({
+      sessionId: terminalId,
+      type: 'terminal',
+      cwd: '/workspace/project',
+      spawnCommand: ['bash', '-l'],
+    }))
+
+    useTabStore.setState({ tabs: [], activeTabId: null, recentSessionIds: [], navHistory: [], navIndex: -1 })
+    await useTabStore.getState().restoreTabs()
+
+    expect(useTabStore.getState().tabs).toContainEqual(expect.objectContaining({
+      sessionId: terminalId,
+      type: 'terminal',
+      cwd: '/workspace/project',
+      spawnCommand: ['bash', '-l'],
+    }))
+  })
+
   it('closes arbitrary tabs and keeps a sensible active tab', () => {
     useTabStore.getState().openTab('session-1', 'Session 1')
     useTabStore.getState().openTab('session-2', 'Session 2')

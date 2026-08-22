@@ -36,6 +36,7 @@ const PING_INTERVAL_MS = 30_000
 type TerminalProps = {
   terminalId: string
   spawnCommand?: string[]
+  cwd?: string
 }
 
 /** Read the app's terminal palette CSS variables, falling back to the dark defaults. */
@@ -59,7 +60,7 @@ function buildTerminalWsUrl(terminalId: string): string {
   return `${base}/ws/terminal/${encodeURIComponent(terminalId)}${query}`
 }
 
-export function Terminal({ terminalId, spawnCommand }: TerminalProps) {
+export function Terminal({ terminalId, spawnCommand, cwd }: TerminalProps) {
   const t = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState<TerminalStatus>('starting')
@@ -137,6 +138,7 @@ export function Terminal({ terminalId, spawnCommand }: TerminalProps) {
         type: 'spawn',
         cols: term.cols,
         rows: term.rows,
+        ...(cwd ? { cwd } : {}),
         ...(spawnCommand && spawnCommand.length > 0 ? { argv: spawnCommand } : {}),
       })
       setStatus('running')
@@ -199,7 +201,7 @@ export function Terminal({ terminalId, spawnCommand }: TerminalProps) {
         try { terminal.dispose() } catch { /* already disposed */ }
       }
     }
-  }, [terminalId, spawnCommand, t])
+  }, [cwd, terminalId, spawnCommand, t])
 
   return (
     <div

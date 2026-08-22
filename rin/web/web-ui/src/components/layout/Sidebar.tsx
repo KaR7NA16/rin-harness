@@ -265,6 +265,19 @@ export function Sidebar() {
     }
   }, [activeTab?.projectPath, projectDisplayNames, selectedProjects, sessions])
 
+  const terminalCwd = useMemo(() => {
+    if (activeTab?.type === 'session') {
+      const activeSession = sessions.find((session) =>
+        session.id === activeTab.sessionId &&
+        (!activeTab.projectPath || session.projectPath === activeTab.projectPath) &&
+        session.workDir &&
+        session.workDirExists,
+      )
+      if (activeSession?.workDir) return activeSession.workDir
+    }
+    return currentProject?.workDir
+  }, [activeTab, currentProject?.workDir, sessions])
+
   const activeKey = activeTab ? sessionKey(activeTab.sessionId, activeTab.projectPath) : activeTabId
 
   const handleSessionContextMenu = useCallback((e: React.MouseEvent, session: SessionRef) => {
@@ -325,13 +338,14 @@ export function Sidebar() {
 
   const handleProjectDragOver = useCallback((e: React.DragEvent, group: SidebarSessionGroup) => {
     if (drag === null || drag.kind !== 'project' || drag.path === group.projectPath || !group.projectPath) return
+    const projectPath = group.projectPath
     e.preventDefault()
     const rect = e.currentTarget.getBoundingClientRect()
     const half: DragHalf = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
-    setDrag((current) => current !== null && current.kind === 'project' && current.over?.id === group.projectPath && current.over.half === half
+    setDrag((current) => current !== null && current.kind === 'project' && current.over?.id === projectPath && current.over.half === half
       ? current
       : current !== null && current.kind === 'project'
-        ? { ...current, over: { id: group.projectPath, half } }
+        ? { ...current, over: { id: projectPath, half } }
         : current)
   }, [drag])
 
@@ -345,7 +359,7 @@ export function Sidebar() {
           const index = groupedSessions.projectGroups.findIndex((group) => group.projectPath === overId)
           return index === -1 || index + 1 >= groupedSessions.projectGroups.length
             ? null
-            : groupedSessions.projectGroups[index + 1]!.projectPath
+            : groupedSessions.projectGroups[index + 1]!.projectPath ?? null
         })()
       if (anchor !== null) moveProject(drag.path, anchor)
     }
@@ -593,20 +607,14 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* ── 导航区（Finder 式 source list）───────────────── */}
+        {/* ── 导航区：先定位工作区，再进入连续性工具 ──────────── */}
         <nav aria-label={t('sidebar.section.workspaces')} className="shrink-0 px-[8px] pb-[6px] pt-[10px]">
           <SidebarSectionLabel>{t('sidebar.section.workspaces')}</SidebarSectionLabel>
           <SidebarNavRow
             icon="chat"
             label={t('sidebar.sessionsHome')}
-            active={workspaceView === null}
+            active={workspaceView === null && (!activeTab || activeTab.type === 'session')}
             onClick={closeWorkspaceView}
-          />
-          <SidebarNavRow
-            icon="notes"
-            label={t('sidebar.notes')}
-            active={workspaceView === 'notes'}
-            onClick={() => openWorkspace('notes')}
           />
           <SidebarNavRow
             icon="folder"
@@ -615,10 +623,10 @@ export function Sidebar() {
             onClick={() => openWorkspace('files')}
           />
           <SidebarNavRow
-            icon="schedule"
-            label={t('sidebar.scheduled')}
-            active={workspaceView === 'scheduled'}
-            onClick={() => openWorkspace('scheduled')}
+            icon="folder_open"
+            label={t('sidebar.repository')}
+            active={workspaceView === 'repository'}
+            onClick={() => openWorkspace('repository')}
           />
           <SidebarNavRow
             icon="package"
@@ -627,10 +635,29 @@ export function Sidebar() {
             onClick={() => openWorkspace('sandbox')}
           />
           <SidebarNavRow
-            icon="folder_open"
-            label={t('sidebar.repository')}
-            active={workspaceView === 'repository'}
-            onClick={() => openWorkspace('repository')}
+            icon="terminal"
+            label={t('sidebar.terminal')}
+            active={workspaceView === null && activeTab?.type === 'terminal'}
+            onClick={() => {
+              closeSettingsAction()
+              closeWorkspaceView()
+              openTerminalTab(terminalCwd ? { cwd: terminalCwd } : undefined)
+            }}
+          />
+
+          <div className="my-[5px] border-t border-[var(--color-border-separator)]" />
+          <SidebarSectionLabel>{t('sidebar.section.continuity')}</SidebarSectionLabel>
+          <SidebarNavRow
+            icon="notes"
+            label={t('sidebar.notes')}
+            active={workspaceView === 'notes'}
+            onClick={() => openWorkspace('notes')}
+          />
+          <SidebarNavRow
+            icon="schedule"
+            label={t('sidebar.scheduled')}
+            active={workspaceView === 'scheduled'}
+            onClick={() => openWorkspace('scheduled')}
           />
           <SidebarNavRow
             icon="smart_toy"
@@ -644,10 +671,6 @@ export function Sidebar() {
             workspaceView={workspaceView}
             onToggle={() => setMoreMenuOpen((open) => !open)}
             onOpenWorkspace={openWorkspace}
-            onOpenTerminal={() => {
-              setMoreMenuOpen(false)
-              openTerminalTab()
-            }}
           />
         </nav>
 
@@ -1105,7 +1128,7 @@ function SidebarGroupingMenu({
       >
         <Icon name="view_sidebar" size={12} />
         <span className="max-w-[56px] truncate">{currentLabel}</span>
-        <Icon name="chevron_down" size={11} />
+        <Icon name="expand_more" size={11} />
       </button>
       {open && (
         <div
@@ -1164,21 +1187,19 @@ function SidebarGroupingMenu({
   )
 }
 
-/** 侧栏"更多工作区"溢出菜单（终端 / 知识空间 / Atlas / 查询 / 标签） */
+/** 侧栏"更多工作区"溢出菜单（知识空间 / Atlas / 查询 / 标签） */
 function SidebarMoreMenu({
   open,
   anchorRef,
   workspaceView,
   onToggle,
   onOpenWorkspace,
-  onOpenTerminal,
 }: {
   open: boolean
   anchorRef: { current: HTMLButtonElement | null }
   workspaceView: WorkspaceView | null
   onToggle: () => void
   onOpenWorkspace: (view: WorkspaceView) => void
-  onOpenTerminal: () => void
 }) {
   const t = useTranslation()
 
@@ -1203,7 +1224,6 @@ function SidebarMoreMenu({
   }, [open, anchorRef, onToggle])
 
   const items: Array<{ key: string; label: string; icon: IconName; active: boolean; onClick: () => void }> = [
-    { key: 'terminal', label: t('sidebar.terminal'), icon: 'terminal', active: false, onClick: onOpenTerminal },
     { key: 'codeGraph', label: t('knowledgeSpace.title'), icon: 'account_tree', active: workspaceView === 'codeGraph', onClick: () => onOpenWorkspace('codeGraph') },
     { key: 'atlas', label: t('atlas.title'), icon: 'hub', active: workspaceView === 'atlas', onClick: () => onOpenWorkspace('atlas') },
     { key: 'queries', label: t('queries.title'), icon: 'filter_list', active: workspaceView === 'queries', onClick: () => onOpenWorkspace('queries') },
@@ -1322,6 +1342,7 @@ const SessionProjectGroup = memo(function SessionProjectGroup({
   onDragEnd: () => void
 }) {
   const t = useTranslation()
+  const projectDrag = drag?.kind === 'project' ? drag : null
 
   return (
     <section className="flex flex-col" aria-label={group.title}>
@@ -1355,10 +1376,10 @@ const SessionProjectGroup = memo(function SessionProjectGroup({
               onDragEnd={onDragEnd}
               className="relative flex h-[28px] w-full items-center gap-[6px] rounded-[7px] px-[8px] text-left text-[var(--color-text-secondary)] transition-colors duration-100 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)]"
             >
-              {drag !== null && drag.kind === 'project' && drag.over?.id === group.projectPath && drag.over.half === 'before' && (
+              {projectDrag?.over?.id === group.projectPath && projectDrag?.over?.half === 'before' && (
                 <span className="absolute left-[2px] right-[2px] top-[-2px] h-[2px] rounded-full bg-[var(--color-brand)]" aria-hidden="true" />
               )}
-              {drag !== null && drag.kind === 'project' && drag.over?.id === group.projectPath && drag.over.half === 'after' && (
+              {projectDrag?.over?.id === group.projectPath && projectDrag?.over?.half === 'after' && (
                 <span className="absolute bottom-[-2px] left-[2px] right-[2px] h-[2px] rounded-full bg-[var(--color-brand)]" aria-hidden="true" />
               )}
               <Icon

@@ -108,17 +108,15 @@ export function ContentRouter() {
       {/* Terminal tabs are first-class tabs, not workspace views */}
       {activeTabType === 'terminal' && activeTabId && (
         <div
-          key={activeTabId}
           className="content-route-panel content-route-panel--active absolute inset-0 z-10 flex min-h-0 flex-col overflow-hidden"
         >
-          <Suspended><Terminal terminalId={activeTabId} spawnCommand={activeTab?.spawnCommand} /></Suspended>
+          <Suspended><Terminal terminalId={activeTabId} spawnCommand={activeTab?.spawnCommand} cwd={activeTab?.cwd} /></Suspended>
         </div>
       )}
 
       {/* Non-session pages sit above session panels */}
       {nonSessionPage && (
         <div
-          key={activeTabId ?? activeTabType}
           className="content-route-panel content-route-panel--active absolute inset-0 z-10 flex min-h-0 flex-col overflow-hidden"
         >
           {nonSessionPage}
