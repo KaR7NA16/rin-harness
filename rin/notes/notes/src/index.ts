@@ -51,7 +51,7 @@ export {
   resolveLinkTarget,
   resolveVaultRoot,
 } from './vault.ts'
-export { TAG_RE, TRANSCLUSION_RE, WIKILINK_RE, extractInlineFields, extractLinks, extractTags, extractTaskFields, extractTitle, extractTransclusions, normalizeDateValue, parseWikilinkTarget, splitFrontmatter } from './parse.ts'
+export { TAG_RE, TRANSCLUSION_RE, WIKILINK_RE, extractInlineFields, extractLinks, extractTags, extractTaskFields, extractTitle, extractTransclusions, normalizeDateValue, parseWikilinkTarget, replaceInlineTagOutsideCode, splitFrontmatter } from './parse.ts'
 export type { NoteTaskFields, WikilinkTarget } from './parse.ts'
 export { evaluateNoteQuery, evaluateTaskQuery, parseQuery } from './query.ts'
 export type { NoteQueryRow, ParsedQuery, QueryCondition, QueryMode, QueryOperator, QuerySortField, QuerySource, TaskQueryRow } from './query.ts'
@@ -91,6 +91,9 @@ export abstract class NotesStore extends Service {
 
   /** Replace one note's YAML frontmatter properties. */
   abstract updateProperties(path: string, properties: Record<string, unknown>): Promise<NoteDocument>
+
+  /** Rename one tag across note frontmatter and inline tags. */
+  abstract renameTag(from: string, to: string): Promise<{ renamed: number; paths: string[] }>
 
   /** Create or update a note, snapshotting the previous version first. */
   abstract write(path: string, content: string): Promise<NoteDocument>
@@ -167,6 +170,10 @@ export class FileNotesStore extends NotesStore {
 
   override updateProperties(path: string, properties: Record<string, unknown>) {
     return this.vault.updateProperties(path, properties)
+  }
+
+  override renameTag(from: string, to: string) {
+    return this.vault.renameTag(from, to)
   }
 
   override write(path: string, content: string) {

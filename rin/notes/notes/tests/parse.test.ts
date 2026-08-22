@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, test } from 'vitest'
-import { extractInlineFields, extractLinks, extractTags, extractTaskFields, extractTitle, extractTransclusions, parseWikilinkTarget, splitFrontmatter } from '../src/parse.ts'
+import { extractInlineFields, extractLinks, extractTags, extractTaskFields, extractTitle, extractTransclusions, parseWikilinkTarget, replaceInlineTagOutsideCode, splitFrontmatter } from '../src/parse.ts'
 
 describe('extractTitle', () => {
   test('prefers a frontmatter title over the first H1', () => {
@@ -96,6 +96,14 @@ describe('extractTags', () => {
 
   test('deduplicates and sorts frontmatter plus inline tags', () => {
     expect(extractTags('---\ntags: [b, a]\n---\n#b #a\n')).toEqual(['a', 'b'])
+  })
+  test('ignores inline tags inside fenced code blocks', () => {
+    expect(extractTags('~~~md\n#fake\n~~~\n#real')).toEqual(['real'])
+  })
+
+  test('renames inline tags outside fenced code blocks only', () => {
+    expect(replaceInlineTagOutsideCode('~~~md\n#old\n~~~\n#old #other', 'old', 'new'))
+      .toBe('~~~md\n#old\n~~~\n#new #other')
   })
 })
 

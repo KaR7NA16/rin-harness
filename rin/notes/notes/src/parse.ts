@@ -88,8 +88,31 @@ function normalizeTags(value: unknown): string[] {
   return []
 }
 
-/**
- * Extract tags from frontmatter (`tags:` key, parsed via YAML) and inline
+/** Remove fenced code blocks from the text scanned for inline tags. */
+function withoutFencedCode(body: string): string {
+  let fenced = false
+  return body.split('\n').map((line) => {
+    if (/^\s{0,3}(?:~{3,}|[\u0060]{3,})/.test(line)) {
+      fenced = !fenced
+      return ''
+    }
+    return fenced ? '' : line
+  }).join('\n')
+}
+
+export function replaceInlineTagOutsideCode(body: string, from: string, to: string): string {
+  let fenced = false
+  return body.split('\n').map((line) => {
+    if (/^\s{0,3}(?:~{3,}|[\u0060]{3,})/.test(line)) {
+      fenced = !fenced
+      return line
+    }
+    if (fenced) return line
+    return line.replace(TAG_RE, (match, prefix: string, tag: string) => tag === from ? prefix + '#' + to : match)
+  }).join('\n')
+}
+
+/** Extract tags from frontmatter (`tags:` key, parsed via YAML) and inline
  * `#tag` occurrences in the body, deduplicated and sorted.
  *
  * @param content - the raw markdown note text.
@@ -101,7 +124,7 @@ export function extractTags(content: string): string[] {
   if (frontmatter && 'tags' in frontmatter) {
     for (const tag of normalizeTags(frontmatter.tags)) tags.add(tag)
   }
-  for (const match of body.matchAll(TAG_RE)) {
+  for (const match of withoutFencedCode(body).matchAll(TAG_RE)) {
     const tag = match[2]
     if (tag) tags.add(tag)
   }

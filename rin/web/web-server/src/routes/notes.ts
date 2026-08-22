@@ -36,6 +36,8 @@ export async function handle(
       return notesListRoute(services)
     case '/api/notes/read':
       return notesReadRoute(search, services)
+    case '/api/notes/tags/rename':
+      return notesRenameTagRoute(method, body, services)
     case '/api/notes/properties':
       return notesPropertiesRoute(method, search, body, services)
     case '/api/notes/write':
@@ -113,6 +115,26 @@ async function notesPropertiesRoute(
     }
   }
   return error(405, 'method not allowed')
+}
+
+async function notesRenameTagRoute(
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  if (method !== 'POST') return error(405, 'method not allowed')
+  const notes = services.notes()
+  if (notes === undefined) return notMounted()
+  const fields = asRecord(body)
+  if (fields === undefined) return error(400, 'request body must be a JSON object')
+  const from = stringField(fields, 'from')
+  const to = stringField(fields, 'to')
+  if (!from || !to) return error(400, 'from and to are required')
+  try {
+    return mountedValue('result', await notes.renameTag(from, to))
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
 }
 
 async function notesWriteRoute(

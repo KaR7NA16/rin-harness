@@ -15,7 +15,7 @@ import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import type { Dirent } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { stringify as stringifyYaml } from 'yaml'
-import { extractLinks, extractTags, extractTitle, splitFrontmatter } from './parse.ts'
+import { extractLinks, extractTags, extractTitle, replaceInlineTagOutsideCode, splitFrontmatter } from './parse.ts'
 import { NotesIndex } from './notes-index.ts'
 import type {
   NoteAsset,
@@ -218,6 +218,29 @@ export function resolveLinkTarget(target: string, notes: readonly NoteMeta[]): N
   )[0] ?? null
 }
 
+function renameFrontmatterTags(frontmatter: Record<string, unknown> | null, from: string, to: string): {
+  properties: Record<string, unknown> | null
+  changed: boolean
+} {
+  if (!frontmatter || !('tags' in frontmatter)) return { properties: frontmatter, changed: false }
+  const value = frontmatter.tags
+  const rename = (tag: string) => {
+    const trimmed = tag.trim()
+    if (trimmed.replace(/^#/, '') !== from) return trimmed
+    return trimmed.startsWith('#') ? '#' + to : to
+  }
+  if (typeof value === 'string') {
+    const next = value.split(',').map(rename)
+    return next.join(', ') === value ? { properties: frontmatter, changed: false } : { properties: { ...frontmatter, tags: next.join(', ') }, changed: true }
+  }
+  if (Array.isArray(value)) {
+    const next = value.map(item => typeof item === 'string' ? rename(item) : item)
+    const changed = next.some((item, index) => item !== value[index])
+    return changed ? { properties: { ...frontmatter, tags: next }, changed: true } : { properties: frontmatter, changed: false }
+  }
+  return { properties: frontmatter, changed: false }
+}
+
 /** The pure file-backed markdown note vault. */
 export class NotesVault {
   readonly vaultRoot: string
@@ -400,6 +423,31 @@ export class NotesVault {
     const frontmatter = `---\n${stringifyYaml(properties).trim()}\n---\n`
     const next = `${frontmatter}${body}`
     return this.write(relPath, next)
+  }
+
+  /** Rename one tag across frontmatter and fenced-code-safe inline tags. */
+  async renameTag(fromTag: string, toTag: string): Promise<{ renamed: number; paths: string[] }> {
+    const from = fromTag.trim().replace(/^#/, '')
+    const to = toTag.trim().replace(/^#/, '')
+    const valid = /^[\p{L}\p{N}_/-]+$/u
+    if (!valid.test(from) || !valid.test(to)) throw new Error('rin notes: tag names must contain letters, numbers, _, /, or -')
+    if (from === to) return { renamed: 0, paths: [] }
+
+    const changedPaths: string[] = []
+    for (const note of await this.list()) {
+      const document = await this.read(note.path)
+      const split = splitFrontmatter(document.content)
+      const frontmatter = renameFrontmatterTags(split.frontmatter, from, to)
+      const nextBody = replaceInlineTagOutsideCode(split.body, from, to)
+      if (!frontmatter.changed && nextBody === split.body) continue
+      const prefix = document.content.slice(0, document.content.length - split.body.length)
+      const next = frontmatter.changed
+        ? '---\n' + stringifyYaml(frontmatter.properties ?? {}).trim() + '\n---\n' + nextBody
+        : prefix + nextBody
+      await this.write(note.path, next)
+      changedPaths.push(note.path)
+    }
+    return { renamed: changedPaths.length, paths: changedPaths }
   }
 
   /**

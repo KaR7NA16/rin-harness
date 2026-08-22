@@ -11,7 +11,7 @@
  */
 
 import type { KnowledgeGraphService } from './index.ts'
-import type { GraphNodeKind, GraphSnapshot, GraphSource } from './types.ts'
+import { GRAPH_NODE_KINDS, GRAPH_SOURCES, type GraphNodeKind, type GraphSnapshot, type GraphSource } from './types.ts'
 
 /** Result count returned by `atlas_search` when the model omits `limit`. */
 export const ATLAS_SEARCH_LIMIT_DEFAULT = 10
@@ -163,13 +163,9 @@ export async function atlasGraph(
   return graphNeighborhood(snapshot, node)
 }
 
-const VALID_SOURCES = new Set<GraphSource>(['notes', 'knowledge', 'repository', 'codegraph', 'session'])
+const VALID_SOURCES = new Set<GraphSource>(GRAPH_SOURCES)
 
-const VALID_KINDS = new Set<GraphNodeKind>([
-  'note', 'tag', 'knowledge_source', 'knowledge_document',
-  'repository_agent', 'repository_environment', 'repository_package',
-  'code_file', 'code_symbol', 'session',
-])
+const VALID_KINDS = new Set<GraphNodeKind>(GRAPH_NODE_KINDS)
 
 /** Parse a comma-separated filter into known members, or an empty list. */
 function parseFilter<T extends string>(raw: string | undefined, allowed: ReadonlySet<T>): T[] {

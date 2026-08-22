@@ -1,23 +1,23 @@
 /**
  * rin web-server — knowledge-graph routes.
  *
- * Read-only unified graph projection over notes and knowledge. All
+ * Read-only unified graph projection over mounted local providers. All
  * @rin/knowledge-graph imports are type-only, so this module stays
  * runtime-dependency-free. Returns null for any pathname it does not claim.
  *
  * @module @rin/web-server
  */
 
-import type { GraphNodeKind, KnowledgeGraphService } from '@rin/knowledge-graph'
+import type { GraphNodeKind, GraphSource, KnowledgeGraphService } from '@rin/knowledge-graph'
 import type { Config, JsonResponse } from '../types.ts'
 import { error, errorMessage, mountedValue, notMounted, parsePositiveInt, queryParam } from '../http.ts'
 import type { RinServiceRefs } from '../routes.ts'
 
 /** Graph sources accepted by the ?sources= filter. */
-const GRAPH_SOURCES: ReadonlySet<'notes' | 'knowledge'> = new Set(['notes', 'knowledge'])
+const GRAPH_SOURCES: ReadonlySet<GraphSource> = new Set(['notes', 'knowledge', 'repository', 'codegraph', 'session', 'filesystem'])
 
 /** Graph node kinds accepted by the ?kinds= filter. */
-const GRAPH_KINDS: ReadonlySet<GraphNodeKind> = new Set(['note', 'tag', 'knowledge_source', 'knowledge_document'])
+const GRAPH_KINDS: ReadonlySet<GraphNodeKind> = new Set(['note', 'tag', 'knowledge_source', 'knowledge_document', 'repository_agent', 'repository_environment', 'repository_package', 'code_file', 'code_symbol', 'session', 'file'])
 
 /** Dispatch the knowledge-graph pathnames; null for anything else. */
 export async function handle(

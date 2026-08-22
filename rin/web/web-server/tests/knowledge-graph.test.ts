@@ -40,14 +40,19 @@ describe('knowledge-graph: graph', () => {
     svc.graph = async (query) => { captured = query; return snapshot }
     const res = await handle(
       '/api/knowledge-graph/graph',
-      '?sources=notes,knowledge&kinds=note,tag&pathPrefix=work&limit=3',
+      '?sources=notes,knowledge,repository,codegraph,session,filesystem&kinds=note,tag,knowledge_source,knowledge_document,repository_agent,repository_environment,repository_package,code_file,code_symbol,session,file&pathPrefix=work&limit=3',
       'GET',
       undefined,
       services(svc),
       config,
     )
     expect(res).toEqual({ status: 200, body: { mounted: true, graph: snapshot } })
-    expect(captured).toEqual({ sources: ['notes', 'knowledge'], kinds: ['note', 'tag'], pathPrefix: 'work', limit: 3 })
+    expect(captured).toEqual({
+      sources: ['notes', 'knowledge', 'repository', 'codegraph', 'session', 'filesystem'],
+      kinds: ['note', 'tag', 'knowledge_source', 'knowledge_document', 'repository_agent', 'repository_environment', 'repository_package', 'code_file', 'code_symbol', 'session', 'file'],
+      pathPrefix: 'work',
+      limit: 3,
+    })
   })
 
   test('drops unknown sources and kinds', async () => {

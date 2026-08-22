@@ -7,20 +7,23 @@
  * @module @rin/knowledge-graph
  */
 
-export type GraphSource = 'notes' | 'knowledge' | 'repository' | 'codegraph' | 'session' | 'filesystem'
+export const GRAPH_SOURCES = ['notes', 'knowledge', 'repository', 'codegraph', 'session', 'filesystem'] as const
+export type GraphSource = typeof GRAPH_SOURCES[number]
 
-export type GraphNodeKind =
-  | 'note'
-  | 'tag'
-  | 'knowledge_source'
-  | 'knowledge_document'
-  | 'repository_agent'
-  | 'repository_environment'
-  | 'repository_package'
-  | 'code_file'
-  | 'code_symbol'
-  | 'session'
-  | 'file'
+export const GRAPH_NODE_KINDS = [
+  'note',
+  'tag',
+  'knowledge_source',
+  'knowledge_document',
+  'repository_agent',
+  'repository_environment',
+  'repository_package',
+  'code_file',
+  'code_symbol',
+  'session',
+  'file',
+] as const
+export type GraphNodeKind = typeof GRAPH_NODE_KINDS[number]
 
 export type GraphEdgeKind =
   | 'wikilink'

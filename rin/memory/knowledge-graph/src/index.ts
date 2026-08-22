@@ -1,8 +1,8 @@
 /**
  * rin knowledge-graph — Cordis plugin entry.
  *
- * Exposes `ctx.knowledgeGraph`, a read-only projection of notes and knowledge
- * entities into one SQLite graph. Providers are refreshed on each query; no
+ * Exposes the knowledgeGraph service, a read-only projection of mounted local
+ * providers into one SQLite graph. Providers are refreshed on each query; no
  * source store is ever written by this plugin.
  *
  * @module @rin/knowledge-graph
@@ -22,7 +22,7 @@ import type { SessionSearchStore } from '@rin/session-search'
 import { codeGraphRows, filesystemGraphRows, knowledgeGraphRows, notesGraphRows, repositoryGraphRows, sessionGraphRows } from './providers.ts'
 import { KnowledgeGraphStore } from './store.ts'
 import { atlasGraph, ATLAS_GRAPH_DEPTH_MAX, ATLAS_SEARCH_LIMIT_DEFAULT, ATLAS_SEARCH_LIMIT_MAX, searchAtlas } from './tools.ts'
-import type { GraphEdge, GraphNode, GraphQuery, GraphSnapshot } from './types.ts'
+import { GRAPH_NODE_KINDS, GRAPH_SOURCES, type GraphEdge, type GraphNode, type GraphQuery, type GraphSnapshot } from './types.ts'
 
 export type * from './types.ts'
 export { KnowledgeGraphStore } from './store.ts'
@@ -236,7 +236,7 @@ export function apply(ctx: Context, config: Config = {}): void {
 }
 
 const ATLAS_SEARCH_DESCRIPTION =
-  'Search the unified local knowledge graph (notes, tags, knowledge documents, repository assets, code symbols, sessions) '
+  'Search the unified local knowledge graph (notes, knowledge, repository, code graph, sessions, filesystem) '
   + 'by free text and return the matching entities with their graph neighbors. Use this to find entities and how they relate '
   + 'before reading any source file.'
 
@@ -251,8 +251,8 @@ function registerAtlasTools(ctx: Context): void {
     description: ATLAS_SEARCH_DESCRIPTION,
     parameters: {
       query: { type: 'string', required: true, description: 'Free-text query matched against entity labels, paths, and ids.' },
-      sources: { type: 'string', description: 'Comma-separated sources: notes, knowledge, repository, codegraph, session.' },
-      kinds: { type: 'string', description: 'Comma-separated node kinds: note, tag, knowledge_source, knowledge_document, repository_agent, repository_environment, repository_package, code_file, code_symbol, session.' },
+      sources: { type: 'string', description: 'Comma-separated sources: ' + GRAPH_SOURCES.join(', ') + '.' },
+      kinds: { type: 'string', description: 'Comma-separated node kinds: ' + GRAPH_NODE_KINDS.join(', ') + '.' },
       limit: { type: 'number', description: `Maximum results. Defaults to ${ATLAS_SEARCH_LIMIT_DEFAULT}, capped at ${ATLAS_SEARCH_LIMIT_MAX}.` },
     },
     output: {

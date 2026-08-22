@@ -100,6 +100,38 @@ describe('frontmatter properties', () => {
   })
 })
 
+describe('tag rename', () => {
+  test('renames frontmatter and inline tags without changing fenced code', async () => {
+    const { vault } = await createVault()
+    await vault.write('note.md', [
+      '---',
+      'tags: [old, keep]',
+      'custom: value',
+      '---',
+      '# Note',
+      '',
+      '#old #keep',
+      '',
+      '~~~md',
+      '#old',
+      '~~~',
+    ].join('\n'))
+
+    const result = await vault.renameTag('#old', '#new')
+    expect(result).toEqual({ renamed: 1, paths: ['note.md'] })
+    const document = await vault.read('note.md')
+    expect(document.content).toContain('tags:\n  - new\n  - keep')
+    expect(document.content).toContain('custom: value')
+    expect(document.content).toContain('#new #keep')
+    expect(document.content).toContain('~~~md\n#old\n~~~')
+    expect(await vault.listSnapshots('note.md')).toHaveLength(1)
+  })
+
+  test('rejects invalid tag names', async () => {
+    const { vault } = await createVault()
+    await expect(vault.renameTag('old', 'bad tag')).rejects.toThrow(/tag names/)
+  })
+})
 describe('history snapshots', () => {
   test('keeps the latest 10 snapshots and prunes the oldest', async () => {
     const { root, vault } = await createVault()
