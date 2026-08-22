@@ -32,7 +32,7 @@ rin 在 `dsh` 底座之上叠加了一组 `@rin/*` 包：
 
 ### 从源码运行
 
-rin 的 `dsh` 底座以 `@deepseek-ai/*` 依赖形式从**公共 npm registry** 安装——**无需单独检出 DeepSeek Harness**。clone 本仓库后执行 `pnpm install` 即自动拉齐整个 `dsh` 底座（精确钉在 `0.1.0-rc.7`）：
+rin 的 `dsh` 底座以 `@deepseek-ai/*` 依赖形式从**公共 npm registry** 安装——**无需单独检出 DeepSeek Harness**。clone 本仓库后执行 `pnpm install` 即自动拉齐整个 `dsh` 底座（精确钉在 `0.1.0-rc.8`）：
 
 ```sh
 pnpm install

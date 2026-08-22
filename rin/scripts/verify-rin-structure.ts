@@ -12,7 +12,7 @@
  *     into the source plane.
  */
 
-import { existsSync, globSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, globSync, lstatSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 
 const rinRoot = resolve(import.meta.dirname, '..')
@@ -28,7 +28,7 @@ if (import.meta.main) {
 
 function main(): number {
   const manifests = globSync('*/*/package.json', { cwd: rinRoot }).sort()
-  const failures: string[] = []
+  const failures = validateRepositoryEntrypoints()
   for (const manifestPath of manifests) {
     failures.push(...validatePackage(resolve(rinRoot, manifestPath)))
   }
@@ -39,6 +39,23 @@ function main(): number {
   }
   console.log(`verify-rin-structure: ${manifests.length} rin packages conform.`)
   return 0
+}
+
+/** Verify the repository-level agent entry points remain portable and resolvable. */
+function validateRepositoryEntrypoints(): string[] {
+  const failures: string[] = []
+  const claudeInstructionsPath = resolve(repoRoot, 'CLAUDE.md')
+  if (!existsSync(claudeInstructionsPath)) {
+    failures.push('CLAUDE.md: compatibility entry point is missing')
+  } else if (!readFileSync(claudeInstructionsPath, 'utf8').includes('[AGENTS.md](AGENTS.md)')) {
+    failures.push('CLAUDE.md: must direct readers to [AGENTS.md](AGENTS.md)')
+  }
+
+  const skillsPath = resolve(repoRoot, '.claude', 'skills')
+  if (existsSync(skillsPath) && !lstatSync(skillsPath).isDirectory()) {
+    failures.push('.claude/skills: must be a directory when project-local Claude skills are present')
+  }
+  return failures
 }
 
 function validatePackage(manifestPath: string): string[] {

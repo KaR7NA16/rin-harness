@@ -80,13 +80,12 @@
 
 ---
 
-## D. MIGRATION §10 后置但至今未建（已核对目录）
+## D. MIGRATION §10 中仍未建的项目（已核对目录）
 
 `@rin/schedule`、`@rin/remote`、`@rin/voice`、`@rin/github`（空桩）、`@rin/worktree`（bash 可替代）、
 `@rin/editor-notebook`、`@rin/im-feishu`、`@rin/im-telegram`
 
-> **MIGRATION §10 过时表述**：其「后置」列表中 computer-use / agent-migration / codegraph / teams / doctor / tasks
-> **实际均已建**，建议下次修订 MIGRATION.md 时清理。
+> 本节只保留当前目录中尚未建立的包。`@rin/teams`、`@rin/doctor`、`@rin/computer-use`、`@rin/agent-migration`、`@rin/codegraph` 与 `@rin/tasks` 已建成并接入当前装配，MIGRATION.md 的后置列表已同步移除这些项目。
 
 ---
 

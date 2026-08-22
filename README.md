@@ -32,7 +32,7 @@ rin layers a set of `@rin/*` packages on top of the `dsh` base:
 
 ### Run from source
 
-rin's `dsh` base is installed as `@deepseek-ai/*` dependencies from the **public npm registry** — you do not need a separate DeepSeek Harness checkout. Cloning this repository and running `pnpm install` pulls the entire `dsh` base automatically (pinned to `0.1.0-rc.7`):
+rin's `dsh` base is installed as `@deepseek-ai/*` dependencies from the **public npm registry** — you do not need a separate DeepSeek Harness checkout. Cloning this repository and running `pnpm install` pulls the entire `dsh` base automatically (pinned to `0.1.0-rc.8`):
 
 ```sh
 pnpm install
