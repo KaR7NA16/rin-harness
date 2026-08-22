@@ -1,4 +1,5 @@
 import {
+  getBrowserBaseUrl,
   getDefaultBaseUrl,
   setAuthToken,
   setBaseUrl,
@@ -16,7 +17,7 @@ export async function initializeDesktopServerUrl() {
     typeof window !== 'undefined'
       ? new URLSearchParams(window.location.search).get('serverUrl')
       : null
-  const requestedUrl = queryUrl?.trim() || fallbackUrl
+  const requestedUrl = queryUrl?.trim() || (isTauriRuntime() ? fallbackUrl : getBrowserBaseUrl())
 
   if (!isTauriRuntime()) {
     setServerConnectionRefresher(null)

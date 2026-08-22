@@ -29,6 +29,10 @@ vi.mock('./TabBar', () => ({
   TabBar: () => <div data-testid="tab-bar" />,
 }))
 
+vi.mock('./WorkspaceContextBar', () => ({
+  WorkspaceContextBar: () => <div data-testid="workspace-context-bar" />,
+}))
+
 vi.mock('./SettingsPanel', () => ({
   SettingsPanel: ({ visible }: { visible?: boolean }) => (
     <div data-testid="settings-panel" data-visible={String(Boolean(visible))} />
@@ -171,10 +175,13 @@ describe('AppShell bootstrap', () => {
     act(() => useUIStore.getState().openSettings('settings'))
 
     const sidebar = screen.getByTestId('sidebar')
+    const contextBar = screen.getByTestId('workspace-context-bar')
+    const tabBar = screen.getByTestId('tab-bar')
     const content = screen.getByTestId('content-router')
     const settingsPanel = screen.getByTestId('settings-panel')
 
     expect(sidebar.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(contextBar.compareDocumentPosition(tabBar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(content.compareDocumentPosition(settingsPanel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(settingsPanel).toHaveAttribute('data-visible', 'true')
     expect(screen.queryByTestId('icon-rail')).not.toBeInTheDocument()

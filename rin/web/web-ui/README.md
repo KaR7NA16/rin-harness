@@ -38,9 +38,13 @@ Vite + React 18 + React Router 6 + TypeScript（jsx: react-jsx）。
 ```sh
 pnpm install                 # 联网拉取 react/react-router-dom/vite 等（沙箱内不可行）
 pnpm run rin:build           # 等价于 pnpm --filter @rin/web-ui run build，产出 dist/
-pnpm --filter @rin/web-ui run dev   # vite dev，port 5173，/api 代理到 http://127.0.0.1:8320
-pnpm run rin                 # 启动 host：http://127.0.0.1:8320 伺服 dist/（@rin/bundle staticRoot）
+pnpm --filter @rin/web-ui run dev   # Vite dev：http://localhost:1420；/health、/api、/ws 代理到 8320
+pnpm run rin                         # 集成入口：http://127.0.0.1:8320 伺服 dist/（@rin/bundle staticRoot）
 ```
+
+浏览器开发态使用当前页面 origin 访问后端；Vite 只在本地开发时代理到
+RIN_WEB_SERVER_URL（默认 http://127.0.0.1:8320）。检查构建后的产品面或
+与 GUI 一致的集成行为时使用 8320；修改前端源码时使用 1420。
 
 ## 设计系统
 

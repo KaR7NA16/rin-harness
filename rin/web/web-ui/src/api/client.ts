@@ -38,6 +38,20 @@ export function getDefaultBaseUrl() {
   return DEFAULT_BASE_URL
 }
 
+/**
+ * Resolve the browser development endpoint without bypassing an explicit URL.
+ *
+ * The integrated web server serves the UI and API from one origin. Vite keeps
+ * that relationship through its development proxy, so browser mode should
+ * use the current page origin unless the caller configured a server URL.
+ */
+export function getBrowserBaseUrl() {
+  if (ENV_BASE_URL) return ENV_BASE_URL
+  if (typeof window !== 'undefined' && window.location.origin !== 'null') {
+    return window.location.origin
+  }
+  return DEFAULT_BASE_URL
+}
 export function setAuthToken(token: string) {
   authToken = token
 }

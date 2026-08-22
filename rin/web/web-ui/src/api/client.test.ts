@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   api,
+  getBrowserBaseUrl,
   getDefaultBaseUrl,
   setAuthToken,
   setBaseUrl,
@@ -16,6 +17,10 @@ afterEach(() => {
 })
 
 describe('desktop API client authentication', () => {
+  it('uses the current browser origin when no server URL is configured', () => {
+    expect(getBrowserBaseUrl()).toBe(window.location.origin)
+  })
+
   it('sends the ephemeral local server token without putting it in the URL', async () => {
     setBaseUrl('http://127.0.0.1:45678')
     setAuthToken('desktop-secret')

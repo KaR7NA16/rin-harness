@@ -4,6 +4,13 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 const host = process.env.TAURI_DEV_HOST || '127.0.0.1'
+const backendUrl = process.env.RIN_WEB_SERVER_URL || 'http://127.0.0.1:8320'
+const backendProxy = {
+  target: backendUrl,
+  changeOrigin: true,
+  ws: true,
+  headers: { origin: backendUrl },
+}
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -19,6 +26,11 @@ export default defineConfig({
     strictPort: true,
     host,
     hmr: { protocol: 'ws', host, port: 1421 },
+    proxy: {
+      '/health': backendProxy,
+      '/api': backendProxy,
+      '/ws': backendProxy,
+    },
     watch: {
       ignored: ['**/src-tauri/**'],
     },

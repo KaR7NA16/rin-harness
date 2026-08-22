@@ -12,6 +12,7 @@ import { StartupErrorView } from './StartupErrorView'
 import { SettingsPanel } from './SettingsPanel'
 import { useTabStore } from '../../stores/tabStore'
 import { useChatStore } from '../../stores/chatStore'
+import { WorkspaceContextBar } from './WorkspaceContextBar'
 
 const BOOT_SPLASH_REMOVE_DELAY_MS = 16
 
@@ -152,6 +153,7 @@ export function AppShell() {
           id="content-area"
           className="relative z-10 flex min-w-0 w-0 flex-1 flex-col overflow-hidden bg-[var(--color-background)] transition-colors duration-150"
         >
+          <WorkspaceContextBar />
           <TabBar />
           <ContentRouter />
           <StatusBar />
