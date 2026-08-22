@@ -47,4 +47,15 @@ describe('layoutAtlasGraph', () => {
     const leaf = layout.find((n) => n.id === 'a')!
     expect(hub.radius).toBeGreaterThan(leaf.radius)
   })
+  it('supports a stable grid layout', () => {
+    const layout = layoutAtlasGraph([
+      node({ id: 'a', kind: 'note' }),
+      node({ id: 'b', kind: 'note' }),
+      node({ id: 'c', kind: 'note' }),
+      node({ id: 'd', kind: 'note' }),
+    ], [], 400, 200, 'grid')
+    expect(layout.map(({ x, y }) => ({ x, y }))).toEqual([
+      { x: 100, y: 50 }, { x: 300, y: 50 }, { x: 100, y: 150 }, { x: 300, y: 150 },
+    ])
+  })
 })

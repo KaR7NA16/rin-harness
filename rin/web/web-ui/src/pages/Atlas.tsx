@@ -1,18 +1,17 @@
 import { LoaderCircle, RefreshCw, Search, X } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  GRAPH_NODE_KINDS,
+  GRAPH_SOURCES,
   knowledgeGraphApi,
   type GraphNode,
   type GraphNodeKind,
   type GraphSnapshot,
   type GraphSource,
 } from '../api/knowledgeGraph'
-import { AtlasGraphView } from '../components/atlas/AtlasGraphView'
+import { ATLAS_KIND_COLORS, AtlasGraphView, type AtlasLayoutMode } from '../components/atlas/AtlasGraphView'
 import { useTranslation } from '../i18n'
 import { useUIStore } from '../stores/uiStore'
-
-const ALL_SOURCES: GraphSource[] = ['notes', 'knowledge', 'repository', 'codegraph', 'session', 'filesystem']
-const ALL_KINDS: GraphNodeKind[] = ['note', 'tag', 'knowledge_source', 'knowledge_document']
 
 const EMPTY_GRAPH: GraphSnapshot = { nodes: [], edges: [], refreshedAt: '' }
 
@@ -22,10 +21,19 @@ export function Atlas() {
   const [loading, setLoading] = useState(true)
   const [sources, setSources] = useState<GraphSource[]>([])
   const [kinds, setKinds] = useState<GraphNodeKind[]>([])
+  const [nodeSearch, setNodeSearch] = useState('')
+  const [layoutMode, setLayoutMode] = useState<AtlasLayoutMode>('clusters')
   const [pathPrefix, setPathPrefix] = useState('')
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
   const [related, setRelated] = useState<GraphSnapshot | null>(null)
   const [relatedLoading, setRelatedLoading] = useState(false)
+  const searchMatches = useMemo(() => {
+    const query = nodeSearch.trim().toLocaleLowerCase()
+    if (!query) return []
+    return graph.nodes
+      .filter((node) => [node.label, node.path ?? '', node.id].join(' ').toLocaleLowerCase().includes(query))
+      .slice(0, 8)
+  }, [graph.nodes, nodeSearch])
 
   const notifyError = useCallback((error: unknown, fallback: string) => {
     useUIStore.getState().addToast({
@@ -57,6 +65,7 @@ export function Atlas() {
   }, [loadGraph])
 
   const selectNode = useCallback((node: GraphNode) => {
+    setNodeSearch(node.label)
     setSelectedNode(node)
     setRelated(null)
     setRelatedLoading(true)
@@ -90,7 +99,7 @@ export function Atlas() {
 
         <div className="flex flex-wrap items-center gap-[10px] border-b border-[var(--color-border-separator)] px-[16px] py-[10px] md:px-[20px]">
           <FilterGroup label={t('atlas.filters.sources')}>
-            {ALL_SOURCES.map((source) => (
+            {GRAPH_SOURCES.map((source) => (
               <Chip
                 key={source}
                 active={sources.includes(source)}
@@ -100,7 +109,7 @@ export function Atlas() {
             ))}
           </FilterGroup>
           <FilterGroup label={t('atlas.filters.kinds')}>
-            {ALL_KINDS.map((kind) => (
+            {GRAPH_NODE_KINDS.map((kind) => (
               <Chip
                 key={kind}
                 active={kinds.includes(kind)}
@@ -109,6 +118,16 @@ export function Atlas() {
               />
             ))}
           </FilterGroup>
+          <FilterGroup label={t('atlas.filters.layout')}>
+            <Chip active={layoutMode === 'clusters'} label={t('atlas.layout.clusters')} onClick={() => setLayoutMode('clusters')} />
+            <Chip active={layoutMode === 'grid'} label={t('atlas.layout.grid')} onClick={() => setLayoutMode('grid')} />
+          </FilterGroup>
+          <AtlasNodeSearch
+            value={nodeSearch}
+            matches={searchMatches}
+            onChange={setNodeSearch}
+            onSelect={selectNode}
+          />
           <label className="relative ml-auto w-full min-w-[180px] sm:w-[220px]">
             <Search className="pointer-events-none absolute left-[10px] top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" size={14} />
             <input
@@ -128,7 +147,7 @@ export function Atlas() {
               <LoaderCircle className="animate-spin text-[var(--color-text-tertiary)]" size={24} />
             </div>
           ) : (
-            <AtlasGraphView nodes={graph.nodes} edges={graph.edges} onSelectNode={selectNode} />
+            <AtlasGraphView nodes={graph.nodes} edges={graph.edges} onSelectNode={selectNode} layoutMode={layoutMode} focusNodeId={selectedNode?.id ?? null} />
           )}
         </div>
       </main>
@@ -174,7 +193,7 @@ export function Atlas() {
                       onClick={() => selectNode(node)}
                       className="flex w-full items-center gap-[8px] py-[9px] text-left hover:bg-[var(--color-surface-hover)]"
                     >
-                      <span className="h-[7px] w-[7px] shrink-0 rounded-full" style={{ background: kindColor(node.kind) }} />
+                      <span className="h-[7px] w-[7px] shrink-0 rounded-full" style={{ background: ATLAS_KIND_COLORS[node.kind] }} />
                       <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--color-text-primary)]">{node.label}</span>
                       <span className="shrink-0 font-mono text-[8px] uppercase text-[var(--color-text-tertiary)]">{t(`atlas.kind.${node.kind}` as never)}</span>
                     </button>
@@ -185,6 +204,37 @@ export function Atlas() {
         </aside>
       )}
     </div>
+  )
+}
+
+function AtlasNodeSearch({
+  value,
+  matches,
+  onChange,
+  onSelect,
+}: {
+  value: string
+  matches: GraphNode[]
+  onChange: (value: string) => void
+  onSelect: (node: GraphNode) => void
+}) {
+  const t = useTranslation()
+  const chooseFirst = () => {
+    if (matches[0]) onSelect(matches[0])
+  }
+  return (
+    <label className="relative ml-auto w-full min-w-[180px] sm:w-[220px]">
+      <Search className="pointer-events-none absolute left-[10px] top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" size={14} />
+      <input
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => { if (event.key === 'Enter') chooseFirst() }}
+        placeholder={t('atlas.filters.entitySearch')}
+        aria-label={t('atlas.filters.entitySearch')}
+        className="h-[32px] w-full rounded-[6px] border border-[var(--color-border)] bg-[var(--color-background)] pl-[30px] pr-[8px] text-[11px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-border-focus)]"
+      />
+    </label>
   )
 }
 
@@ -216,17 +266,4 @@ function Chip({ active, label, onClick }: { active: boolean; label: string; onCl
 
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value]
-}
-
-function kindColor(kind: GraphNodeKind): string {
-  switch (kind) {
-    case 'note':
-      return '#39d0d8'
-    case 'tag':
-      return '#c3a6ff'
-    case 'knowledge_source':
-      return '#ffb86b'
-    default:
-      return '#8fb6d9'
-  }
 }

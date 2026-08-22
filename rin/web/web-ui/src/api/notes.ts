@@ -87,6 +87,9 @@ export const notesApi = {
   updateProperties: (path: string, properties: Record<string, unknown>) =>
     api.post<{ mounted: true; note: NoteDocument }>('/api/notes/properties', { path, properties }),
 
+  renameTag: (from: string, to: string) =>
+    api.post<{ mounted: true; result: { renamed: number; paths: string[] } }>('/api/notes/tags/rename', { from, to }),
+
   write: (path: string, content: string) =>
     api.put<NoteDocument>(noteUrl(path), { content }),
 
