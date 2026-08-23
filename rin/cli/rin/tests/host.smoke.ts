@@ -2,7 +2,7 @@
  * rin launcher — assembly metadata strip-types smoke.
  *
  * Asserts the @rin/bundle roster is complete and correctly scoped: all
- * twenty-eight @rin host plugins plus the web-server, dsh-base first, and
+ * the @rin host plugins plus the web-server, dsh-base first, and
  * dsh-web-app absent (MIGRATION.md §8 decision 10). Pure data assertions — no
  * Cordis boot.
  *
@@ -20,16 +20,17 @@ import {
   RIN_WEB_SERVER,
 } from '../../../bundle/rin/src/index.ts'
 
-// 1. Exactly twenty-eight @rin host plugins, web-server separate, twenty-nine total.
-if (RIN_HOST_PLUGINS.length !== 28) throw new Error('expected 28 @rin host plugins, got ' + RIN_HOST_PLUGINS.length)
+// 1. The @rin host plugins are separate from the web-server.
+if (RIN_HOST_PLUGINS.length !== 29) throw new Error('expected 29 @rin host plugins, got ' + RIN_HOST_PLUGINS.length)
 if (RIN_WEB_SERVER !== '@rin/web-server') throw new Error('RIN_WEB_SERVER mismatch')
-if (RIN_PLUGINS.length !== 29) throw new Error('expected 29 @rin plugins, got ' + RIN_PLUGINS.length)
+if (RIN_PLUGINS.length !== 30) throw new Error('expected 30 @rin plugins, got ' + RIN_PLUGINS.length)
 
 const expectedHost = [
   '@rin/repository',
   '@rin/environment',
   '@rin/filesystem',
   '@rin/session-backup',
+  '@rin/memory',
   '@rin/knowledge',
   '@rin/knowledge-graph',
   '@rin/prompt-memory',
@@ -63,7 +64,7 @@ for (const name of expectedHost) {
 // 2. Assembly order: dsh-base first, no dsh-web-app anywhere.
 if (BASE_BUNDLE !== '@deepseek-ai/dsh-base') throw new Error('BASE_BUNDLE mismatch')
 if (ASSEMBLY_LAYERS[0] !== BASE_BUNDLE) throw new Error('assembly must start with dsh-base')
-if (ASSEMBLY_LAYERS.length !== 30) throw new Error('expected 30 assembly layers, got ' + ASSEMBLY_LAYERS.length)
+if (ASSEMBLY_LAYERS.length !== 31) throw new Error('expected 31 assembly layers, got ' + ASSEMBLY_LAYERS.length)
 if (ASSEMBLY_LAYERS.includes(EXCLUDED_BUNDLE)) throw new Error('assembly must not include ' + EXCLUDED_BUNDLE)
 if (RIN_PLUGINS.includes(EXCLUDED_BUNDLE)) throw new Error('RIN_PLUGINS must not include ' + EXCLUDED_BUNDLE)
 

@@ -9,6 +9,10 @@
 #
 # Paths use !!js helpers provided on the boot context:
 #   rinHome(subpath?)        -> $RIN_HOME or ~/.rin, then the optional subpath
+#   dshHome(subpath?)        -> $DSH_HOME or <rinHome()>/dsh, then the optional subpath
+#   sessionRoot()            -> RIN_SESSION_ROOT or dshHome('sessions')
+#   settingsPath()           -> RIN_SETTINGS_PATH or dshHome('settings.yaml')
+#   credentialsPath()        -> RIN_CREDENTIALS_PATH or dshHome('.credentials.yaml')
 #   builtinRepositoryRoot()  -> the built-in asset repository beside this package
 #   webUiDistRoot()          -> @rin/web-ui dist (the one UI served at 8320 and embedded by @rin/gui)
 # The @rin/cli launcher provides them in boot's prepare hook; the dsh harness
@@ -30,10 +34,36 @@
 
 - id: session-backup
   name: '@rin/session-backup'
+  inject: [rinHome, dshHome, sessionRoot, settingsPath, credentialsPath, memory]
+  config:
+    sessionsRoot: !!js sessionRoot()
+    backupsRoot: !!js rinHome('backups')
+    settingsPath: !!js rinHome('backup-settings.json')
+    archiveRoot: !!js rinHome()
+    dshRoot: !!js dshHome()
+    dshSettingsPath: !!js settingsPath()
+    beforeArchive: !!js |-
+      (() => {
+        const memory = ctx.get('memory')
+        if (memory && typeof memory.prepareForArchive === 'function') memory.prepareForArchive()
+      })
+    credentialsPath: !!js credentialsPath()
+
+- id: memory
+  name: '@rin/memory'
+  inject: [rinHome, sessionRoot, settingsPath, credentialsPath]
+  config:
+    dbPath: !!js rinHome('memory/memory.db')
+    manifestPath: !!js rinHome('memory/manifest.json')
+    homeRoot: !!js rinHome()
+    sessionRoot: !!js sessionRoot()
+    settingsPath: !!js settingsPath()
+    credentialsPath: !!js credentialsPath()
+    archiveRoot: !!js rinHome()
 
 - id: knowledge
   name: '@rin/knowledge'
-  inject: [rinHome]
+  inject: [rinHome, memory]
   config:
     dbPath: !!js rinHome('knowledge/knowledge.db')
     configHome: !!js rinHome()
@@ -51,7 +81,7 @@
 
 - id: prompt-memory
   name: '@rin/prompt-memory'
-  inject: [rinHome]
+  inject: [rinHome, memory]
   config:
     configRoot: !!js rinHome('prompt-memory')
     initialSoul: |-
@@ -69,7 +99,7 @@
 
 - id: session-search
   name: '@rin/session-search'
-  inject: [rinHome]
+  inject: [rinHome, memory]
   config:
     configRoot: !!js rinHome('session-search')
 
@@ -119,7 +149,7 @@
 
 - id: notes
   name: '@rin/notes'
-  inject: [rinHome]
+  inject: [rinHome, memory]
   config:
     vaultRoot: !!js rinHome('notes')
 

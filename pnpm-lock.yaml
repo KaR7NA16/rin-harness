@@ -497,6 +497,9 @@ importers:
       '@rin/mcp-client':
         specifier: workspace:^
         version: link:../../automation/mcp-client
+      '@rin/memory':
+        specifier: workspace:^
+        version: link:../../core/memory
       '@rin/monitor':
         specifier: workspace:^
         version: link:../../core/monitor

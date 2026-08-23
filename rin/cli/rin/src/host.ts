@@ -17,8 +17,12 @@ import {
   baseBundlePatchPath,
   builtinRepositoryRoot,
   configPath,
+  credentialsPath,
   defaultConfig,
+  dshHome,
   rinHome,
+  sessionRoot,
+  settingsPath,
   webUiDistRoot,
 } from '@rin/bundle'
 import type { RinArgs } from './args.ts'
@@ -48,6 +52,9 @@ export interface RinHost {
  */
 export async function startHost(args: RinArgs): Promise<RinHost> {
   installFailLoud('rin')
+  if (process.env.DSH_HOME === undefined || process.env.DSH_HOME.trim() === '') {
+    process.env.DSH_HOME = dshHome()
+  }
 
   const port = args.port ?? defaultConfig['web-server'].port
   const host = args.host ?? defaultConfig['web-server'].host
@@ -55,6 +62,23 @@ export async function startHost(args: RinArgs): Promise<RinHost> {
   const overrides = [{
     id: 'web-server',
     config: { ...defaultConfig['web-server'], port, host },
+  }, {
+    // Make the three dsh file-backed persistence seams explicit. The path
+    // helpers honor RIN_* overrides and otherwise follow the resolved homes.
+    id: 'session-persistence-jsonl',
+    config: { root: sessionRoot() },
+  }, {
+    id: 'settings',
+    config: {
+      path: settingsPath(),
+      dshHome: dshHome(),
+    },
+  }, {
+    id: 'credentials',
+    config: {
+      path: credentialsPath(),
+      dshHome: dshHome(),
+    },
   }, {
     // dsh-base mounts session-query-sqlite with path ':memory:' and openAt 'never'
     // (content search disabled; exact reads stay live). rin enables full-text
@@ -87,6 +111,10 @@ export async function startHost(args: RinArgs): Promise<RinHost> {
     [...basePatches, ...overrides],
     (hostCtx: Context) => {
       hostCtx.provide('rinHome', rinHome)
+      hostCtx.provide('dshHome', dshHome)
+      hostCtx.provide('sessionRoot', sessionRoot)
+      hostCtx.provide('settingsPath', settingsPath)
+      hostCtx.provide('credentialsPath', credentialsPath)
       hostCtx.provide('builtinRepositoryRoot', builtinRepositoryRoot)
       hostCtx.provide('webUiDistRoot', webUiDistRoot)
     },

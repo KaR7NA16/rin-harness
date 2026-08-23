@@ -20,17 +20,17 @@ import {
 } from '../../../bundle/rin/src/index.ts'
 
 describe('@rin/bundle roster', () => {
-  test('lists the twenty-eight host plugins plus the web-server', () => {
-    expect(RIN_HOST_PLUGINS).toHaveLength(28)
+  test('lists the host plugins plus the web-server', () => {
+    expect(RIN_HOST_PLUGINS).toHaveLength(29)
     expect(RIN_WEB_SERVER).toBe('@rin/web-server')
-    expect(RIN_PLUGINS).toHaveLength(29)
+    expect(RIN_PLUGINS).toHaveLength(30)
     expect(RIN_PLUGINS).toEqual(expect.arrayContaining(RIN_HOST_PLUGINS))
   })
 
   test('starts the assembly with dsh-base and never lists dsh-web-app', () => {
     expect(BASE_BUNDLE).toBe('@deepseek-ai/dsh-base')
     expect(ASSEMBLY_LAYERS[0]).toBe(BASE_BUNDLE)
-    expect(ASSEMBLY_LAYERS).toHaveLength(30)
+    expect(ASSEMBLY_LAYERS).toHaveLength(31)
     expect(ASSEMBLY_LAYERS).not.toContain(EXCLUDED_BUNDLE)
     expect(RIN_PLUGINS).not.toContain(EXCLUDED_BUNDLE)
   })

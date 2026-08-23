@@ -24,8 +24,11 @@ import {
   baseBundlePatchPath,
   builtinRepositoryRoot,
   configPath,
+  credentialsPath,
   defaultConfig,
   rinHome,
+  sessionRoot,
+  settingsPath,
   webUiDistRoot,
 } from '@rin/bundle'
 import type { RinArgs } from '../src/args.ts'
@@ -56,8 +59,8 @@ describe('startHost assembly', () => {
     expect(bootCall?.[0]).toBe('rin')
     expect(bootCall?.[1]).toBe(configPath())
     const patches = bootCall?.[2] as Array<{ id?: string; config?: Record<string, unknown>; disabled?: boolean }>
-    // The mocked dsh-base layer contributes one row; the launcher adds four overrides.
-    expect(patches).toHaveLength(5)
+    // The mocked dsh-base layer contributes one row; the launcher adds seven overrides.
+    expect(patches).toHaveLength(8)
     expect(patches?.find(patch => patch.id === 'web-server')).toEqual({
       id: 'web-server',
       config: { ...defaultConfig['web-server'], port: defaultConfig['web-server'].port, host: defaultConfig['web-server'].host },
@@ -65,6 +68,18 @@ describe('startHost assembly', () => {
     expect(patches?.find(patch => patch.id === 'session-query-sqlite')).toEqual({
       id: 'session-query-sqlite',
       config: { path: rinHome('sessions/search.sqlite'), openAt: 'first-search' },
+    })
+    expect(patches?.find(patch => patch.id === 'session-persistence-jsonl')).toEqual({
+      id: 'session-persistence-jsonl',
+      config: { root: sessionRoot() },
+    })
+    expect(patches?.find(patch => patch.id === 'settings')).toEqual({
+      id: 'settings',
+      config: { path: settingsPath(), dshHome: expect.any(String) },
+    })
+    expect(patches?.find(patch => patch.id === 'credentials')).toEqual({
+      id: 'credentials',
+      config: { path: credentialsPath(), dshHome: expect.any(String) },
     })
     expect(patches?.find(patch => patch.id === 'tools')).toEqual({
       id: 'tools',
@@ -79,6 +94,9 @@ describe('startHost assembly', () => {
     const prepare = bootCall?.[3] as (ctx: { provide: (key: string, value: unknown) => void }) => void
     prepare({ provide })
     expect(provide).toHaveBeenCalledWith('rinHome', rinHome)
+    expect(provide).toHaveBeenCalledWith('sessionRoot', sessionRoot)
+    expect(provide).toHaveBeenCalledWith('settingsPath', settingsPath)
+    expect(provide).toHaveBeenCalledWith('credentialsPath', credentialsPath)
     expect(provide).toHaveBeenCalledWith('builtinRepositoryRoot', builtinRepositoryRoot)
     expect(provide).toHaveBeenCalledWith('webUiDistRoot', webUiDistRoot)
 

@@ -134,6 +134,7 @@
     "@rin/knowledge-graph": "workspace:^",
     "@rin/mcp": "workspace:^",
     "@rin/mcp-client": "workspace:^",
+    "@rin/memory": "workspace:^",
     "@rin/monitor": "workspace:^",
     "@rin/notes": "workspace:^",
     "@rin/plugins": "workspace:^",

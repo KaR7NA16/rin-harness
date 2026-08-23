@@ -1,10 +1,10 @@
-# @rin/bundle dsh harness patch layer — generated from src/cordis.yml
-# (regenerate with the verify-rin-cordis gate; it asserts this file matches
-# src/cordis.yml row-for-row). Declared by dsh.bundle.patch so the dsh
-# harness profile mechanism stacks this assembly as a bundle layer over
-# dsh-base. The rin-providers row provides the !!js path helpers; rows whose
-# config interpolates one declare it in `inject`, so the loader defers their
-# expression resolution until the service exists (dsh web-app precedent).
+# @rin/bundle dsh harness patch layer — the insert rows mirror src/cordis.yml.
+# The storage overrides below are part of the same portable path contract:
+# they replace dsh-base's session/settings/credentials defaults with the
+# explicitly resolved RIN helpers after the insert layer has mounted them.
+# Declared by dsh.bundle.patch, this layer stacks over dsh-base. The
+# rin-providers row provides every !!js path helper before these expressions
+# are evaluated.
 - insert:
     - id: rin-providers
       name: '@rin/bundle/providers'
@@ -16,9 +16,34 @@
       name: '@rin/filesystem'
     - id: session-backup
       name: '@rin/session-backup'
+      inject: [rinHome, dshHome, sessionRoot, settingsPath, credentialsPath, memory]
+      config:
+        sessionsRoot: !!js sessionRoot()
+        backupsRoot: !!js rinHome('backups')
+        settingsPath: !!js rinHome('backup-settings.json')
+        archiveRoot: !!js rinHome()
+        dshRoot: !!js dshHome()
+        dshSettingsPath: !!js settingsPath()
+        beforeArchive: !!js |-
+          (() => {
+            const memory = ctx.get('memory')
+            if (memory && typeof memory.prepareForArchive === 'function') memory.prepareForArchive()
+          })
+        credentialsPath: !!js credentialsPath()
+    - id: memory
+      name: '@rin/memory'
+      inject: [rinHome, sessionRoot, settingsPath, credentialsPath]
+      config:
+        dbPath: !!js rinHome('memory/memory.db')
+        manifestPath: !!js rinHome('memory/manifest.json')
+        homeRoot: !!js rinHome()
+        sessionRoot: !!js sessionRoot()
+        settingsPath: !!js settingsPath()
+        credentialsPath: !!js credentialsPath()
+        archiveRoot: !!js rinHome()
     - id: knowledge
       name: '@rin/knowledge'
-      inject: [rinHome]
+      inject: [rinHome, memory]
       config:
         dbPath: !!js rinHome('knowledge/knowledge.db')
         configHome: !!js rinHome()
@@ -34,7 +59,7 @@
           - !!js builtinRepositoryRoot()
     - id: prompt-memory
       name: '@rin/prompt-memory'
-      inject: [rinHome]
+      inject: [rinHome, memory]
       config:
         configRoot: !!js rinHome('prompt-memory')
         initialSoul: >-
@@ -52,7 +77,7 @@
           projectConfigRoot: !!js rinHome()
     - id: session-search
       name: '@rin/session-search'
-      inject: [rinHome]
+      inject: [rinHome, memory]
       config:
         configRoot: !!js rinHome('session-search')
     - id: evolution
@@ -97,7 +122,7 @@
       name: '@rin/smart-pruning'
     - id: notes
       name: '@rin/notes'
-      inject: [rinHome]
+      inject: [rinHome, memory]
       config:
         vaultRoot: !!js rinHome('notes')
     - id: agents
@@ -198,3 +223,14 @@
       name: '@deepseek-ai/dsh-schedule'
     - id: tool-session-query
       name: '@deepseek-ai/dsh-tool-session-query'
+- id: session-persistence-jsonl
+  config:
+    root: !!js sessionRoot()
+- id: settings
+  config:
+    path: !!js settingsPath()
+    dshHome: !!js dshHome()
+- id: credentials
+  config:
+    path: !!js credentialsPath()
+    dshHome: !!js dshHome()

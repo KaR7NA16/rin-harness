@@ -2,7 +2,7 @@
  * Validate the @rin declarative assembly (rin/bundle/rin/src/cordis.yml).
  *
  * The `rin` launcher patches @deepseek-ai/dsh-base and then mounts this file's
- * rows in order, so a working host assembly needs four facts to hold:
+ * rows in order, so a working host assembly needs these facts to hold:
  *   1. every row `name` resolves — @rin/* rows live under rin/, @deepseek-ai/*
  *      rows resolve from the registry through @rin/bundle dependencies;
  *   2. the ordered @rin roster @rin/bundle exports (RIN_HOST_PLUGINS plus
@@ -10,8 +10,10 @@
  *      exactly, in order;
  *   3. every row `name` is a declared dependency of @rin/bundle, so app-boot
  *      can resolve it from the published bundle (not just via tsx paths);
- *   4. the `!!js` path helpers the config interpolates (rinHome,
- *      builtinRepositoryRoot, webUiDistRoot) are real exports of @rin/bundle.
+ *   4. every configured `!!js` helper (rinHome, dshHome, sessionRoot,
+ *      settingsPath, credentialsPath, builtinRepositoryRoot, webUiDistRoot)
+ *      is a real export of @rin/bundle;
+ *   5. the dsh harness patch keeps its insert and storage overrides in sync.
  */
 
 import { createRequire } from 'node:module'
@@ -32,7 +34,7 @@ interface Row {
 }
 
 /** The @rin/bundle exports cordis.yml may interpolate as `!!js` helpers. */
-const JS_HELPERS = ['rinHome', 'builtinRepositoryRoot', 'webUiDistRoot'] as const
+const JS_HELPERS = ['rinHome', 'dshHome', 'sessionRoot', 'settingsPath', 'credentialsPath', 'builtinRepositoryRoot', 'webUiDistRoot'] as const
 
 /** The dsh harness patch row that provides the `!!js` path helpers first. */
 const PROVIDERS_ROW = { id: 'rin-providers', name: '@rin/bundle/providers' } as const
@@ -65,7 +67,8 @@ function main(): number {
   }
 
   const rows = collectRows(document)
-  const jsExprs = collectJsExprs(document)
+  const patchDocument = readHarnessPatch()
+  const jsExprs = [...collectJsExprs(document), ...collectJsExprs(patchDocument)]
   const rinPackages = workspacePackages('*/*/package.json', rinRoot)
   const bundleDeps = bundleManifestDependencies()
 
@@ -73,7 +76,8 @@ function main(): number {
   failures.push(...validateRowDependencyClosure(rows, bundleDeps))
   failures.push(...validateRoster(rows))
   failures.push(...validateJsHelpers(jsExprs))
-  failures.push(...validateHarnessPatch(document))
+  failures.push(...validateHarnessPatch(document, patchDocument))
+  failures.push(...validateSessionBackupRoot(document))
 
   if (failures.length > 0) {
     console.error('verify-rin-cordis: invalid @rin assembly:')
@@ -91,6 +95,10 @@ function main(): number {
     + `dsh harness patch in sync with ${CONFIG_FILE}.`,
   )
   return 0
+}
+
+function readHarnessPatch(): unknown {
+  return yaml.load(readFileSync(resolve(rinRoot, PATCH_FILE), 'utf8'), { schema })
 }
 
 /** Every object with a string `name`, in document order (including nested rows). */
@@ -217,6 +225,10 @@ function validateJsHelpers(jsExprs: readonly string[]): string[] {
   const failures: string[] = []
   const bindings: Record<string, unknown> = {
     rinHome: bundle.rinHome,
+    dshHome: bundle.dshHome,
+    sessionRoot: bundle.sessionRoot,
+    settingsPath: bundle.settingsPath,
+    credentialsPath: bundle.credentialsPath,
     builtinRepositoryRoot: bundle.builtinRepositoryRoot,
     webUiDistRoot: bundle.webUiDistRoot,
   }
@@ -229,17 +241,15 @@ function validateJsHelpers(jsExprs: readonly string[]): string[] {
   return failures
 }
 
-/** Validate the generated dsh harness patch layer against the canonical entry
- * list: one insert of the providers row followed by exactly the cordis.yml
- * rows (deep-equal). The patch is the same assembly mounted through the dsh
- * profile mechanism, so drift here would boot a different tree from the
- * plugin form.
+/** Validate the dsh harness patch against the canonical entry list and the
+ * explicit session/settings/credentials storage overrides. The patch is the
+ * same assembly mounted through the dsh profile mechanism, so drift here would
+ * boot a different tree from the plugin form.
  */
-function validateHarnessPatch(document: unknown[]): string[] {
+function validateHarnessPatch(document: unknown[], patchRaw: unknown): string[] {
   const failures: string[] = []
-  const patchRaw: unknown = yaml.load(readFileSync(resolve(rinRoot, PATCH_FILE), 'utf8'), { schema })
-  if (!Array.isArray(patchRaw) || patchRaw.length !== 1 || !isRecord(patchRaw[0]) || !Array.isArray(patchRaw[0].insert)) {
-    failures.push(`${PATCH_FILE}: must be a single patch row with an insert list`)
+  if (!Array.isArray(patchRaw) || patchRaw.length !== 4 || !isRecord(patchRaw[0]) || !Array.isArray(patchRaw[0].insert)) {
+    failures.push(`${PATCH_FILE}: must contain one insert row followed by the three storage overrides`)
     return failures
   }
   const insert = patchRaw[0].insert
@@ -250,6 +260,46 @@ function validateHarnessPatch(document: unknown[]): string[] {
       `${PATCH_FILE}: insert rows must match ${CONFIG_FILE} row-for-row with ${JSON.stringify(PROVIDERS_ROW)} first`
       + ' (regenerate the patch when the entry list changes)',
     )
+  }
+  const expectedOverrides = [
+    {
+      id: 'session-persistence-jsonl',
+      config: { root: { __jsExpr: 'sessionRoot()' } },
+    },
+    {
+      id: 'settings',
+      config: {
+        path: { __jsExpr: 'settingsPath()' },
+        dshHome: { __jsExpr: 'dshHome()' },
+      },
+    },
+    {
+      id: 'credentials',
+      config: {
+        path: { __jsExpr: 'credentialsPath()' },
+        dshHome: { __jsExpr: 'dshHome()' },
+      },
+    },
+  ]
+  const actualOverrides = patchRaw.slice(1)
+  if (actualOverrides.length !== expectedOverrides.length
+    || actualOverrides.some((row, index) => JSON.stringify(row) !== JSON.stringify(expectedOverrides[index]))) {
+    failures.push(PATCH_FILE + ': storage overrides must match sessionRoot/settingsPath/credentialsPath exactly')
+  }
+  return failures
+}
+
+function validateSessionBackupRoot(document: unknown[]): string[] {
+  const failures: string[] = []
+  const row = document.find(value => isRecord(value) && value.id === 'session-backup')
+  if (!isRecord(row)) return [CONFIG_FILE + ': session-backup row is missing']
+  if (!Array.isArray(row.inject) || !row.inject.includes('sessionRoot')) {
+    failures.push(CONFIG_FILE + ': session-backup must inject sessionRoot')
+  }
+  const config = isRecord(row.config) ? row.config : undefined
+  const sessionsRoot = config?.sessionsRoot
+  if (!isRecord(sessionsRoot) || sessionsRoot.__jsExpr !== 'sessionRoot()') {
+    failures.push(CONFIG_FILE + ": session-backup.sessionsRoot must resolve through sessionRoot()")
   }
   return failures
 }
