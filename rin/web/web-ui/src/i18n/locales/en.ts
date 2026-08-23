@@ -727,6 +727,7 @@ export const en = {
   'settings.memory.reload': 'Reload',
   'settings.memory.saved': 'Memory saved. It will affect new conversations.',
   'settings.memory.loadFailed': 'Failed to load prompt memory.',
+  'settings.memory.unavailable': 'Prompt memory is unavailable because the service is not mounted.',
   'settings.memory.saveFailed': 'Failed to save prompt memory.',
   'settings.memory.characters': '{count}/{limit} chars',
   'settings.memory.entries': '{count} entries',

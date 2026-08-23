@@ -266,6 +266,7 @@ export const ja = {
   'settings.memory.reload': '再読み込み',
   'settings.memory.saved': 'メモリを保存しました。新しい会話から反映されます。',
   'settings.memory.loadFailed': 'プロンプトメモリを読み込めませんでした。',
+  'settings.memory.unavailable': 'プロンプトメモリサービスが有効になっていないため、利用できません。',
   'settings.memory.saveFailed': 'プロンプトメモリを保存できませんでした。',
   'settings.memory.characters': '{count}/{limit} 文字',
   'settings.memory.entries': '{count} 件',

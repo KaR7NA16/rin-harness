@@ -63,4 +63,15 @@ describe('promptMemoryApi', () => {
       injectEvolutionMemory: true,
     })
   })
+
+  it('returns null when prompt memory is not mounted', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ mounted: false }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ))
+
+    await expect(promptMemoryApi.status()).resolves.toBeNull()
+  })
 })

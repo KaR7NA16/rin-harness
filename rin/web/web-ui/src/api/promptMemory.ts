@@ -27,9 +27,9 @@ export type PromptMemoryStatus = {
   config: PromptMemoryConfig
 }
 
-type PromptMemoryStatusResponse = Omit<PromptMemoryStatus, 'config'> & {
-  config?: PromptMemoryConfig
-}
+type PromptMemoryStatusResponse =
+  | (Omit<PromptMemoryStatus, 'config'> & { config?: PromptMemoryConfig })
+  | { mounted: false }
 
 const DEFAULT_PROMPT_MEMORY_CONFIG: PromptMemoryConfig = {
   version: 1,
@@ -83,9 +83,12 @@ export type PromptMemoryInsights = {
   }
 }
 
+/** Bounded prompt-memory projection API; it is not the canonical memory catalog. */
+
 export const promptMemoryApi = {
-  status: async (): Promise<PromptMemoryStatus> => {
+  status: async (): Promise<PromptMemoryStatus | null> => {
     const status = await api.get<PromptMemoryStatusResponse>('/api/prompt-memory')
+    if (!('files' in status)) return null
     return {
       ...status,
       config: status.config ?? DEFAULT_PROMPT_MEMORY_CONFIG,

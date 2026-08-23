@@ -266,6 +266,7 @@ export const ko = {
   'settings.memory.reload': '다시 불러오기',
   'settings.memory.saved': '메모리를 저장했습니다. 새 대화부터 반영됩니다.',
   'settings.memory.loadFailed': '프롬프트 메모리를 불러오지 못했습니다.',
+  'settings.memory.unavailable': '프롬프트 메모리 서비스가 마운트되지 않아 사용할 수 없습니다.',
   'settings.memory.saveFailed': '프롬프트 메모리를 저장하지 못했습니다.',
   'settings.memory.characters': '{count}/{limit}자',
   'settings.memory.entries': '{count}개 항목',

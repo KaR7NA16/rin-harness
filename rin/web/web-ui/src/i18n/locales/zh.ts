@@ -729,6 +729,7 @@ export const zh: Record<TranslationKey, string> = {
   'settings.memory.reload': '重新加载',
   'settings.memory.saved': '记忆已保存，将在新会话中生效。',
   'settings.memory.loadFailed': '加载提示记忆失败。',
+  'settings.memory.unavailable': '提示记忆服务尚未挂载，当前不可用。',
   'settings.memory.saveFailed': '保存提示记忆失败。',
   'settings.memory.characters': '{count}/{limit} 字符',
   'settings.memory.entries': '{count} 条',

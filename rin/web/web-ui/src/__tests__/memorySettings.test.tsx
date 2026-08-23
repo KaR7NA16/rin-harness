@@ -156,4 +156,15 @@ describe('MemorySettings evolution profile', () => {
     await waitFor(() => expect(toggle).not.toBeChecked())
     expect(screen.getByText(userEntry)).toBeInTheDocument()
   })
+
+  it('shows an unavailable state when prompt memory is not mounted', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => Promise.resolve(jsonResponse({ mounted: false }))))
+
+    render(<MemorySettings />)
+    expect(await screen.findByText(
+      'Prompt memory is unavailable because the service is not mounted.',
+    )).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Memory files' }))
+    expect(screen.getByRole('textbox', { name: 'Prompt memory editor' })).toBeDisabled()
+  })
 })

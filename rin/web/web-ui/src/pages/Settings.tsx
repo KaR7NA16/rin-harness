@@ -1771,6 +1771,14 @@ export function MemorySettings() {
         memoryApi.manifest().catch(() => null),
       ])
       setCanonicalManifest(nextManifest)
+      if (nextStatus === null) {
+        setStatus(null)
+        setAutoLogs([])
+        setInsights(null)
+        setDraft('')
+        setError(t('settings.memory.unavailable'))
+        return
+      }
       setStatus(nextStatus)
       setAutoLogs(nextLogs)
       setInsights(nextInsights)
@@ -2103,7 +2111,7 @@ export function MemorySettings() {
                 aria-label={t('settings.memory.editorLabel')}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || !status}
                 rows={15}
                 spellCheck={false}
                 className={`min-h-[360px] rounded-[7px] bg-[var(--color-background)] font-mono text-[12px] leading-[20px] ${
