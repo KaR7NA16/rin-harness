@@ -3,7 +3,7 @@
 #
 # The whole dsh group ships together under the `next` dist-tag on the
 # 0.1.0-rc.* line (the `latest` tag is stale at 0.0.1-rc.1), and rin pins the
-# group exactly (evidence #1/#2 in rin/DEPENDENCY-STRATEGY.md). Only
+# group exactly (evidence #1/#2 in rin/docs/DEPENDENCY-STRATEGY.md). Only
 # @deepseek-ai/dsh-* entries are rewritten; koishi-ecosystem deps
 # (cordis/cosmokit/schemastery/cordis-plugin-*) keep their own versions.
 #

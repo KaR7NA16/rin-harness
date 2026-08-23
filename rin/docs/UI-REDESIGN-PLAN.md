@@ -1,7 +1,7 @@
 # rin-harness 侧栏 × 设置 调整方案（v2）
 
 > 版本: v2.0 ｜ 状态: 待评审
-> v1 决定『仓库→设置-环境组』已撤销——仓库升级为资产中心（见 ASSET-REPOSITORY-PLAN.md v2）, 保留侧栏并提升地位。
+> v1 决定『仓库→设置-环境组』已撤销——仓库升级为资产中心（见 `./ASSET-REPOSITORY-PLAN.md` v2）, 保留侧栏并提升地位。
 > 依据: rin 源码 + 8 个高星项目调研（OpenHands/Open WebUI/Goose/AnythingLLM/LibreChat/NextChat/Cline/Roo Code）。
 
 ---
@@ -85,7 +85,7 @@
 
 | 文件 | 改动 |
 |---|---|
-| pages/Settings.tsx | 通用组新增『资产根』: 显示路径 + 重定位/迁移入口（对接 ASSET-REPOSITORY-PLAN 阶段 2b/4） |
+| pages/Settings.tsx | 通用组新增『资产根』: 显示路径 + 重定位/迁移入口（对接 `./ASSET-REPOSITORY-PLAN.md` 阶段 2b/4） |
 | i18n | settings.general.assetsRoot* 文案 |
 
 ---

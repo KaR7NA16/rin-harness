@@ -3,7 +3,7 @@
 > 状态：**Phase 9 已完成（2026-08-15，8 个子代理并行实现 + 主线程收口）**。
 > 8 个缺口全部接入并通过 `pnpm rin:typecheck` + 9 个 seam 冒烟 + 5 个回归冒烟；
 > 全部 11 个 @rin host 插件已投影进 dsh seam（knowledge/notes/token-optimization 此前已接入）。
-> 本文档保留矩阵与 API 速查作为维护参考；权威规划见根级 MIGRATION.md。
+> 本文档保留矩阵与 API 速查作为维护参考；权威规划见根级 `../../MIGRATION.md`。
 
 ## 0. 交付摘要（子代理实现）
 

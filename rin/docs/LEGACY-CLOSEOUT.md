@@ -26,7 +26,7 @@
 ### 4. legacy.ts 端点接线（WIRE 统一做）
 - B2 `/api/prompt-memory/insights`（照抄旧 api/prompt-memory.ts）
 - B1 `/api/notes/snapshots` + `/api/notes/snapshot`
-- D 类（按 rin/LEGACY-D-SPEC.md 规格）
+- D 类（按 `./LEGACY-D-SPEC.md` 规格）
 - A 类 5 域（`/api/tasks`、`/api/teams`、`/api/mcp`、`/api/computer-use/*`、`/api/agent-migration/*`）
 - 需加 web-server/src/index.ts 的 services refs（mcp/teams/tasks/computerUse/agentMigration）
 

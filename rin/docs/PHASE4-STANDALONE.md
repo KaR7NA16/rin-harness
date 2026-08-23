@@ -1,7 +1,7 @@
 # PHASE4-STANDALONE — 独立端口 Web UI
 
 > 决策：**不动 dsh 原生 Web UI**，用独立端口跑 @rin 自己的 Web UI。
-> 该决策取代早前的 SlotMap 集成技术路线（PHASE4-CLIENT.md 已删除，其「功能适配映射表」并入 MIGRATION.md §4.2）。
+> 该决策取代早前的 SlotMap 集成技术路线（PHASE4-CLIENT.md 已删除，其「功能适配映射表」并入 `../../MIGRATION.md` §4.2）。
 
 ## 1. 为什么转向
 
@@ -67,6 +67,6 @@ Base: `http://<host>:<port>`（默认 `http://127.0.0.1:8320`）。
 - 终端：`/ws/terminal/<terminalId>`（xterm.js + WebSocket PTY，协议见 @rin/web-server README）。
 - `GET /api/health` 持续报告各 @rin 服务的挂载状态。
 
-## 5. 与 MIGRATION.md 的关系
+## 5. 与 `../../MIGRATION.md` 的关系
 
-MIGRATION.md §4.2 的「功能适配映射表」（设计参考页面 → host 数据源）是独立前端要覆盖哪些面板的功能清单；§4.1 定义三面共存策略（dsh 原生 Web UI 3080 保留可开关 / rin Web UI 8320 / rin TUI）。SlotMap/typert/tsdown 集成技术路线作废。
+`../../MIGRATION.md` §4.2 的「功能适配映射表」（设计参考页面 → host 数据源）是独立前端要覆盖哪些面板的功能清单；§4.1 定义三面共存策略（dsh 原生 Web UI 3080 保留可开关 / rin Web UI 8320 / rin TUI）。SlotMap/typert/tsdown 集成技术路线作废。

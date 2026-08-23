@@ -5,7 +5,7 @@
  * Mode argument is `check` (every leaf) or one leaf name. Leaves are TypeScript
  * scripts executed source-launch through tsx's ESM-only hook, mirroring the dsh
  * source-launch contract. Exit code is non-zero when any leaf fails.
- * @see ../GATES-PLAN.md
+ * @see ../docs/GATES-PLAN.md
  */
 import { existsSync } from 'node:fs'
 import { spawn } from 'node:child_process'

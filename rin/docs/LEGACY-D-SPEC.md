@@ -10,7 +10,7 @@
 
 ## 0. dsh-base 装配事实（D 类端点相关）
 
-rin 的装配链是 [dsh-base, ...@rin 插件]（rin/bundle/rin/src/index.ts 的 ASSEMBLY_LAYERS），并明确排除 dsh-web-app（cordis.yml 头注 + MIGRATION.md §8 decision 10）。
+rin 的装配链是 [dsh-base, ...@rin 插件]（rin/bundle/rin/src/index.ts 的 ASSEMBLY_LAYERS），并明确排除 dsh-web-app（cordis.yml 头注 + `../../MIGRATION.md` §8 decision 10）。
 
 packages/bundle/base/cordis.patch.yml 已装配（ctx.<name> 可用）：
 

@@ -9,7 +9,7 @@
 dsh 门禁 = 工具（vitest/oxlint/knip/tsx）+ 纪律（AGENTS.md）+ 配置（glob 硬编码）+ 拼装（run-gates.ts）。
 
 - **复用工具与纪律**：它们与目录无关，rin 直接继承。
-- **独立配置**：dsh 的所有门禁配置都是硬编码 glob（`packages/*/*` 等），rin 被刻意排除（MIGRATION.md §9 契约在门禁层的体现）。要让 rin 进门禁，唯一不污染上游的做法是 rin 自带配置。
+- **独立配置**：dsh 的所有门禁配置都是硬编码 glob（`packages/*/*` 等），rin 被刻意排除（`../../MIGRATION.md` §9 契约在门禁层的体现）。要让 rin 进门禁，唯一不污染上游的做法是 rin 自带配置。
 - **根只加脚本入口**：根 `package.json` 是 §9 允许的 3 个合并点之一，尾部追加 `rin:*` 脚本（标 merge-point 注释）。
 - **渐进阈值**：不一步套 dsh 的「每文件 100%」覆盖率，否则 CI 永远红、失去信号价值。
 
