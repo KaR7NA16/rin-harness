@@ -5,14 +5,6 @@
   "license": "MIT",
   "private": true,
   "type": "module",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/your-name/rin-harness.git"
-  },
-  "homepage": "https://github.com/your-name/rin-harness",
-  "bugs": {
-    "url": "https://github.com/your-name/rin-harness/issues"
-  },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },

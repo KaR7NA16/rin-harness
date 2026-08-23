@@ -21,7 +21,8 @@
     "rin:lint": "oxlint -c rin/.oxlintrc.json rin",
     "rin:hygiene": "tsx rin/scripts/rin-gates.ts check",
     "rin:smoke": "node rin/scripts/run-smokes.mjs",
-    "check": "pnpm run rin:typecheck && pnpm run rin:test && pnpm run rin:lint && pnpm run rin:smoke",
+    "rin:metadata": "tsx rin/scripts/verify-rin-metadata.ts",
+    "check": "pnpm run rin:typecheck && pnpm run rin:test && pnpm run rin:lint && pnpm run rin:smoke && pnpm run rin:metadata",
     "publish:rin": "bash rin/scripts/publish-rin.sh",
     "postinstall": "lefthook install"
   },
