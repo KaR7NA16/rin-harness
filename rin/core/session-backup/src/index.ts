@@ -1,8 +1,9 @@
 /**
  * rin session-backup — Cordis plugin entry.
  *
- * Exposes a ctx.sessionBackup service: gzip session export/import and rolling
- * backups over the dsh session home. The archive core lives in core.ts
+ * Exposes a ctx.sessionBackup service: session export/import, complete RIN
+ * archive export/import, and rolling backups over an explicit RIN home. The
+ * archive core lives in core.ts
  * (node: builtins only); this module owns the Cordis registration.
  *
  * @module @rin/session-backup
@@ -10,8 +11,11 @@
 
 import { Context, Service } from '@deepseek-ai/cordis'
 import {
+  buildRinArchiveOptions,
   defaultOptions,
+  exportRinArchive,
   exportSessions,
+  importRinArchive,
   importSessions,
   listBackups,
   readSettings,
@@ -21,7 +25,9 @@ import {
 } from './core.ts'
 import type {
   BackupListEntry,
+  ArchivePreparation,
   ImportSessionResult,
+  RinArchiveImportResult,
   SessionBackupCoreOptions,
   SessionBackupSettings,
 } from './core.ts'
@@ -43,32 +49,73 @@ export abstract class SessionBackupService extends Service {
 
   abstract exportSessions(): Promise<Buffer>
   abstract importSessions(buffer: Buffer): Promise<ImportSessionResult>
+  abstract exportArchive(): Promise<Buffer>
+  abstract importArchive(buffer: Buffer): Promise<RinArchiveImportResult>
   abstract runBackup(): Promise<BackupListEntry>
   abstract listBackups(): Promise<BackupListEntry[]>
-  abstract restoreBackup(name: string): Promise<ImportSessionResult>
+  abstract restoreBackup(name: string): Promise<RinArchiveImportResult>
   abstract getSettings(): Promise<SessionBackupSettings>
   abstract updateSettings(settings: SessionBackupSettings): Promise<SessionBackupSettings>
 }
 
-/** File-backed implementation over the dsh session home + ~/.rin/backups. */
+/** Optional paths and retention for the file-backed backup service. */
+export interface SessionBackupPluginConfig {
+  sessionsRoot?: string
+  backupsRoot?: string
+  settingsPath?: string
+  archiveRoot?: string
+  dshRoot?: string
+  dshSettingsPath?: string
+  beforeArchive?: ArchivePreparation
+  credentialsPath?: string
+  maxKeep?: number
+}
+
+/** File-backed implementation over the dsh session home and RIN archive root. */
 export class FileSessionBackupService extends SessionBackupService {
   private readonly options: SessionBackupCoreOptions
+  private archiveOperation: Promise<void> = Promise.resolve()
+  private readonly maxKeep: number
 
-  constructor(ctx: Context) {
+  constructor(ctx: Context, config: SessionBackupPluginConfig = {}) {
     super(ctx)
-    this.options = defaultOptions()
+    const defaults = defaultOptions()
+    const archiveRoot = config.archiveRoot ?? defaults.archiveRoot
+    const dshRoot = config.dshRoot ?? defaults.dshRoot
+    const dshSettingsPath = config.dshSettingsPath ?? defaults.dshSettingsPath
+    const credentialsPath = config.credentialsPath ?? defaults.credentialsPath
+    if (archiveRoot === undefined) throw new Error('rin session-backup: archiveRoot is required')
+    this.options = {
+      sessionsRoot: config.sessionsRoot ?? defaults.sessionsRoot,
+      backupsRoot: config.backupsRoot ?? defaults.backupsRoot,
+      settingsPath: config.settingsPath ?? defaults.settingsPath,
+      archiveRoot,
+      ...(dshRoot === undefined ? {} : { dshRoot }),
+      ...(dshSettingsPath === undefined ? {} : { dshSettingsPath }),
+      ...(config.beforeArchive === undefined ? {} : { beforeArchive: config.beforeArchive }),
+      ...(credentialsPath === undefined ? {} : { credentialsPath }),
+    }
+    this.maxKeep = config.maxKeep ?? 10
   }
 
   override exportSessions() {
-    return exportSessions(this.options)
+    return this.serializeArchiveOperation(() => exportSessions(this.options))
   }
 
   override importSessions(buffer: Buffer) {
-    return importSessions(buffer, this.options)
+    return this.serializeArchiveOperation(() => importSessions(buffer, this.options))
+  }
+
+  override exportArchive() {
+    return this.serializeArchiveOperation(() => exportRinArchive(buildRinArchiveOptions(this.options)))
+  }
+
+  override importArchive(buffer: Buffer) {
+    return this.serializeArchiveOperation(() => importRinArchive(buffer, buildRinArchiveOptions(this.options)))
   }
 
   override runBackup() {
-    return runBackup(this.options, 10)
+    return this.serializeArchiveOperation(() => runBackup(this.options, this.maxKeep))
   }
 
   override listBackups() {
@@ -76,7 +123,13 @@ export class FileSessionBackupService extends SessionBackupService {
   }
 
   override restoreBackup(name: string) {
-    return restoreBackup(name, this.options)
+    return this.serializeArchiveOperation(() => restoreBackup(name, this.options))
+  }
+
+  private serializeArchiveOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.archiveOperation.then(operation, operation)
+    this.archiveOperation = result.then(() => undefined, () => undefined)
+    return result
   }
 
   override getSettings() {
@@ -93,6 +146,6 @@ export const name = 'session-backup'
 export const inject: string[] = []
 
 /** Install the file-backed session-backup service into the shared context. */
-export function apply(ctx: Context): void {
-  ctx.plugin(FileSessionBackupService)
+export function apply(ctx: Context, config?: SessionBackupPluginConfig): void {
+  ctx.plugin(FileSessionBackupService, config)
 }

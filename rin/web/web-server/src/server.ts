@@ -187,7 +187,35 @@ async function handleRequest(
   }
 
   if ((method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') && isApi) {
-    // Binary session export/import bypass the JSON route system.
+    // Binary archive and session export/import bypass the JSON route system.
+    if (method === 'POST' && url.pathname === '/api/archive/export') {
+      const backup = services.sessionBackup()
+      if (backup === undefined) {
+        respondError(res, 500, 'session backup service is not mounted')
+        return
+      }
+      try {
+        respondBinary(res, await backup.exportArchive(), 'application/gzip', 'attachment')
+      } catch (err) {
+        respondError(res, 500, err instanceof Error ? err.message : String(err))
+      }
+      return
+    }
+    if (method === 'POST' && url.pathname === '/api/archive/import') {
+      const backup = services.sessionBackup()
+      if (backup === undefined) {
+        respondError(res, 500, 'session backup service is not mounted')
+        return
+      }
+      try {
+        const buffer = await readRawBody(req)
+        respondJson(res, { status: 200, body: await backup.importArchive(buffer) }, false)
+      } catch (err) {
+        const status = err instanceof Error && (err as { statusCode?: unknown }).statusCode === 413 ? 413 : 400
+        respondError(res, status, err instanceof Error ? err.message : String(err))
+      }
+      return
+    }
     if (method === 'POST' && url.pathname === '/api/sessions/export') {
       const exportBody = await readJsonBody(req)
       if (!exportBody.ok) {

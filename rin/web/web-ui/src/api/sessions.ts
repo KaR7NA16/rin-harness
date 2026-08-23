@@ -294,6 +294,18 @@ export const sessionsApi = {
     })
   },
 
+  /** Export the complete portable RIN archive, including memory and settings. */
+  exportArchive() {
+    return api.rawPost('/api/archive/export', '').then((buf) => {
+      return new Blob([buf], { type: 'application/gzip' })
+    })
+  },
+
+  /** Import a complete portable RIN archive without overwriting existing files. */
+  importArchive(file: Blob) {
+    return api.rawPostJson<RinArchiveImportResult>('/api/archive/import', file)
+  },
+
   importSessions(file: Blob) {
     return api.rawPost('/api/sessions/import', file as Blob).then((buf) => {
       return new Response(buf).json() as Promise<ImportSessionResult>
@@ -342,4 +354,8 @@ export type ImportSessionResult = {
     originalId: string
     mappedId?: string
   }>
+}
+
+export type RinArchiveImportResult = ImportSessionResult & {
+  files: string[]
 }

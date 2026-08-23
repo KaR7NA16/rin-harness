@@ -8,8 +8,8 @@ vi.mock('../api/sessions', () => ({
     listBackups: vi.fn(),
     getBackupSettings: vi.fn(),
     runBackup: vi.fn(),
-    exportSessions: vi.fn(),
-    importSessions: vi.fn(),
+    exportArchive: vi.fn(),
+    importArchive: vi.fn(),
     restoreBackup: vi.fn(),
     updateBackupSettings: vi.fn(),
   },
@@ -21,7 +21,8 @@ const mocked = sessionsApi as unknown as {
   listBackups: ReturnType<typeof vi.fn>
   getBackupSettings: ReturnType<typeof vi.fn>
   runBackup: ReturnType<typeof vi.fn>
-  exportSessions: ReturnType<typeof vi.fn>
+  exportArchive: ReturnType<typeof vi.fn>
+  importArchive: ReturnType<typeof vi.fn>
   restoreBackup: ReturnType<typeof vi.fn>
   updateBackupSettings: ReturnType<typeof vi.fn>
 }

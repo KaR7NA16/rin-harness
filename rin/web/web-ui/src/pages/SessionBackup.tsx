@@ -94,7 +94,7 @@ export function SessionBackup({ embedded = false }: { embedded?: boolean }) {
   const exportAll = useCallback(async () => {
     setBusy('export')
     try {
-      const blob = await sessionsApi.exportSessions({ includeAgentNotes: true })
+      const blob = await sessionsApi.exportArchive()
       downloadBlob(blob, `rin-sessions-${new Date().toISOString().slice(0, 10)}.rinbackup.gz`)
       addToast({ type: 'success', message: t('backup.exported') })
     } catch (error) {
@@ -108,7 +108,7 @@ export function SessionBackup({ embedded = false }: { embedded?: boolean }) {
     if (!file) return
     setBusy('import')
     try {
-      const result = await sessionsApi.importSessions(file)
+      const result = await sessionsApi.importArchive(file)
       addToast({
         type: 'success',
         message: t('backup.imported', { imported: String(result.imported), skipped: String(result.skipped) }),
