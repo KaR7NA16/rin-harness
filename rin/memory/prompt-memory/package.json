@@ -19,6 +19,9 @@
   "files": [
     "lib/types/**/*"
   ],
+  "dependencies": {
+    "@rin/memory": "workspace:^"
+  },
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.0.1"
   },

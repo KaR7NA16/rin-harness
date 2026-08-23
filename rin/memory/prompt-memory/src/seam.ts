@@ -11,10 +11,23 @@
  */
 
 import {
+  boundPromptMemoryPair,
+  boundPromptMemoryText,
+} from './budget.ts'
+import { SOUL_CHAR_LIMIT, USER_PROMPT_MEMORY_CHAR_LIMIT } from './types.ts'
+import type { PromptMemoryFile, PromptMemoryStatus } from './types.ts'
+import type {
+  MemoryInjectionRecord,
+  MemoryItem,
+  MemoryItemInput,
+  MemoryListOptions,
+} from '@rin/memory'
+import { removeMemoryProjectionSource, syncMemoryProjection } from '@rin/memory'
+
+import {
   buildPromptMemorySectionText,
   type PromptMemoryProjectionOptions,
 } from './projection.ts'
-import type { PromptMemoryStatus } from './types.ts'
 
 export const PROMPT_MEMORY_SECTION_NAME = 'rin:prompt-memory'
 
@@ -49,6 +62,14 @@ export interface PromptMemorySeam {
   promptMemory: {
     getStatus(): Promise<PromptMemoryStatus>
   }
+  /** Optional canonical catalog used to audit model-visible memory versions. */
+  memory?: {
+    list(options?: MemoryListOptions): MemoryItem[]
+    get(id: string): MemoryItem | undefined
+    upsert(input: MemoryItemInput): MemoryItem
+    delete(id: string): boolean
+    recordInjection(input: MemoryInjectionRecord): MemoryInjectionRecord
+  }
 }
 
 /**
@@ -66,6 +87,7 @@ export async function registerPromptMemorySeam(
   options: PromptMemoryProjectionOptions,
 ): Promise<void> {
   const initial = await ctx.promptMemory.getStatus()
+  syncPromptMemoryCatalog(ctx, initial, options)
   const disposeSection = ctx.systemPrompt.section({
     name: PROMPT_MEMORY_SECTION_NAME,
     order: PROMPT_MEMORY_SECTION_ORDER,
@@ -75,6 +97,7 @@ export async function registerPromptMemorySeam(
   const disposeListener = ctx.on('system-prompt/assemble', async (_assembly, _context, next) => {
     const assembled = await next()
     const status = await ctx.promptMemory.getStatus()
+    syncPromptMemoryCatalog(ctx, status, options, true)
     const text = buildPromptMemorySectionText(status, options)
     return {
       ...assembled,
@@ -88,4 +111,63 @@ export async function registerPromptMemorySeam(
     disposeListener()
     disposeSection()
   }, 'prompt-memory.seam')
+}
+
+function projectedFiles(
+  status: PromptMemoryStatus,
+  options: PromptMemoryProjectionOptions,
+): Array<{ file: PromptMemoryFile; content: string }> {
+  const { soul, brief, user } = status.files
+  const files: Array<{ file: PromptMemoryFile; content: string }> = []
+  if (options.injectSoul) {
+    const bounded = boundPromptMemoryText('SOUL.md', soul.content, SOUL_CHAR_LIMIT)
+    if (bounded.content !== '') files.push({ file: soul, content: bounded.content })
+  }
+  if (options.injectBrief) {
+    const pair = boundPromptMemoryPair({ brief: brief.content, user: user.content })
+    if (pair.brief.content !== '') files.push({ file: brief, content: pair.brief.content })
+    if (pair.user.content !== '') files.push({ file: user, content: pair.user.content })
+  } else {
+    const bounded = boundPromptMemoryText('USER.md', user.content, USER_PROMPT_MEMORY_CHAR_LIMIT)
+    if (bounded.content !== '') files.push({ file: user, content: bounded.content })
+  }
+  return files
+}
+
+function syncPromptMemoryCatalog(
+  ctx: PromptMemorySeam,
+  status: PromptMemoryStatus,
+  options: PromptMemoryProjectionOptions,
+  recordInjection = false,
+): void {
+  const memory = ctx.memory
+  if (memory === undefined) return
+  const files = projectedFiles(status, options)
+  const projectedTargets = new Set(files.map(({ file }) => file.target))
+  for (const target of ['soul', 'brief', 'user'] as const) {
+    if (!projectedTargets.has(target)) {
+      removeMemoryProjectionSource(memory, 'prompt-memory', 'prompt-memory:' + target)
+    }
+  }
+  const items = files.map(({ file, content }) => syncMemoryProjection(memory, {
+    id: `prompt-memory:${file.target}`,
+    projection: 'prompt-memory',
+    kind: 'prompt',
+    content,
+    visibility: 'model',
+    source: {
+      id: `prompt-memory:${file.target}`,
+      kind: 'file',
+      uri: `prompt-memory/${file.filename}`,
+      label: file.target,
+    },
+    metadata: { target: file.target, projected: true },
+  }))
+  if (!recordInjection || items.length === 0) return
+  memory.recordInjection({
+    surface: 'system-prompt',
+    memoryIds: items.map(item => item.id),
+    memoryVersions: Object.fromEntries(items.map(item => [item.id, item.version])),
+    metadata: { projection: 'prompt-memory', section: PROMPT_MEMORY_SECTION_NAME },
+  })
 }

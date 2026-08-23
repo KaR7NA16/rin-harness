@@ -12,8 +12,10 @@
 
 import { Context, Service } from '@deepseek-ai/cordis'
 import { registerSeam } from './seam.ts'
+import { removeMemoryProjectionSource, syncMemoryProjection } from '@rin/memory'
+import type { MemoryStore } from '@rin/memory'
 import type { Config } from './seam.ts'
-import { openSessionSearchDb } from './db.ts'
+import { openSessionSearchDb, sessionKey } from './db.ts'
 import { getSessionSearchDbPath } from './paths.ts'
 import {
   browseSessionSearch,
@@ -34,6 +36,8 @@ import {
 } from './indexStore.ts'
 import {
   deleteProjectMemoryBySessionKey,
+  projectMemoryFileSessionKey,
+  redactProjectMemoryText,
   searchProjectMemories,
   upsertProjectMemoryFile,
 } from './projectMemory.ts'
@@ -148,13 +152,31 @@ export abstract class SessionSearchStore extends Service {
   /** Delete one project memory by session key. */
   abstract deleteProjectMemoryBySessionKey(key: string): void
 }
+const MAX_CANONICAL_SESSION_CHARS = 8_000
+
+function canonicalSessionContent(parsed: ParsedSessionTranscript): string {
+  const messages = parsed.messages
+    .filter(message => message.contentText.trim())
+    .slice(-40)
+    .map(message => message.role + ': ' + message.contentText.trim())
+  const content = [
+    'Session: ' + parsed.title,
+    'Project: ' + parsed.projectPath,
+    ...messages,
+  ].join('\n')
+  return content.length > MAX_CANONICAL_SESSION_CHARS
+    ? content.slice(0, MAX_CANONICAL_SESSION_CHARS - 3) + '...'
+    : content
+}
 
 /** SQLite-backed implementation owning the derived index at configRoot. */
 export class FileSessionSearchStore extends SessionSearchStore {
   private readonly db: SessionSearchDatabase
+  private readonly memory: MemoryStore | undefined
 
   constructor(ctx: Context, roots: SessionSearchRoots) {
     super(ctx)
+    this.memory = ctx.get('memory') as MemoryStore | undefined
     this.db = openSessionSearchDb(getSessionSearchDbPath(roots))
     ctx.effect(() => () => this.db.close())
   }
@@ -178,25 +200,89 @@ export class FileSessionSearchStore extends SessionSearchStore {
   override search(params: SessionSearchParams) {
     return sessionSearch({ ...params, db: this.db })
   }
-
   override writeSession(parsed: ParsedSessionTranscript, options: { homeDir: string }) {
     writeSessionToSearchIndex(this.db, parsed, options)
+    if (this.memory !== undefined) {
+      const key = sessionKey(parsed.projectPath, parsed.sessionId)
+      syncMemoryProjection(this.memory, {
+        id: 'session:' + key,
+        projection: 'session-search',
+        kind: 'transcript',
+        content: canonicalSessionContent(parsed),
+        visibility: 'model',
+        source: {
+          id: 'session:' + key,
+          kind: 'session',
+          uri: 'file://' + parsed.filePath,
+          label: parsed.title,
+          sessionId: parsed.sessionId,
+        },
+        metadata: { sessionKey: key, projectPath: parsed.projectPath, filePath: parsed.filePath, title: parsed.title },
+      })
+    }
   }
 
   override writeProjectMemoryFile(params: ProjectMemoryFileIndexInput) {
-    return writeProjectMemoryFileToSearchIndex(this.db, params)
+    const indexed = writeProjectMemoryFileToSearchIndex(this.db, params)
+    if (this.memory === undefined) return indexed
+    const key = projectMemoryFileSessionKey(params)
+    const sourceId = 'project-memory:' + key
+    if (!indexed) {
+      removeMemoryProjectionSource(this.memory, 'session-search', sourceId)
+      return false
+    }
+    syncMemoryProjection(this.memory, {
+      id: sourceId,
+      projection: 'session-search',
+      kind: 'semantic',
+      content: params.title + '\n' + redactProjectMemoryText(params.content),
+      visibility: 'model',
+      confidence: 0.7,
+      source: {
+        id: sourceId,
+        kind: 'file',
+        uri: 'file://' + params.filePath,
+        label: params.title,
+      },
+      metadata: { filePath: params.filePath, projectPath: params.projectPath, title: params.title, source: params.source },
+    })
+    return true
   }
 
   override deleteSessionByKey(key: string) {
     deleteSessionFromSearchIndexByKey(this.db, key)
+    if (this.memory !== undefined) {
+      removeMemoryProjectionSource(this.memory, 'session-search', 'session:' + key)
+      removeMemoryProjectionSource(this.memory, 'session-search', 'project-memory:' + key)
+    }
   }
 
   override deleteSessions(params: { sessionId: string; projectPath?: string }) {
+    const rows = params.projectPath
+      ? this.db.prepare('SELECT session_key FROM sessions WHERE session_id = ? AND project_path = ?').all(params.sessionId, params.projectPath) as Array<{ session_key: string }>
+      : this.db.prepare('SELECT session_key FROM sessions WHERE session_id = ?').all(params.sessionId) as Array<{ session_key: string }>
     deleteSessionsFromSearchIndex(this.db, params)
+    if (this.memory !== undefined) {
+      for (const row of rows) {
+        removeMemoryProjectionSource(this.memory, 'session-search', 'session:' + row.session_key)
+        removeMemoryProjectionSource(this.memory, 'session-search', 'project-memory:' + row.session_key)
+      }
+    }
   }
 
   override reconcileFiles(liveFilePaths: ReadonlySet<string>, projectPath?: string) {
+    const rows = projectPath
+      ? this.db.prepare('SELECT file_path, session_key FROM indexed_files WHERE project_path = ?').all(projectPath) as Array<{ file_path: string; session_key: string }>
+      : this.db.prepare('SELECT file_path, session_key FROM indexed_files').all() as Array<{ file_path: string; session_key: string }>
     reconcileSearchIndexFiles(this.db, liveFilePaths, projectPath)
+    if (this.memory === undefined) return
+    for (const row of rows) {
+      if (liveFilePaths.has(row.file_path)) continue
+      const replacement = this.db.prepare('SELECT file_path FROM indexed_files WHERE session_key = ? AND file_path <> ?').all(row.session_key, row.file_path) as Array<{ file_path: string }>
+      if (replacement.some(candidate => liveFilePaths.has(candidate.file_path))) continue
+      removeMemoryProjectionSource(this.memory, 'session-search', 'session:' + row.session_key)
+      removeMemoryProjectionSource(this.memory, 'session-search', 'project-memory:' + row.session_key)
+    }
   }
 
   override readIndexedFileMetadata(filePath: string) {
@@ -218,16 +304,41 @@ export class FileSessionSearchStore extends SessionSearchStore {
   }
 
   override upsertProjectMemoryFile(params: ProjectMemoryFileUpsertParams) {
-    return upsertProjectMemoryFile(this.db, params)
+    const result = upsertProjectMemoryFile(this.db, params)
+    if (this.memory === undefined || result === null) return result
+
+    const sourceId = 'project-memory:' + projectMemoryFileSessionKey(params)
+    syncMemoryProjection(this.memory, {
+      id: sourceId,
+      projection: 'session-search',
+      kind: 'semantic',
+      content: params.title + '\n' + redactProjectMemoryText(params.content),
+      visibility: 'model',
+      confidence: 0.7,
+      source: {
+        id: sourceId,
+        kind: 'file',
+        uri: 'file://' + params.filePath,
+        label: params.title,
+      },
+      metadata: {
+        filePath: params.filePath,
+        projectPath: params.projectPath,
+        title: params.title,
+        source: params.source,
+      },
+    })
+    return result
   }
 
   override deleteProjectMemoryBySessionKey(key: string) {
+    if (this.memory !== undefined) removeMemoryProjectionSource(this.memory, 'session-search', 'project-memory:' + key)
     deleteProjectMemoryBySessionKey(this.db, key)
   }
 }
 
 export const name = 'session-search'
-export const inject = ['tools']
+export const inject = ['tools', 'memory']
 
 /**
  * Install the file-backed session-search service and register its seam

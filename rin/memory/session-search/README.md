@@ -17,6 +17,10 @@ project-memory Markdown remain owned outside this package, so deleting or
 rebuilding the index never deletes those sources. Session rows, message rows,
 derived project memories, indexed-file metadata, and their FTS projections are
 updated or removed through package-owned transactions.
+Successful writes also update one bounded `session-search` catalog projection
+per session or project-memory source; the full FTS database remains derived.
+Successful writes also update one bounded `session-search` catalog projection
+per session or project-memory source; the full FTS database remains derived.
 
 ## Service API
 

@@ -18,6 +18,7 @@ Module ownership:
 The only external runtime dependency is `yaml` (frontmatter parsing);
 `@deepseek-ai/dsh-tools` supplies `defineTool`, `@deepseek-ai/cordis` is a
 peer dependency, and `@deepseek-ai/schemastery` types the `Config` schema.
+`@rin/memory` records each model-visible note as a provenance-aware projection.
 
 ## Service API
 
@@ -41,6 +42,14 @@ registered when the plugin loads.
 
 `Config` has one optional field, `vaultRoot` (absolute or cwd-relative); it
 defaults to `~/.rin/notes` via `node:os` homedir.
+## Canonical memory projection
+
+When `ctx.memory` is composed, note writes, property updates, tag renames,
+session-backup notes, and deletes update the canonical `notes` projection.
+The Markdown vault remains the editable source of truth; the memory catalog
+stores identity, version, source URI, and lifecycle state rather than replacing
+the vault or copying its search index.
+
 
 Guards: every path is resolved and must remain inside the vault (traversal and
 absolute paths fail loud); a single note body is capped at 4 MiB. Updates

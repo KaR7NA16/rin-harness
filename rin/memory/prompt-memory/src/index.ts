@@ -209,7 +209,7 @@ export class FilePromptMemoryService extends PromptMemoryService {
 }
 
 export const name = 'prompt-memory'
-export const inject = ['systemPrompt']
+export const inject = ['systemPrompt', 'memory']
 
 /**
  * Install the file-backed prompt memory service and project it into the

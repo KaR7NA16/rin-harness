@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh-tools": "0.1.0-rc.8",
+    "@rin/memory": "workspace:^",
     "yaml": "^2.8.3"
   },
   "devDependencies": {

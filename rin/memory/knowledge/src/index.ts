@@ -12,6 +12,7 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { MemoryStore } from '@rin/memory'
 import { KnowledgeService } from './service.ts'
 import {
   knowledgeStats,
@@ -44,13 +45,20 @@ export abstract class KnowledgeStore extends Service {
 
 /** SQLite-backed implementation opening a KnowledgeService on demand. */
 export class FileKnowledgeStore extends KnowledgeStore {
+  private readonly memory: MemoryStore | undefined
+
+  constructor(ctx: Context) {
+    super(ctx)
+    this.memory = ctx.get('memory') as MemoryStore | undefined
+  }
+
   override open(dbPath: string): KnowledgeService {
-    return new KnowledgeService(dbPath)
+    return new KnowledgeService(dbPath, this.memory)
   }
 }
 
 export const name = 'knowledge'
-export const inject = ['tools']
+export const inject = ['tools', 'memory']
 
 /** Plugin configuration: explicit database location with a derived default. */
 export interface Config {

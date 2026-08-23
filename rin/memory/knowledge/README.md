@@ -13,8 +13,9 @@ pure tool logic lives in `tools.ts` so the strip-types smoke test can run it
 without the Cordis/dsh-tools import graph.
 
 The database runs on Node's built-in `node:sqlite` (FTS5 with trigram
-tokenizer); the only workspace runtime dependency is `@deepseek-ai/dsh-tools`
+tokenizer); the workspace runtime dependencies are `@deepseek-ai/dsh-tools`
 for tool registration.
+`@rin/memory` supplies provenance-aware canonical projection writes.
 
 ## Service API
 
