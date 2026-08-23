@@ -64,4 +64,4 @@ Settings、workspace 页面、Terminal、Mermaid、Shiki 代码高亮与 DiffVie
 - Sandboxes 的 aiConfigure、AgentWorkspace 的 AI 提案默认 LLM 适配器需要真机（dsh llm seam / sandbox provider）验证；MVP 未接入 aiConfigure。
 - terminal tab 已接入交互式终端（`src/pages/Terminal.tsx`，WS 协议见 @rin/web-server）。已知限制：subprocess 终端句柄无 resize 方法（见 packages/subprocess/subprocess/src/types.ts），PTY 固定为 spawn 时的尺寸（80×24 或 fit 后首报值），窗口缩放只重新 fit 本地 xterm 渲染，不向服务端发 resize。`@xterm/xterm` / `@xterm/addon-fit` 已声明在 package.json；沙箱无法 `pnpm install`，需真机安装后才能构建/运行（测试通过 seam 注入 xterm 假实现，见 `src/pages/terminalDeps.ts`）。
 - 智能裁剪滑块为 0–3 档，映射到三个真实级别（conservative / balanced / aggressive），第 3 档饱和到 aggressive。
-- 后端契约见 @rin/web-server 的 README 与 PHASE4-STANDALONE.md。
+- 后端契约见 @rin/web-server 的 README 与 rin/docs/PHASE4-STANDALONE.md。

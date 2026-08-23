@@ -43,20 +43,21 @@ pnpm run rin
 
 rin 也可以**托管在 dsh CLI 内运行**：创建一个 `dsh.profile.bundles` 列出 `@rin/bundle`（其声明了 `dsh.bundle.patch`）的 dsh profile，然后 `dsh --profile <name>` 会在 dsh 自己的启动器上装配同一套装配。
 
-### 发行形态
+### 发行状态
 
-rin 以三种形态发布，均于[发布页](https://github.com/your-name/rin-harness/releases)公布：
+rin 当前尚未发布。计划中的发行形态包括：
 
 - **npm 包**——`@rin/*` 各包，含 `@rin/cli` 可执行文件。
 - **Windows 可执行文件**——由 `@rin/gui` 构建的 Tauri 安装程序（`nsis`）。
 - **Linux deb**——由 `@rin/gui` 构建的 Tauri `deb` 包。
 
-<!-- TODO：发布前将 https://github.com/your-name/rin-harness 替换为真实仓库地址。 -->
+正式发布地址和包元数据将在 rin 建立独立公开仓库后补充。
+`deepseek-ai/deepseek-harness` 是 dsh 基座的上游仓库，不是 rin 的发布仓库。
 
 ## 社区与支持
 
-- 欢迎通过 [GitHub Discussions](https://github.com/your-name/rin-harness/discussions) 提交反馈或 bug 报告。
-- 通过 [GitHub Issues](https://github.com/your-name/rin-harness/issues) 跟踪并提交 issue。
+rin 当前没有公开的 issue 或讨论区。产品处于预发布阶段时，请通过项目维护者提供的私有渠道反馈，
+不要将 dsh 上游仓库当作 rin 的问题入口。
 
 ## 参与贡献
 
@@ -64,7 +65,8 @@ rin 以三种形态发布，均于[发布页](https://github.com/your-name/rin-h
 
 ## 开发
 
-请先阅读[开发指南](docs/development.md)与[架构文档](docs/architecture.md)。
+请先阅读 [rin 目录说明](rin/README.md)、[rin 工程规则](rin/AGENTS.md) 与
+[rin 文档索引](rin/docs/README.md)。
 
 面向 agent：请遵循 [AGENTS.md](AGENTS.md)。
 

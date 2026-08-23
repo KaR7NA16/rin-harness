@@ -58,10 +58,10 @@ representative at an online or offline event.
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-**conduct@your-domain.example** (placeholder - replace with the maintainers'
-contact, or a GitHub Discussions link, before release).
+rin has no public community channel yet. During pre-release development, report
+instances of abusive, harassing, or otherwise unacceptable behavior privately
+through the project channel used by the maintainer who provided this checkout.
+A permanent reporting channel will be documented before the first public release.
 
 All complaints will be reviewed and investigated promptly and fairly.
 

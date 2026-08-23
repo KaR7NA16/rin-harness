@@ -1,14 +1,14 @@
 # rin-harness 迁移与构建方案（旧项目 → rin-harness，第四轮审计修订版）
 
 > 单一权威规划文档。取代并清理历史文档：rin-harness-plan.md（v3）、rin-harness-rebranding-plan.md、rin-harness-brand.md、agent/rin-harness-rename-plan.md、PHASE4-CLIENT.md（其功能适配映射表并入本文 §4）。
-> 既往对话记录 = 本仓库 git 历史 + 本文档前轮 + PHASE4-STANDALONE.md（独立 Web UI 架构与 API 契约，继续有效）。
+> 既往对话记录 = 本仓库 git 历史 + 本文档前轮 + rin/docs/PHASE4-STANDALONE.md（独立 Web UI 架构与 API 契约，继续有效）。
 > 现状：旧项目 v1.4.9（Bun + Ink TUI + Tauri 桌面端）→ rin-harness（dsh 底座 + @rin 资产层）。
 
 ## 0. 结论
 
 dsh 给「组合 + 运行时」，rin 给「资产 + 环境」。第一公民是 Asset Repository（九类资产单一事实源）。迁移 = 把旧项目的差异化能力重写为 @rin 插件挂在 dsh 底座上，砍掉上游包袱与 UI 重写，复用 dsh 的 loop/工具/会话/沙箱/多模型。
 
-已落地：`rin/` 下 33 个 `@rin/*` 包全部建仓并通过 rin 门禁；当前装配为 `dsh-base` + 28 个 @rin host 插件 + `@rin/web-server`（共 29 个 @rin rows）。覆盖资产仓库与环境（repository/environment）、仓库装配（agents/sandboxes/plugins/filesystem/session-backup）、记忆域 4 包、笔记、优化三控件 + codegraph、evolution、自动化与协作（tasks/mcp/mcp-client/provider-probe/computer-use/agent-migration/teams）、LLM 会话能力（brief/review）、主机诊断（monitor/doctor）、独立 Web UI（8320，18 页 React SPA，含浏览器终端）、Tauri GUI、`rin` CLI 与 bundle 装配。dsh 模型工具行（code-runtime / time-context / terminal / persistent bash / lsp / schedule / session-query）也已并入 rin bundle。
+已落地：`rin/` 下 34 个 `@rin/*` 包全部建仓并通过 rin 门禁；当前装配为 `dsh-base` + 29 个 @rin host 插件 + `@rin/web-server`（共 30 个 @rin rows）。覆盖资产仓库与环境（repository/environment）、仓库装配（agents/sandboxes/plugins/filesystem/session-backup）、记忆域 6 包（含统一 `@rin/memory` 目录、prompt-memory、notes、knowledge、knowledge-graph、session-search/skill-memory 投影）、笔记、优化三控件 + codegraph、evolution、自动化与协作（tasks/mcp/mcp-client/provider-probe/computer-use/agent-migration/teams）、LLM 会话能力（brief/review）、主机诊断（monitor/doctor）、独立 Web UI（8320，20 页 React SPA，含浏览器终端）、Tauri GUI、`rin` CLI 与 bundle 装配。dsh 模型工具行（code-runtime / time-context / terminal / persistent bash / lsp / schedule / session-query）也已并入 rin bundle。
 
 **第四轮审计与方案修订要点**（相对上一轮）：
 
@@ -189,7 +189,7 @@ claudeAiLimits, mockRateLimits, rateLimitMessages, rateLimitMocking；grove, Cla
 |---|---|
 | dsh 原生 Web UI（3080，`dsh --profile web`） | **保留、默认不随 rin 启动、可开关、永不改动**。它是 dsh 上游的官方交互面，随上游更新同步获得新功能；rin 不 fork、不嵌、不改其 bundle。rin 启动器默认不装配 dsh-web-app；用户想用时 `dsh --profile web` 原样可用。 |
 | rin Web UI（8320，@rin/web-server + @rin/web-ui） | rin 主 Web 面。独立端口、独立前端，只读 @rin host 服务，零 dsh 侵入。可配置关闭（`@rin/web-server` 的 `enabled: false`），关闭只影响 8320，不影响任何 dsh 面。 |
-| rin GUI（@rin/gui，本轮定稿） | rin 桌面壳（决策 9）：Tauri 2 薄壳——起 host（spawn `rin` 或发布态 sidecar）→ WebView 内嵌 8320 的 rin web-ui → 系统托盘常驻 → 退出回收子进程。零前端重写（复用 web-ui 18 页），不碰 dsh 原生 web（3080）。dsh 原生 tui 已被上游删除（note 2026-08-04），无停用对象；dsh 原生 CLI/headless/JSON-RPC 命令面保留不动。 |
+| rin GUI（@rin/gui，本轮定稿） | rin 桌面壳（决策 9）：Tauri 2 薄壳——起 host（spawn `rin` 或发布态 sidecar）→ WebView 内嵌 8320 的 rin web-ui → 系统托盘常驻 → 退出回收子进程。零前端重写（复用 web-ui 20 页），不碰 dsh 原生 web（3080）。dsh 原生 tui 已被上游删除（note 2026-08-04），无停用对象；dsh 原生 CLI/headless/JSON-RPC 命令面保留不动。 |
 | Ink TUI（旧项目 src/ink） | 仅设计参考，不 vendor；TUI 已取消（dsh 生态已有多款社区 TUI，价值不显）。 |
 | Tauri 桌面壳（旧项目 desktop） | 设计参考（Tauri 配置/窗口/sidecar/品牌资产迁移）；rin 用 Tauri 2 重做薄壳，不搬上游代码。 |
 
@@ -274,18 +274,18 @@ rin 侧完整链（补齐缺口）：
 - **Phase 6**：`@rin/notes` + `knowledge_search`/`knowledge_stats` 检索工具。
 - **Phase 7**：web-ui 补齐 Notes/Sandboxes/AgentWorkspace/TokenOptimization 等页面与 web-server 写路由。
 - **Phase 8**：`@rin/gui`（Tauri 2 桌面壳）+ `@rin/bundle`（dsh-base + @rin host 全家）+ `@rin/cli`（`rin` 启动器，默认 8320）。
-- **Phase 9**：seam 接入全部完成（见 `rin/SEAM-PROJECTION.md`）：prompt-memory→systemPrompt、session-search→session 事件索引 + 工具、skill-memory→skills provider、agents→agent presets 投影、environment+sandboxes→ctx.shell、smart-pruning→agent/pre-step、evolution→reviewModel、repository→资产浏览工具。
+- **Phase 9**：seam 接入全部完成（见 `rin/docs/SEAM-PROJECTION.md`）：prompt-memory→systemPrompt、session-search→session 事件索引 + 工具、skill-memory→skills provider、agents→agent presets 投影、environment+sandboxes→ctx.shell、smart-pruning→agent/pre-step、evolution→reviewModel、repository→资产浏览工具。
 - **Phase 10（门禁）**：`rin/vitest.config.ts`、`rin/.oxlintrc.json`、`rin/scripts/rin-gates.ts` + 5 个 verify 叶子、`.github/workflows/rin.yml`、渐进覆盖率阈值全部落地。
 - **后 Phase 9 增量（已落地）**：原 MEDIUM 项中的 teams、tasks、mcp、provider-probe、computer-use、agent-migration、codegraph、doctor 已实现；新增 `@rin/mcp-client`（@rin/mcp → dsh MCP client 桥）、`@rin/monitor`（Linux /proc 指标 + `monitor_snapshot` 工具）、`@rin/brief` / `@rin/review`（dsh llm seam 上的会话摘要与工件审查）、浏览器终端（`/ws/terminal/<id>` + web-ui Terminal 页），并把 dsh 模型工具行（code-runtime、time-context、terminal、persistent bash、lsp、schedule、session-query）装配进 `rin/bundle`。
 
-当前装配：`dsh-base` + 28 个 @rin host 插件 + `@rin/web-server` = 29 个 @rin rows；web-ui 18 页（17 个 `src/pages/*.tsx` + ScheduledTasks）。
+当前装配：`dsh-base` + 29 个 @rin host 插件 + `@rin/web-server` = 30 个 @rin rows；web-ui 20 页（20 个 `src/pages/*.tsx`，含 ScheduledTasks 能力）。
 
 剩余（均为外部依赖或部署决策，不再是 @rin 包缺口）：
 
 - `@rin/remote`（bridge / ssh / teleport / daemon）：需先定「rin 的 remote」scope。
 - 外部凭据能力：`e2b` 远程沙箱、`web-search-exa` / `web-search-perplexity`、`voice` + STT、`im-feishu` / `im-telegram`。
 - LSP 激活：`lsp-stdio` 已挂载但 `disabled`，需部署层提供具体 language-server `servers` 表。
-- 发布收尾：替换 README/包清单中的 `your-name/rin-harness` 占位仓库地址；根 package 名称仍沿用上游 `@deepseek-ai/dsh-root`，发布前需决策是否改根名。
+- 发布收尾：rin 尚未建立独立公开仓库；正式发布前需确定仓库地址、问题反馈入口和安全联系渠道，再补齐 README 与包 metadata。根 package 名称仍沿用上游 `@deepseek-ai/dsh-root`，发布前需决策是否改根名。
 
 砍/极后置（LOW/负值）保持不变：worktree、editor-notebook、voice（见上）、github（空桩）。
 
@@ -299,7 +299,7 @@ rin 侧完整链（补齐缺口）：
 6. Computer Use + Agent Migration 进 MVP Phase 6 → **本轮修订**：维持「MVP 后半段」意图，但排在 Phase 8 之后按需启用（本轮主轴被资产链路与笔记/知识闭环占用）。✅（修订）
 7. **笔记升等（本轮新增）**：notes 从「并入 knowledge」改为独立一等公民 @rin/notes；SessionBackup 并入 notes（会话 → markdown 笔记），独立页取消。✅
 8. **token 优化缩略（本轮新增）**：五栈 + codeGraph 预算折叠为三控件（响应风格开关 / prompt 清理开关 / 裁剪级别滑块），见 §5。✅
-9. **GUI 选型（本轮定稿）**：**Tauri 2 薄壳**（Rust + 系统 WebView，产物轻量；旧项目即 Tauri，配置/窗口/sidecar/品牌资产可迁移）+ **内嵌 rin web-ui**（零前端重写，复用 18 页）+ **host 形态 = 发布态 sidecar 打包 dsh runtime（复用 python/sdk-runtime 的 dsh-jsonrpc-agent-pkg 先例 + 旧项目 sidecar 模式）/ 开发态 spawn `rin`** + **品牌资产迁移**（海豹 app-icon.svg、字体、provider-icons）。TUI 取消。真机验收点：Tauri 构建 + WebView 连 8320 + 托盘/回收。✅
+9. **GUI 选型（本轮定稿）**：**Tauri 2 薄壳**（Rust + 系统 WebView，产物轻量；旧项目即 Tauri，配置/窗口/sidecar/品牌资产可迁移）+ **内嵌 rin web-ui**（零前端重写，复用 20 页）+ **host 形态 = 发布态 sidecar 打包 dsh runtime（复用 python/sdk-runtime 的 dsh-jsonrpc-agent-pkg 先例 + 旧项目 sidecar 模式）/ 开发态 spawn `rin`** + **品牌资产迁移**（海豹 app-icon.svg、字体、provider-icons）。TUI 取消。真机验收点：Tauri 构建 + WebView 连 8320 + 托盘/回收。✅
 10. **装配零侵入（本轮定稿）**：`rin` 启动器直接装配 host（dsh-base + @rin 全家 + @rin/web-server），**不写入 $DSH_HOME profiles、不向 dsh 上游 bundle 注册模板、不列 dsh-web-app**；dsh 原生 web（`dsh --profile web`，3080）永不改动、随时可用。默认单 host 进程、单端口 8320：无性能浪费、无双端口冲突。✅
 
 ## 9. dsh 与 rin 更新迭代契约（本轮新增）
@@ -322,7 +322,7 @@ rin 侧完整链（补齐缺口）：
 - **🔴 LOW（审慎，可能不值）**：worktree（bash 可替代）、editor-notebook（小众）、voice（边缘）、github（空桩，成本>价值）。
 - **⚫ 零值/负值（砍）**：dsh 已覆盖的 16 工具组 + messages/PromptInput/diff/permissions UI；上游包袱 grove/REPL/ClaudeCodeHint/DesktopUpsell/subscriptions/marketplace/chrome/rate-limits；五栈独立服务与 codeGraph 独立页（折叠进三控件）；SessionBackup 独立页（并入 notes）。
 
-关键结论：内容资产（prompts/systemPromptSections）是上游派生，只能重写设计不能搬原文；github-app 是空桩；voice/worktree/editor-notebook 是边缘。**MVP 已交付：29 个 @rin 装配 rows + web-ui 18 页 + gui + CLI/bundle；剩余项全部是外部 scope/凭据或发布占位符。**
+关键结论：内容资产（prompts/systemPromptSections）是上游派生，只能重写设计不能搬原文；github-app 是空桩；voice/worktree/editor-notebook 是边缘。**MVP 已交付：30 个 @rin 装配 rows + web-ui 20 页 + gui + CLI/bundle；剩余项全部是外部 scope/凭据或发布占位符。**
 
 ## 11. 子 agent 并行执行计划（第四轮）
 

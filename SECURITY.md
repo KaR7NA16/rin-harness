@@ -1,40 +1,33 @@
 # Security Policy
 
-Thank you for helping keep rin-harness and its users safe. This document explains
-how to report security issues and what you can expect after you do.
+Thank you for helping keep rin-harness and its users safe. This document records
+the pre-release security boundary for the current private development checkout.
 
-> rin-harness is pre-1.0 developer-preview software. Only the latest release line
-> receives security updates.
+> rin-harness is pre-1.0 developer-preview software and has not been published as
+> an independent project yet. No public release line or public reporting channel
+> exists at this stage.
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
-| < 0.1.0 | :x:                |
+| Version | Supported |
+| ------- | --------- |
+| Unreleased development checkout | Best effort |
 
-Security fixes are released on the 0.1.x line. No security-backport promise
-applies to development snapshots from before the first tagged release.
+Security support, release branches, and backport promises will be defined before
+the first public release.
 
 ## Reporting a Vulnerability
 
 **Do not open a public issue for a security vulnerability.** Report it privately
 so it can be fixed before it is disclosed.
 
-### Preferred: GitHub Security Advisory
+### Current private channel
 
-1. Open the repository at <https://github.com/your-name/rin-harness>.
-2. Go to the **Security** tab, then **Advisories -> New draft security advisory**
-   (or **Report a vulnerability**).
-3. Describe the affected version(s), the impact, and steps to reproduce where
-   possible, and submit.
-
-The advisory stays private until a fix is published and the advisory is published.
-
-### Alternative: email
-
-If you cannot use GitHub, email **security@your-domain.example**
-(placeholder - replace with the maintainers' address before release). Include:
+rin does not currently have a public repository, GitHub Security Advisory
+channel, or security email. Do not disclose a vulnerability in a public issue,
+discussion, or upstream dsh forum. Send it through the private project channel
+used by the maintainer who provided this checkout. A permanent reporting channel
+will be documented before the first public release. Include:
 
 - affected version(s);
 - a description of the vulnerability and its impact;
@@ -48,10 +41,10 @@ If you cannot use GitHub, email **security@your-domain.example**
 | Within 3 business days | We acknowledge your report and confirm the affected scope. |
 | Within 30 days        | We aim to ship a fix, or agree a coordinated disclosure timeline, for confirmed issues. |
 
-We will keep you updated on progress, credit you in the advisory unless you ask to
-remain anonymous, and not pursue legal action against responsible disclosure. If
-we cannot reproduce a report we will tell you and ask for more detail. Please give
-us a reasonable window (we ask for 90 days) before disclosing publicly.
+We will keep you updated through that private channel, credit you in the eventual
+advisory unless you ask to remain anonymous, and not pursue legal action against
+responsible disclosure. If we cannot reproduce a report we will ask for more
+detail. Please give us a reasonable window before disclosing publicly.
 
 ## Security model notes
 

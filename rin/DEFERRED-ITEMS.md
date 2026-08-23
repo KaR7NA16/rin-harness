@@ -16,7 +16,7 @@
 
 ---
 
-## A. 知识一体化方案延后项（对应 `rin/NOTES-KNOWLEDGE-INTEGRATION.md`）
+## A. 知识一体化方案延后项（对应 `rin/docs/NOTES-KNOWLEDGE-INTEGRATION.md`）
 
 ### A1. 活查询 DSL 扩展（`@rin/notes`）
 

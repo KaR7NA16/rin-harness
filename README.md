@@ -43,20 +43,23 @@ The `rin` host serves the Web UI at `http://127.0.0.1:8320` by default (standalo
 
 rin can also be launched hosted by the `dsh` CLI: create a `dsh` profile whose `dsh.profile.bundles` lists `@rin/bundle` (it declares `dsh.bundle.patch`), then `dsh --profile <name>` assembles the exact same assembly on `dsh`'s own launcher.
 
-### Distribution
+### Distribution status
 
-rin ships in three forms, published at the [release page](https://github.com/your-name/rin-harness/releases):
+rin is not published yet. The intended distribution surfaces are:
 
 - **npm package** — the `@rin/*` packages, including the `@rin/cli` binary.
 - **Windows executable** — a Tauri installer (`nsis`) built from `@rin/gui`.
 - **Linux deb** — a Tauri `deb` package built from `@rin/gui`.
 
-<!-- TODO: replace https://github.com/your-name/rin-harness with the actual repository URL before release. -->
+Release URLs and package repository metadata will be added when rin has a
+dedicated public repository. The `deepseek-ai/deepseek-harness` repository is
+the upstream dsh base, not rin's release repository.
 
 ## Community and support
 
-- Submit feedback and bug reports through [GitHub Discussions](https://github.com/your-name/rin-harness/discussions).
-- Track and file issues through [GitHub Issues](https://github.com/your-name/rin-harness/issues).
+There is no public issue tracker or discussion forum for rin yet. Do not infer
+one from the dsh upstream repository; use the private project channel while
+this product remains pre-release.
 
 ## Contributing
 
@@ -64,7 +67,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Development
 
-Start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).
+Start with the [rin directory guide](rin/README.md), [rin engineering rules](rin/AGENTS.md),
+and the [rin documentation index](rin/docs/README.md).
 
 For agents, follow [AGENTS.md](AGENTS.md).
 

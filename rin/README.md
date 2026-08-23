@@ -3,16 +3,16 @@
 `rin/` 是 rin-harness 在 dsh 底座之上的自有能力层。分区原则：**两层（group / package），
 每个 package 对应一个 `@rin/<name>` 包**，workspace glob 为 `rin/*/*`。
 
-dsh 上游目录（vendor/packages/apps/docs/…）零改动；rin 的一切落在 `rin/`。完整结构设计见根级
-MIGRATION.md §1.1，更新迭代契约见 §9。
+dsh 基座通过 registry dependencies 解析；本仓库不复制上游源码树，rin 自有代码全部位于 `rin/`。完整结构设计见根级
+[`../MIGRATION.md`](../MIGRATION.md) §1.1，更新迭代契约见 §9。
 
 ## group 语义
 
 | group | 语义 | 已建 package |
 |---|---|---|
-| `core/` | 资产主轴与主机运维：仓库读取、环境计划、文件浏览、会话备份、监控、诊断 | `repository`（含 `builtin/` 内置仓库）、`environment`、`filesystem`、`session-backup`、`monitor`、`doctor` |
+| `core/` | 资产主轴与主机运维：仓库读取、环境计划、文件浏览、可迁移记忆目录、会话备份、监控、诊断 | `repository`（含 `builtin/` 内置仓库）、`environment`、`filesystem`、`memory`、`session-backup`、`monitor`、`doctor` |
 | `workspace/` | 仓库 → agent / sandbox / plugin 装配 | `agents`、`sandboxes`、`plugins` |
-| `memory/` | 记忆域（文件 / SQLite 持久化） | `knowledge`、`knowledge-graph`、`prompt-memory`、`skill-memory`、`session-search` |
+| `memory/` | 记忆投影域（文件 / SQLite 持久化） | `knowledge`、`knowledge-graph`、`prompt-memory`、`skill-memory`、`session-search` |
 | `notes/` | 笔记（Obsidian 风格 + 会话备份） | `notes` |
 | `optimization/` | token / 输出优化与代码图谱 | `token-optimization`、`smart-pruning`、`codegraph` |
 | `learning/` | 自我进化 | `evolution` |
@@ -36,6 +36,9 @@ MIGRATION.md §1.1，更新迭代契约见 §9。
 - `tests/`：vitest 单测 + 可 strip-types 跑的冒烟脚本。
 - `README.md`：包职责 + API + 已知限制（`## Known Limitations and Deferred Work`）。
 - `web-server` 的 `staticRoot` 默认指向 `web-ui/dist`（`@rin/bundle` 的 `webUiDistRoot()`）；浏览器 8320 与 `@rin/gui` 共用这同一套 React SPA。构建前端：`pnpm run rin:build`，启动 host：`pnpm run rin`。
+- `@rin/memory` 是统一的本地记忆目录：`RIN_HOME/memory/memory.db` 保存稳定 ID、来源、版本和生命周期；`RIN_HOME/memory/manifest.json` 同时记录 prompt-memory、Notes、Knowledge、Session Search、dsh sessions 及 settings/credentials/session 的实际存储边界。
+- `@rin/session-backup` 的 rolling backup 以 `RIN_HOME` 为根；dsh 默认位于 `RIN_HOME/dsh`，也可由 `DSH_HOME`/`RIN_SESSION_ROOT` 独立迁移。
+- 归档默认排除 credentials、`.env`、secrets 与 backups，并且不会复制 manifest 之外的外部来源。
 - `core/repository/builtin/` 为内置 AssetRepository（repository.yaml + 九根种子资产），是仓库资产数据而非包代码。
 
 ## 约定
@@ -43,8 +46,8 @@ MIGRATION.md §1.1，更新迭代契约见 §9。
 - 跨 @rin 依赖用**包名 import**（`@rin/repository`）+ tsconfig project references，绝不用相对路径 `../../../`。
 - host 包零外部运行时依赖：只用 `node:` 内置；`@deepseek-ai/cordis` 是 peerDep，`@deepseek-ai/schemastery` 是 devDep。
 - 可选 host 服务用 `ctx.get('name')` 读取；`ctx.<name>` 只用于自身 `inject` 声明的服务。
-- seam 接入（Phase 9）：注册代码集中在 `src/seam.ts`，`apply()` 保持薄；结构型 seam 不新增依赖，tools/agentPresets/skills 走真实 workspace 依赖。见 `SEAM-PROJECTION.md`。
-- 聚合：`rin/tsconfig.json` 是唯一聚合（references 全部 package）；`tsconfig.base.json` 的 `paths` 有每个 `@rin/<name>` → `./rin/<group>/<name>/src` 的映射（根级合并点之一，见 MIGRATION.md §9）。
+- seam 接入（Phase 9）：注册代码集中在 `src/seam.ts`，`apply()` 保持薄；结构型 seam 不新增依赖，tools/agentPresets/skills 走真实 workspace 依赖。见 [`docs/SEAM-PROJECTION.md`](docs/SEAM-PROJECTION.md)。
+- 聚合：`rin/tsconfig.json` 是唯一聚合（references 全部 package）；`tsconfig.base.json` 的 `paths` 有每个 `@rin/<name>` → `./rin/<group>/<name>/src` 的映射（根级合并点之一，见 [`../MIGRATION.md`](../MIGRATION.md) §9）。
 - 产品层（web-ui / gui / cli / bundle）可以有构建或运行依赖；host 插件层保持零依赖。
 
 ## 旧项目迁移处置（收口定论）
@@ -53,7 +56,7 @@ MIGRATION.md §1.1，更新迭代契约见 §9。
 
 ### 已决定不迁移
 
-价值低 / 小众 / 已被现有能力覆盖（详见 MIGRATION.md §10）：
+价值低 / 小众 / 已被现有能力覆盖（详见 [`../MIGRATION.md`](../MIGRATION.md) §10）：
 
 - dsh hook 桥：`hook-protocol` + `hooks-claude-code` / `hooks-codex`（rin 是独立产品，外部 agent CLI 互操作非目标）
 - 自动化 / 远程子代理：`acp`、`subagent-acp`、`subagent-dsh-sdk`
@@ -78,6 +81,6 @@ MIGRATION.md §1.1，更新迭代契约见 §9。
 
 ## 权威文档
 
-- `MIGRATION.md` — 迁移计划、价值分层、目录重设计、更新迭代契约（单一权威）。
-- `PHASE4-STANDALONE.md` — 独立 Web UI 架构与 API 契约。
-- `SEAM-PROJECTION.md` — Phase 9 seam 接入矩阵执行清单。
+- [`../MIGRATION.md`](../MIGRATION.md) — 迁移计划、价值分层、目录重设计、更新迭代契约（单一权威）。
+- [`docs/PHASE4-STANDALONE.md`](docs/PHASE4-STANDALONE.md) — 独立 Web UI 架构与 API 契约。
+- [`docs/SEAM-PROJECTION.md`](docs/SEAM-PROJECTION.md) — Phase 9 seam 接入矩阵执行清单。

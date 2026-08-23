@@ -2,7 +2,7 @@
 
 rin 是 dsh 底座之上的 @rin 资产层（`rin/` 为唯一写入区）。通用工程纪律继承根
 [`AGENTS.md`](../AGENTS.md)；本文件只补 rin 特有约定，冲突时本文件在 `rin/` 目录内优先。
-完整门禁方案见 [`GATES-PLAN.md`](./GATES-PLAN.md)，目录分区权威说明见 [`README.md`](./README.md)。
+完整门禁方案见 [`docs/GATES-PLAN.md`](./docs/GATES-PLAN.md)，目录分区权威说明见 [`README.md`](./README.md)。
 
 ## 继承的 dsh 通用纪律（根 AGENTS.md，rin 直接适用）
 
@@ -13,12 +13,12 @@ rin 是 dsh 底座之上的 @rin 资产层（`rin/` 为唯一写入区）。通�
 - **Waterfall 监听器必须 `next()`**：返回而不 next 会短路链。
 - **Branded 类型**：Opaque 跨边界 id 用 `Branded<B>`，绝不裸 `string`。
 - **Source plane vs artifact plane**：静态门禁与测试经 tsconfig `paths` 解析到 `src`；消费 `lib/` 的门禁显式声明依赖。
-- **Snapshot 精神**：模型可见行为变更走 keyless snapshot（见根 `docs/testing.md`）。
+- **Snapshot 精神**：模型可见行为变更走 keyless snapshot；门禁和测试入口见 [rin/docs/GATES-PLAN.md](./docs/GATES-PLAN.md)。
 - 其余根约定（Registrations are effects、显式 > 隐式、Misconfiguration fails loud、测试描述行为等）同样适用。
 
 ## rin 特有约定
 
-1. **结构型 seam**：systemPrompt / shell / session 事件 / toolResultPruner 等 seam 不新增依赖，在 `seam.ts` 内定义最小接口；tools / agentPresets / skills 需要真实类型与工具函数时走真实 workspace 依赖（`@deepseek-ai/dsh-tools` / `dsh-agent-presets` / `dsh-skill`，`workspace:^`）。见 [`SEAM-PROJECTION.md`](./SEAM-PROJECTION.md)。
+1. **结构型 seam**：systemPrompt / shell / session 事件 / toolResultPruner 等 seam 不新增依赖，在 `seam.ts` 内定义最小接口；tools / agentPresets / skills 需要真实类型与工具函数时走真实 workspace 依赖（`@deepseek-ai/dsh-tools` / `dsh-agent-presets` / `dsh-skill`，`workspace:^`）。见 [`docs/SEAM-PROJECTION.md`](./docs/SEAM-PROJECTION.md)。
 2. **seam.ts 单文件**：每个包的 seam 注册代码集中在 `src/seam.ts`，`index.ts` 的 `apply()` 保持薄（`ctx.plugin(Store, config)` + `registerSeam(ctx, config)`）；注入/索引/裁剪逻辑放纯函数模块，strip-types 冒烟可测。
 3. **根合并点仅 3 个**（MIGRATION.md §9 更新迭代契约）：`pnpm-workspace.yaml`（`rin/*/*` glob）、根 `package.json`（@rin workspace 依赖段）、`tsconfig.base.json`（@rin paths 映射段）。约定：追加在文件尾部 + 注释块「rin extension — merge point」；upstream 冲突只可能在这 3 处，逐个重放。`.github/workflows/rin.yml` 是新增文件（上游无同名文件），不与 merge 冲突。
 4. **Known Limitations 门禁**：每个包 README 含「`## Known Limitations and Deferred Work`」节（至少一条 top-level `- ` bullet），由 `verify-rin-readme` 强制。
@@ -32,6 +32,7 @@ pnpm rin:lint             # oxlint -c rin/.oxlintrc.json
 pnpm rin:hygiene          # tsx rin/scripts/rin-gates.ts check（4 个 verify 叶子）
 pnpm rin:test             # vitest run -c rin/vitest.config.ts（.test.ts）
 pnpm rin:smoke            # node rin/scripts/run-smokes.mjs（.smoke.ts 串行）
+pnpm rin:metadata          # 检查预发布 metadata 不含虚假占位符
 pnpm rin:build            # 构建 @rin/web-ui
 pnpm rin                  # node --import tsx/esm rin/cli/rin/src/bin.ts（host 启动）
 ```
