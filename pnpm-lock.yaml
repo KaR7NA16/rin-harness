@@ -1009,6 +1009,9 @@ importers:
       '@rin/mcp':
         specifier: workspace:^
         version: link:../../automation/mcp
+      '@rin/memory':
+        specifier: workspace:^
+        version: link:../../core/memory
       '@rin/monitor':
         specifier: workspace:^
         version: link:../../core/monitor
@@ -1112,6 +1115,9 @@ importers:
         specifier: ^5.0.3
         version: 5.0.15(@types/react@18.3.31)(immer@10.2.0)(react@18.3.1)(use-sync-external-store@1.2.0(react@18.3.1))
     devDependencies:
+      '@rin/memory':
+        specifier: workspace:^
+        version: link:../../core/memory
       '@tailwindcss/vite':
         specifier: ^4.0.0
         version: 4.3.3(vite@6.4.3(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.0))

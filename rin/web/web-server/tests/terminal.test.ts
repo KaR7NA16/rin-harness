@@ -78,6 +78,7 @@ function makeServices(subprocessService: unknown = undefined): RinServiceRefs {
     environment: absent,
     filesystem: absent,
     sessionBackup: absent,
+    memory: absent,
     smartPruning: absent,
     knowledge: absent,
     sessionSearch: absent,

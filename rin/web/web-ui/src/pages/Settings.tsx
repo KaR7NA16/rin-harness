@@ -56,6 +56,8 @@ import {
   type PromptMemoryStatus,
   type PromptMemoryTarget,
 } from '../api/promptMemory'
+import { memoryApi } from '../api/memory'
+import type { MemoryManifest } from '@rin/memory'
 import { EvolutionProfile } from '../components/memory/EvolutionProfile'
 import { AdapterSettings } from './AdapterSettings'
 import { AgentMigration } from './AgentMigration'
@@ -1744,6 +1746,7 @@ export function MemorySettings() {
   const [status, setStatus] = useState<PromptMemoryStatus | null>(null)
   const [autoLogs, setAutoLogs] = useState<PromptMemoryAutoReviewLogEntry[]>([])
   const [insights, setInsights] = useState<PromptMemoryInsights | null>(null)
+  const [canonicalManifest, setCanonicalManifest] = useState<MemoryManifest | null>(null)
   const [draft, setDraft] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -1761,11 +1764,13 @@ export function MemorySettings() {
     setIsLoading(true)
     setError(null)
     try {
-      const [nextStatus, nextLogs, nextInsights] = await Promise.all([
+      const [nextStatus, nextLogs, nextInsights, nextManifest] = await Promise.all([
         promptMemoryApi.status(),
         promptMemoryApi.logs(20),
         promptMemoryApi.insights(),
+        memoryApi.manifest().catch(() => null),
       ])
+      setCanonicalManifest(nextManifest)
       setStatus(nextStatus)
       setAutoLogs(nextLogs)
       setInsights(nextInsights)
@@ -1974,6 +1979,30 @@ export function MemorySettings() {
           />
         </SettingsRow>
       </SettingsSection>
+
+      {canonicalManifest && (
+        <SettingsSection
+          title={t('settings.memory.catalog.title')}
+          description={t('settings.memory.catalog.description')}
+        >
+          <SettingsRow
+            label={t('settings.memory.catalog.projections')}
+            hint={t('settings.memory.catalog.projectionsHint')}
+          >
+            <span className="font-mono text-[12px] tabular-nums text-[var(--color-text-secondary)]">
+              {canonicalManifest.projections.length}
+            </span>
+          </SettingsRow>
+          <SettingsRow
+            label={t('settings.memory.catalog.archive')}
+            hint={t('settings.memory.catalog.archiveHint')}
+          >
+            <span className="max-w-[260px] truncate font-mono text-[11px] text-[var(--color-text-tertiary)]">
+              {canonicalManifest.storage.archiveRoot}
+            </span>
+          </SettingsRow>
+        </SettingsSection>
+      )}
 
       <AnimatePresence initial={false}>
         {activeView === 'profile' && (

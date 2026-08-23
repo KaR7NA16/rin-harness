@@ -51,6 +51,7 @@ function makeServices(overrides: Record<string, () => unknown> = {}) {
     agentMigration: () => undefined,
     filesystem: () => undefined,
     sessionBackup: () => undefined,
+    memory: () => undefined,
     plugins: () => undefined,
     codegraph: () => undefined,
     monitorSnapshot: () => undefined,

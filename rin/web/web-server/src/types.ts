@@ -46,6 +46,7 @@ export interface HealthServices {
   environment: boolean
   filesystem: boolean
   sessionBackup: boolean
+  memory: boolean
   smartPruning: boolean
   knowledge: boolean
   knowledgeGraph: boolean

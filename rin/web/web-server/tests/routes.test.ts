@@ -9,6 +9,7 @@ function services(overrides: Record<string, () => unknown> = {}) {
     environment: () => undefined,
     filesystem: () => undefined,
     sessionBackup: () => undefined,
+    memory: () => undefined,
     smartPruning: () => undefined,
     knowledge: () => undefined,
     knowledgeGraph: () => undefined,
@@ -78,6 +79,42 @@ describe('routeApi dispatch', () => {
     const s = services({ promptMemory: () => ({ async getStatus() { return { files: {} } } }) })
     const res = await routeApi('/api/prompt-memory/status', '', 'GET', undefined, s, config)
     expect(res).toEqual({ status: 200, body: { mounted: true, files: {} } })
+  })
+
+  test('dispatches unified memory manifest and item routes', async () => {
+    const item = {
+      id: 'prompt-memory:user',
+      projection: 'prompt-memory',
+      kind: 'prompt',
+      content: 'prefers concise answers',
+      version: 'v1',
+      status: 'active',
+      visibility: 'model',
+      source: { id: 'prompt-memory:user', kind: 'file', uri: 'prompt-memory/USER.md' },
+      createdAt: '2026-08-22T00:00:00.000Z',
+      updatedAt: '2026-08-22T00:00:00.000Z',
+    }
+    const memory = {
+      getManifest: () => ({ schemaVersion: 1, root: '.', projections: [] }),
+      list: () => [item],
+      get: () => item,
+      upsert: () => item,
+      revoke: () => ({ ...item, status: 'revoked' }),
+      delete: () => true,
+      listInjections: () => [],
+      exportData: () => ({ schemaVersion: 1, exportedAt: 'now', items: [item], injections: [] }),
+    }
+    const s = services({ memory: () => memory })
+    expect(await routeApi('/api/memory/manifest', '', 'GET', undefined, s, config)).toEqual({
+      status: 200,
+      body: { mounted: true, schemaVersion: 1, root: '.', projections: [] },
+    })
+    expect(await routeApi('/api/memory', '', 'GET', undefined, s, config)).toEqual({
+      status: 200,
+      body: { mounted: true, items: [item] },
+    })
+    expect((await routeApi('/api/memory/prompt-memory%3Auser', '', 'GET', undefined, s, config))?.status).toBe(200)
+    expect((await routeApi('/api/memory/prompt-memory%3Auser', '', 'DELETE', undefined, s, config))?.body).toEqual({ mounted: true, deleted: true })
   })
 
   test('dispatches evolution pathname', async () => {

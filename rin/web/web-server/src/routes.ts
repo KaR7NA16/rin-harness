@@ -13,6 +13,7 @@ import type { RepositoryStore } from '@rin/repository'
 import type { EnvironmentStore } from '@rin/environment'
 import type { FilesystemService } from '@rin/filesystem'
 import type { SessionBackupService } from '@rin/session-backup'
+import type { MemoryStore } from '@rin/memory'
 import type { KnowledgeStore } from '@rin/knowledge'
 import type { KnowledgeGraphService } from '@rin/knowledge-graph'
 import type { SessionSearchStore } from '@rin/session-search'
@@ -37,6 +38,7 @@ import { handle as handleCore } from './routes/core.ts'
 import { handle as handleKnowledge } from './routes/knowledge.ts'
 import { handle as handleKnowledgeGraph } from './routes/knowledge-graph.ts'
 import { handle as handleSessions } from './routes/sessions.ts'
+import { handle as handleMemory } from './routes/memory.ts'
 import { handle as handlePromptMemory } from './routes/prompt-memory.ts'
 import { handle as handleEvolution } from './routes/evolution.ts'
 import { handle as handleSkillMemory } from './routes/skill-memory.ts'
@@ -227,6 +229,7 @@ export interface RinServiceRefs {
   environment(): EnvironmentStore | undefined
   filesystem(): FilesystemService | undefined
   sessionBackup(): SessionBackupService | undefined
+  memory(): MemoryStore | undefined
   smartPruning(): SmartPruningRef | undefined
   knowledge(): KnowledgeStore | undefined
   knowledgeGraph(): KnowledgeGraphService | undefined
@@ -288,6 +291,7 @@ export async function routeApi(
     ?? (await handleKnowledge(pathname, search, method, body, services, config))
     ?? (await handleKnowledgeGraph(pathname, search, method, body, services, config))
     ?? (await handleSessions(pathname, search, method, body, services, config))
+    ?? (await handleMemory(pathname, search, method, body, services, config))
     ?? (await handlePromptMemory(pathname, search, method, body, services, config))
     ?? (await handleEvolution(pathname, search, method, body, services, config))
     ?? (await handleSkillMemory(pathname, search, method, body, services, config))

@@ -13,6 +13,7 @@ function emptyServices(): RinServiceRefs {
     environment: absent,
     filesystem: absent,
     sessionBackup: absent,
+    memory: absent,
     smartPruning: absent,
     knowledge: absent,
     knowledgeGraph: absent,

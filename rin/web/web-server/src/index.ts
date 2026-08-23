@@ -22,6 +22,7 @@ import type { ComputerUseService } from '@rin/computer-use'
 import type { FilesystemService } from '@rin/filesystem'
 import type { McpStore } from '@rin/mcp'
 import type { SessionBackupService } from '@rin/session-backup'
+import type { MemoryStore } from '@rin/memory'
 import type { CodeGraphService } from '@rin/codegraph'
 import type { PluginService } from '@rin/plugins'
 import type { ProviderProbeService } from '@rin/provider-probe'
@@ -100,6 +101,7 @@ export class WebServerService extends Service {
       environment: () => ctx.get('environment'),
       filesystem: () => ctx.get('filesystem') as unknown as FilesystemService | undefined,
       sessionBackup: () => ctx.get('sessionBackup') as unknown as SessionBackupService | undefined,
+      memory: () => ctx.get('memory') as unknown as MemoryStore | undefined,
       smartPruning: () => ctx.get('smartPruning'),
       knowledge: () => ctx.get('knowledge'),
       knowledgeGraph: () => ctx.get('knowledgeGraph') as KnowledgeGraphService | undefined,
