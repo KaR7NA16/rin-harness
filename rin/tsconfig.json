@@ -4,6 +4,7 @@
   "references": [
     { "path": "./core/repository" },
     { "path": "./core/environment" },
+    { "path": "./core/memory" },
     { "path": "./core/monitor" },
     { "path": "./core/doctor" },
     { "path": "./memory/knowledge" },
