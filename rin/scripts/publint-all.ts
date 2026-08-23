@@ -11,7 +11,6 @@ import { dirname, relative, resolve, sep } from 'node:path'
 import { parseArgs } from 'node:util'
 import { publint, type Message, type PackFile } from 'publint'
 import { formatMessage } from 'publint/utils'
-import { isEntry } from './release/process.ts'
 
 const CONCURRENCY_ENV = 'DSH_PUBLINT_CONCURRENCY'
 const repositoryRoot = resolve(import.meta.dirname, '..')
@@ -185,7 +184,7 @@ export function printResult(result: PublintResult): void {
   if (result.status === 'passed' && result.messages.length === 0) console.log('All good!')
 }
 
-if (isEntry(import.meta.url)) {
+if (import.meta.main) {
   const { values: options } = parseArgs({
     args: process.argv.slice(2),
     options: { 'packages-root': { type: 'string' } },
