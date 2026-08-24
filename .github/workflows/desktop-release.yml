@@ -1,0 +1,223 @@
+name: Signed desktop release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic version to publish (for example 0.2.0)
+        required: true
+        type: string
+      prerelease:
+        description: Publish as a prerelease
+        required: true
+        default: false
+        type: boolean
+  push:
+    tags:
+      - 'rin-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release-secrets:
+    name: Validate signing lineage
+    runs-on: ubuntu-24.04
+    env:
+      TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      TAURI_WINDOWS_TIMESTAMP_URL: ${{ vars.TAURI_WINDOWS_TIMESTAMP_URL }}
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Require updater, Authenticode, and Apple signing credentials
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          missing=0
+          for name in \
+            TAURI_UPDATER_PUBLIC_KEY TAURI_SIGNING_PRIVATE_KEY \
+            WINDOWS_CERTIFICATE WINDOWS_CERTIFICATE_PASSWORD TAURI_WINDOWS_TIMESTAMP_URL \
+            APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD KEYCHAIN_PASSWORD \
+            APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
+          do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required release credential: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+  publish:
+    name: ${{ matrix.label }}
+    needs: release-secrets
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Linux x64 signed updater
+            runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            bundles: deb,appimage
+            platform: linux
+          - label: Windows x64 signed NSIS
+            runner: windows-2025
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+            platform: windows
+          - label: macOS Apple Silicon signed and notarized
+            runner: macos-15
+            target: aarch64-apple-darwin
+            bundles: app,dmg
+            platform: macos
+          - label: macOS Intel signed and notarized
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+            bundles: app,dmg
+            platform: macos
+    env:
+      RIN_RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+      TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      TAURI_WINDOWS_TIMESTAMP_URL: ${{ vars.TAURI_WINDOWS_TIMESTAMP_URL }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Linux build dependencies
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xdg-utils
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> apps/desktop/src-tauri/target
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web frontend
+        run: pnpm --filter @rin/web run build
+
+      - name: Build native target-suffixed sidecar and runtime
+        run: pnpm exec node apps/desktop/scripts/build-sidecar.mjs --target ${{ matrix.target }}
+
+      - name: Import Windows Authenticode certificate
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'rin-signing.pfx'
+          [IO.File]::WriteAllBytes(
+            $certificatePath,
+            [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
+          )
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $certificate = Import-PfxCertificate -FilePath $certificatePath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          if (-not $certificate.Thumbprint) { throw 'Imported certificate has no thumbprint.' }
+          "TAURI_WINDOWS_CERTIFICATE_THUMBPRINT=$($certificate.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Remove-Item -LiteralPath $certificatePath -Force
+
+      - name: Import Apple signing certificate
+        if: matrix.platform == 'macos'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -Eeuo pipefail
+          certificate_path="$RUNNER_TEMP/rin-signing.p12"
+          keychain_path="$RUNNER_TEMP/rin-signing.keychain-db"
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$certificate_path"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$keychain_path"
+          security import "$certificate_path" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain_path"
+          security list-keychain -d user -s "$keychain_path"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$keychain_path"
+          identity="$(security find-identity -v -p codesigning "$keychain_path" | awk -F'"' '/Developer ID Application/{print $2; exit}')"
+          if [[ -z "$identity" ]]; then
+            echo 'No Developer ID Application identity found.' >&2
+            exit 1
+          fi
+          echo "APPLE_SIGNING_IDENTITY=$identity" >> "$GITHUB_ENV"
+          rm -f "$certificate_path"
+
+      - name: Prepare release-only Tauri configuration
+        run: pnpm --filter @rin/desktop run release:config
+
+      - name: Build and publish signed release assets
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
+        with:
+          projectPath: apps/desktop
+          tagName: rin-v__VERSION__
+          releaseName: rin v__VERSION__
+          releaseBody: Signed desktop installers and updater artifacts.
+          releaseDraft: true
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
+          args: --config src-tauri/tauri.release.generated.json --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+
+      - name: Verify installer/updater artifact pairs
+        env:
+          RIN_RELEASE_PLATFORM: ${{ matrix.platform }}
+        run: node apps/desktop/scripts/verify-release-artifacts.mjs
+
+      - name: Verify Windows Authenticode signature
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem apps/desktop/src-tauri/target -Recurse -Filter '*.exe' |
+            Where-Object { $_.FullName -match '[\\/]bundle[\\/]nsis[\\/]' } |
+            Select-Object -First 1
+          if (-not $installer) { throw 'NSIS installer not found.' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
+          if ($signature.Status -ne 'Valid') {
+            throw "Invalid Authenticode signature: $($signature.Status) $($signature.StatusMessage)"
+          }
+
+      - name: Verify macOS code signature
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          app_path="$(find apps/desktop/src-tauri/target -type d -name 'rin.app' -print -quit)"
+          test -n "$app_path"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          spctl --assess --type execute --verbose=2 "$app_path"

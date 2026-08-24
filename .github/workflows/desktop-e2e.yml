@@ -1,0 +1,152 @@
+name: Desktop clean-machine E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
+    paths:
+      - '.github/workflows/desktop-e2e.yml'
+      - 'apps/desktop/**'
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  pull_request:
+    paths:
+      - '.github/workflows/desktop-e2e.yml'
+      - 'apps/desktop/**'
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  linux-install-start:
+    name: Linux install/start smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Tauri build and runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+              libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xdg-utils \
+            xvfb \
+            curl
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> apps/desktop/src-tauri/target
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the web frontend
+        run: pnpm --filter @rin/web run build
+
+      - name: Build the Linux target-suffixed sidecar
+        run: pnpm exec node apps/desktop/scripts/build-sidecar.mjs --target x86_64-unknown-linux-gnu
+
+      - name: Build the Debian installer
+        run: pnpm --dir apps/desktop exec tauri build --bundles deb
+
+      - name: Install the Debian package on the clean runner
+        run: |
+          deb_path="$(find apps/desktop/src-tauri/target/release/bundle/deb -maxdepth 1 -type f -name '*.deb' -print -quit)"
+          if [[ -z "$deb_path" ]]; then
+            echo 'No Debian installer was produced.' >&2
+            exit 1
+          fi
+          sudo apt-get install -y "$(realpath "$deb_path")"
+
+      - name: Start the installed app and wait for host health
+        run: |
+          set -Eeuo pipefail
+          e2e_dir="$RUNNER_TEMP/rin-desktop-e2e"
+          mkdir -p "$e2e_dir"
+          export DISPLAY=:99
+          Xvfb "$DISPLAY" -screen 0 1440x960x24 >"$e2e_dir/xvfb.log" 2>&1 &
+          xvfb_pid=$!
+          gui_pid=''
+          cleanup() {
+            if [[ -n "$gui_pid" ]] && kill -0 "$gui_pid" 2>/dev/null; then
+              kill -TERM "$gui_pid" 2>/dev/null || true
+              for _ in $(seq 1 20); do
+                kill -0 "$gui_pid" 2>/dev/null || break
+                sleep 1
+              done
+              kill -KILL "$gui_pid" 2>/dev/null || true
+            fi
+            if kill -0 "$xvfb_pid" 2>/dev/null; then
+              kill "$xvfb_pid" 2>/dev/null || true
+            fi
+          }
+          trap cleanup EXIT
+
+            env -u NODE_OPTIONS -u NODE_PATH PATH=/usr/bin:/bin \
+              WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+              /usr/bin/rin >"$e2e_dir/rin.log" 2>&1 &
+          gui_pid=$!
+
+          healthy=0
+          for _ in $(seq 1 90); do
+            if curl --fail --silent --show-error \
+              http://127.0.0.1:8320/api/status >"$e2e_dir/status.json"; then
+              healthy=1
+              break
+            fi
+            if ! kill -0 "$gui_pid" 2>/dev/null; then
+              cat "$e2e_dir/rin.log"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if [[ "$healthy" != 1 ]]; then
+            cat "$e2e_dir/rin.log"
+            echo 'Installed rin did not expose /api/status within 90 seconds.' >&2
+            exit 1
+          fi
+          grep -Eq '"status":"ok"' "$e2e_dir/status.json"
+          echo 'Installed app health:'
+          cat "$e2e_dir/status.json"
+
+            # Simulate a GUI crash. The sidecar's parent watchdog must close the
+            # host even when Tauri cannot run its normal shutdown handler.
+            kill -KILL "$gui_pid"
+            wait "$gui_pid" 2>/dev/null || true
+            gui_pid=''
+            for _ in $(seq 1 20); do
+              pgrep -f '[r]in-sidecar' >/dev/null || break
+              sleep 1
+            done
+          if pgrep -f '[r]in-sidecar' >/dev/null; then
+            cat "$e2e_dir/rin.log"
+            echo 'rin-sidecar remained after the GUI exited.' >&2
+            exit 1
+          fi
