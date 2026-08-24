@@ -19,5 +19,6 @@
 - audits/REPOSITORY-LAYOUT-CLOSEOUT.md：当前 21 包、`rin/` 缺失与旧路径审计收口。
 
 ## 历史档案
+- archive/README.md：归档材料阅读边界，不把历史路径、命令和完成状态当作当前事实。
 
 archive/migration/ 保存迁移方案、已完成计划和 legacy 收口记录。档案用于追溯，不得作为当前结构、命令或完成状态的权威来源。

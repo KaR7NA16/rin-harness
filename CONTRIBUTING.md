@@ -1,23 +1,54 @@
-# Contributing
+# Contributing to Rin
 
 English | [中文](CONTRIBUTING.zh.md)
 
-Thank you for your interest in contributing to DeepSeek Harness!
+Thank you for taking an interest in Rin. Rin is a developer-preview runtime for local-first, auditable AI companion systems. The project is still changing quickly, so a useful contribution is one that is small, explicit about its evidence, and easy to review.
 
-We deeply believe in the power of open source communities, and that belief has shaped this project from the very beginning.
+## Before changing code
 
-DeepSeek Harness is still at an early stage and under active development. We are sorry that we cannot accept external pull requests at the moment. However, contributing code to this repository is far from the only way to help. There are many other ways to get involved:
+1. Read the [documentation index](docs/README.md), [current architecture](docs/architecture/CURRENT.md), and [active roadmap](docs/roadmap/ACTIVE.md).
+2. Confirm the package owner and dependency direction before adding a new import or moving a module.
+3. Keep first-party code under apps/ or role-specific directories inside packages/. Do not recreate the removed transition wrapper under rin/.
+4. Preserve the distinction between implemented behaviour, planned work, and unverified claims.
+5. Update the smallest relevant document, manifest, reference, test, or gate when the change affects a repository contract.
 
-- Identify and report issues or bugs in GitHub Discussions:
-  - Upvote discussions that you would like to bring to the team's attention. We are a very small team and may not be able to reply to every post, but we monitor them and consider them when allocating resources.
-- Contribute to the ecosystem:
-  - Create a plugin that excites you and share it with others:
-    - Associate your GitHub project with the `dsh-plugin` topic to help others discover your plugin.
-  - Write blog posts and how-to guides about DeepSeek Harness.
-  - Answer questions and help other members of the community.
+## Local checks
 
-DeepSeek Harness is designed to be deeply customizable. We do not believe that packages in the official repository are inherently more important than packages created by the community. You may consider this repository an idea, an official showcase, and a source of inspiration, but not a mandate from us.
+Use the pinned Node.js and pnpm versions from the root package manifest:
 
-We have already seen exciting projects emerge from the community, and we hope to see the ecosystem continue to grow in its own directions.
+~~~sh
+pnpm install
+pnpm run check
+pnpm run smoke
+~~~
 
-Into the unknown.
+For focused work, run the narrowest relevant package or test command first, then run pnpm run check before requesting review. Changes to desktop packaging, paths, manifests, generated references, Cordis composition, or CI should include the corresponding evidence.
+
+## Useful contribution areas
+
+- runtime composition, contracts, lifecycle and provider boundaries;
+- memory provenance, retrieval, backup, deletion and export;
+- Web and desktop accessibility and user-facing controls;
+- relationship, consent and companion-safety domains;
+- evaluation fixtures, red-team scenarios and reproducible test data;
+- documentation, architecture decisions and contributor onboarding;
+- provider, MCP and interoperability adapters.
+
+The relationship and safety areas are especially sensitive. Do not claim emotional, clinical, crisis, or production behaviour without a matching implementation and evaluation record.
+
+## Pull requests
+
+A pull request should explain:
+
+- what changed and why;
+- which packages, paths, manifests, references or gates are affected;
+- how the change was tested;
+- what remains unverified or intentionally out of scope.
+
+Avoid mixing a structural migration with an unrelated feature. Preserve provenance when moving files, and do not commit credentials, user data, generated secrets, or local machine paths.
+
+## Issues and security
+
+Use the repository issue tracker when it is enabled for the checkout. For security reports or privacy-sensitive material, follow [SECURITY.md](SECURITY.md) rather than publishing details in an issue.
+
+Rin depends on external runtime packages under the @deepseek-ai/* scope. Do not copy or vendor their source into this repository without recording the license and provenance impact in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

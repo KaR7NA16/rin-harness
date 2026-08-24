@@ -1,80 +1,106 @@
-# rin-harness
+# Rin
 
 [English](README.md) | 中文
 
-> **rin-harness**（`rin`）是基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`，[DeepSeek AI](https://deepseek.com) 的开源 agent harness）底座迁移开发的 harness。
->
-> 本项目保留 DeepSeek Harness 的 MIT 许可与第三方声明（见 [LICENSE](LICENSE) 与 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)）。“rin”这个名字，是作者的一个智能体在使用 DeepSeek API 时给自己起的名字。
+> **Rin** 是一个本地优先、可审计的长期 AI 陪伴运行时与开发者平台。
 
-它采用**一切皆插件**的架构，并由 [Cordis](https://github.com/cordiverse/cordis) 驱动，其设计参见论文 [_A Programming Paradigm for Spatiotemporal Composability_](https://github.com/cordiverse/paper)。
+> **状态：开发者预览。** 当前仓库已经提供可运行的 Host、Web UI、桌面壳、记忆与溯源基础设施、Provider/MCP 集成，以及跨平台安装/启动证据。但它还不能被描述为完整的消费级人机陪伴产品：关系生命周期、陪伴安全、面向用户的关系控制、签名发布和长期用户评测仍在建设中。
 
-## 开发者预览
+## Rin 要解决什么问题
 
-rin-harness 继承了 DeepSeek Harness 的 _开发者预览_ 状态，正在快速迭代。**未来将出现破坏兼容性的变更。**
+长期陪伴不只是聊天界面。系统需要让用户能够检查和撤销记忆、导出自己的数据、理解模型和 provider 边界，并且让运行时行为可以被测试和追溯。
 
-## 功能
+Rin 正在作为这样的本地优先基础设施建设。当前范围是可组合的运行时和开发者预览；下一层产品边界是一个包含同意、安全、可迁移性和评测能力的可审计关系运行时。
 
-rin 在 `dsh` 底座之上叠加了一组 `@rin/*` 包：
+项目会明确区分事实边界：桌面程序可以安装、测试套件可以通过，只能证明被执行的工程链路，不能证明完整的陪伴体验已经完成。
 
-- **资产仓库与环境**（`@rin/assets`、`@rin/workspace/environment`、`@rin/workspace/agents`、`@rin/workspace/sandboxes`）——读取资产仓库、投影 agent，并把环境安装计划落到可运行的 sandbox profile。
-- **文件系统与会话备份**（`@rin/workspace/filesystem`、`@rin/backup`）——路径收容的目录浏览，以及 gzip 会话导出/导入。
-- **记忆**（`@rin/memory` 及其 `prompt`、`skill`、`session-search` 子路径，以及 `@rin/knowledge`）——canonical memory、投影与检索。
-- **笔记**（`@rin/notes`）——Obsidian 风格笔记，含会话备份。
-- **优化与代码图谱**（`@rin/context/token-optimization`、`@rin/context/smart-pruning`、`@rin/context/codegraph`）——token/输出优化控件，以及 SQLite 代码图谱可视化。
-- **进化**（`@rin/evolution`）——自我进化的状态与配置。
-- **诊断**（`@rin/health/monitor`、`@rin/health/doctor`）——Linux 主机指标快照与诚实的 host 自诊断。
-- **自动化与协作**（`@rin/automation`、`@rin/mcp`、`@rin/mcp/client`、`@rin/providers`、`@rin/computer-use`、`@rin/agent-migration`、`@rin/collaboration`）——任务、MCP 配置与模型侧 MCP 桥接、provider 探测、桌面 computer-use 策略、agent 迁移与团队。
-- **LLM 能力**（`@rin/authoring/brief`、`@rin/authoring/review`）——LLM 生成的会话摘要与工件审查。
-- **Web**（`@rin/host/web-server`、`@rin/web`）——在独立端口（默认 `8320`）上运行的 Web UI，含基于 `/ws/terminal/<id>` 的浏览器终端。
-- **桌面壳**（`@rin/desktop`）——内嵌同一套 Web UI 的 Tauri 壳。
+## 当前可用能力
 
-## 运行
+| 领域 | 当前能力 |
+| --- | --- |
+| 运行时组合 | 统一 Host 组合根、Cordis 服务、provider 清单、生命周期连接、路径辅助和 Web server |
+| 记忆与知识 | canonical memory、投影、检索、溯源、注入审计、knowledge 和 notes |
+| 工作区与恢复 | 资产/环境投影、路径收容的文件系统访问、会话备份与恢复 |
+| 集成 | provider 探测、MCP 配置与 client bridge、自动化、computer-use 策略、协作和迁移 seam |
+| 应用入口 | 薄 CLI 启动器、独立 Web UI、Tauri 桌面壳 |
+| 质量门禁 | metadata、仓库卫生、typecheck、lint、单元/集成测试、release verify 和 smoke |
+| 分发证据 | Linux、Windows、macOS Apple Silicon、macOS Intel 的清洁机器安装/启动/health/watchdog E2E |
 
-### 从源码运行
+当前 canonical workspace 有 21 个 package manifest。应用入口位于 apps/；一方可复用代码位于 packages/ 下的角色目录。
 
-rin 的 `dsh` 底座以 `@deepseek-ai/*` 依赖形式从**公共 npm registry** 安装——**无需单独检出 DeepSeek Harness**。clone 本仓库后执行 `pnpm install` 即自动拉齐整个 `dsh` 底座（精确钉在 `0.1.0-rc.8`）：
+## 目录结构概览
 
-```sh
+~~~text
+apps/
+  cli/       源码启动器
+  web/       React Web UI
+  desktop/   Tauri 壳与原生 sidecar
+
+packages/
+  runtime/       host、contracts、health、backup
+  domains/       memory、knowledge、notes、workspace、assets、automation
+  features/      context、authoring、evolution、migration、computer-use
+  integrations/  MCP 和 provider bridge
+~~~
+
+packages/runtime/host 是组合根。过渡时期的 rin/ 外壳不属于 canonical layout。
+
+## 从源码运行
+
+环境要求：
+
+- Node.js 22.19+（或 Node.js 24+）
+- pnpm 11.7.0
+
+~~~sh
 pnpm install
 pnpm run start
-```
+~~~
 
-`rin` host 默认在 `http://127.0.0.1:8320` 伺服 Web UI（**rin 自启**：由 `@rin/cli` 启动）。
+Host 默认在 http://127.0.0.1:8320 提供 Web UI。同一套 Host 组合也可以嵌入桌面壳。
 
-rin 也可以**托管在 dsh CLI 内运行**：创建一个 `dsh.profile.bundles` 列出 `@rin/host`（其声明了 `dsh.bundle.patch`）的 dsh profile，然后 `dsh --profile <name>` 会在 dsh 自己的启动器上装配同一套装配。
+完整命令入口请先阅读[文档索引](docs/README.md)，然后阅读[当前架构](docs/architecture/CURRENT.md)和[活动路线](docs/roadmap/ACTIVE.md)。
 
-### 发行状态
+## 验证当前 checkout
 
-rin 当前尚未发布。计划中的发行形态包括：
+~~~sh
+pnpm run check
+pnpm run smoke
+~~~
 
-- **npm 包**——`@rin/*` 各包，含 `@rin/cli` 可执行文件。
-- **Windows 可执行文件**——由 `@rin/desktop` 构建的 Tauri 安装程序（`nsis`）。
-- **Linux deb**——由 `@rin/desktop` 构建的 Tauri `deb` 包。
+pnpm run check 会依次运行 metadata 和 hygiene、TypeScript project checks、lint、Vitest、桌面 release verification 以及 smoke tests。
 
-正式发布地址和包元数据将在 rin 建立独立公开仓库后补充。
-`deepseek-ai/deepseek-harness` 是 dsh 基座的上游仓库，不是 rin 的发布仓库。
+最近的证据：
 
-## 社区与支持
+- [CI #8](https://github.com/KaR7NA16/rin-harness/actions/runs/32685813652)：193 个测试文件、1695 个测试结果通过。
+- [Desktop clean-machine E2E #5](https://github.com/KaR7NA16/rin-harness/actions/runs/32685813649)：Linux、Windows、macOS Apple Silicon 和 macOS Intel 的安装/启动路径通过。
 
-rin 当前没有公开的 issue 或讨论区。产品处于预发布阶段时，请通过项目维护者提供的私有渠道反馈，
-不要将 dsh 上游仓库当作 rin 的问题入口。
+这些运行只证明已经执行的链路；它们尚未证明签名/公证分发、真实 updater 回滚、每一种 provider/container 生命周期，或完整的陪伴产品已经完成。
+
+## 产品边界与路线
+
+下一层产品能力记录在[活动路线](docs/roadmap/ACTIVE.md)中，计划包括：
+
+- 关系事件、同意、边界、暂停/结束/重置/导出；
+- 陪伴安全、AI 身份披露、年龄模式和危机路由；
+- 面向用户的记忆中心、关系设置、隐私控制和“为什么记住这件事？”解释；
+- 关系评测、安全评测、红队场景和封闭 alpha；
+- 签名发布、更新器和回滚证据。
+
+在这些内容分别实现并拥有独立证据之前，Rin 应被描述为开发者预览和运行时基础设施，而不是生产级人机关系服务。
+
+## 上游运行时依赖
+
+Rin 从 registry 中消费 @deepseek-ai/* scope 下的 dsh/Cordis 运行时包。这些包名是实现依赖，不是 Rin 的产品身份，也不要求单独检出上游仓库。
+
+外部依赖的版权和许可条款仍然适用。依赖边界见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)，Rin 一方源码的许可见 [LICENSE](LICENSE)。
 
 ## 参与贡献
 
-参见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+提交变更前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。仓库仍处于预发布开发阶段，接口和 package 边界可能变化。变更应包含最小必要的测试或证据更新，并保持“已实现行为、计划工作、未验证声明”之间的区分。
 
-## 开发
-
-请先阅读[文档索引](docs/README.md)，再阅读[当前架构](docs/architecture/CURRENT.md)、
-[已批准的目标架构](docs/architecture/TARGET.md)和[当前执行路线](docs/roadmap/ACTIVE.md)。
-当前 canonical workspace 有 21 个 package manifest：应用入口位于 `apps/`，
-可复用代码位于 `packages/<role>/<name>/`。过渡性的 `rin/` 外壳已经移除；
-历史迁移路径只保留在明确标记的 archive 和来源映射文档中。
-
-面向 agent：请遵循 [AGENTS.md](AGENTS.md)。
+安全问题请参阅 [SECURITY.md](SECURITY.md)。文档索引是架构决策、审计、迁移记录和活动执行路线的入口。
 
 ## 许可证
 
-[MIT](LICENSE)
-
-第三方依赖及其许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+Rin 一方源码采用 [MIT License](LICENSE)。外部依赖和任何上游材料保留其自身声明，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

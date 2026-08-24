@@ -202,8 +202,9 @@ async function build() {
   if (target.platform !== process.platform || target.arch !== process.arch) {
     throw new Error('Sidecar target ' + triple + ' requires a native ' + target.platform + '/' + target.arch + ' runner; current Node is ' + process.platform + '/' + process.arch)
   }
-  const outputDir = resolve(argument('--output-dir') ?? join(desktopDir, 'src-tauri/binaries'))
-  const runtimeDir = resolve(argument('--runtime-dir') ?? join(desktopDir, 'src-tauri/sidecar-runtime'))
+  // Output arguments are repo-relative so nested invocations cannot create apps/apps paths.
+  const outputDir = resolve(repoRoot, argument('--output-dir') ?? join(desktopDir, 'src-tauri/binaries'))
+  const runtimeDir = resolve(repoRoot, argument('--runtime-dir') ?? join(desktopDir, 'src-tauri/sidecar-runtime'))
   const outputPath = join(outputDir, 'rin-sidecar-' + triple + target.ext)
   await rm(runtimeDir, { recursive: true, force: true })
   await mkdir(outputDir, { recursive: true })

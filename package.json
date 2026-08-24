@@ -2,6 +2,7 @@
   "name": "@rin/root",
   "version": "0.1.0",
   "license": "MIT",
+  "description": "Rin local-first runtime and developer platform for auditable long-lived AI companions.",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.7.0",
