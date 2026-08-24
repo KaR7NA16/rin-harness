@@ -16,17 +16,17 @@ rin-harness 继承了 DeepSeek Harness 的 _开发者预览_ 状态，正在快�
 
 rin 在 `dsh` 底座之上叠加了一组 `@rin/*` 包：
 
-- **资产仓库与环境**（`@rin/repository`、`@rin/environment`、`@rin/agents`、`@rin/sandboxes`）——读取资产仓库、投影 agent，并把环境安装计划落到可运行的 sandbox profile。
-- **文件系统与会话备份**（`@rin/filesystem`、`@rin/session-backup`）——路径收容的目录浏览，以及 gzip 会话导出/导入。
-- **记忆**——四个包：`@rin/knowledge`、`@rin/prompt-memory`、`@rin/skill-memory` 与 `@rin/session-search`。
+- **资产仓库与环境**（`@rin/assets`、`@rin/workspace/environment`、`@rin/workspace/agents`、`@rin/workspace/sandboxes`）——读取资产仓库、投影 agent，并把环境安装计划落到可运行的 sandbox profile。
+- **文件系统与会话备份**（`@rin/workspace/filesystem`、`@rin/backup`）——路径收容的目录浏览，以及 gzip 会话导出/导入。
+- **记忆**（`@rin/memory` 及其 `prompt`、`skill`、`session-search` 子路径，以及 `@rin/knowledge`）——canonical memory、投影与检索。
 - **笔记**（`@rin/notes`）——Obsidian 风格笔记，含会话备份。
-- **优化与代码图谱**（`@rin/token-optimization`、`@rin/smart-pruning`、`@rin/codegraph`）——token/输出优化控件，以及 SQLite 代码图谱可视化。
+- **优化与代码图谱**（`@rin/context/token-optimization`、`@rin/context/smart-pruning`、`@rin/context/codegraph`）——token/输出优化控件，以及 SQLite 代码图谱可视化。
 - **进化**（`@rin/evolution`）——自我进化的状态与配置。
-- **诊断**（`@rin/monitor`、`@rin/doctor`）——Linux 主机指标快照与诚实的 host 自诊断。
-- **自动化与协作**（`@rin/tasks`、`@rin/mcp`、`@rin/mcp-client`、`@rin/provider-probe`、`@rin/computer-use`、`@rin/agent-migration`、`@rin/teams`）——任务、MCP 配置与模型侧 MCP 桥接、provider 探测、桌面 computer-use 策略、agent 迁移与团队。
-- **LLM 能力**（`@rin/brief`、`@rin/review`）——LLM 生成的会话摘要与工件审查。
-- **Web**（`@rin/web-server`、`@rin/web-ui`）——在独立端口（默认 `8320`）上运行的 Web UI，含基于 `/ws/terminal/<id>` 的浏览器终端。
-- **桌面壳**（`@rin/gui`）——内嵌同一套 Web UI 的 Tauri 壳。
+- **诊断**（`@rin/health/monitor`、`@rin/health/doctor`）——Linux 主机指标快照与诚实的 host 自诊断。
+- **自动化与协作**（`@rin/automation`、`@rin/mcp`、`@rin/mcp/client`、`@rin/providers`、`@rin/computer-use`、`@rin/agent-migration`、`@rin/collaboration`）——任务、MCP 配置与模型侧 MCP 桥接、provider 探测、桌面 computer-use 策略、agent 迁移与团队。
+- **LLM 能力**（`@rin/authoring/brief`、`@rin/authoring/review`）——LLM 生成的会话摘要与工件审查。
+- **Web**（`@rin/host/web-server`、`@rin/web`）——在独立端口（默认 `8320`）上运行的 Web UI，含基于 `/ws/terminal/<id>` 的浏览器终端。
+- **桌面壳**（`@rin/desktop`）——内嵌同一套 Web UI 的 Tauri 壳。
 
 ## 运行
 
@@ -36,20 +36,20 @@ rin 的 `dsh` 底座以 `@deepseek-ai/*` 依赖形式从**公共 npm registry** 
 
 ```sh
 pnpm install
-pnpm run rin
+pnpm run start
 ```
 
 `rin` host 默认在 `http://127.0.0.1:8320` 伺服 Web UI（**rin 自启**：由 `@rin/cli` 启动）。
 
-rin 也可以**托管在 dsh CLI 内运行**：创建一个 `dsh.profile.bundles` 列出 `@rin/bundle`（其声明了 `dsh.bundle.patch`）的 dsh profile，然后 `dsh --profile <name>` 会在 dsh 自己的启动器上装配同一套装配。
+rin 也可以**托管在 dsh CLI 内运行**：创建一个 `dsh.profile.bundles` 列出 `@rin/host`（其声明了 `dsh.bundle.patch`）的 dsh profile，然后 `dsh --profile <name>` 会在 dsh 自己的启动器上装配同一套装配。
 
 ### 发行状态
 
 rin 当前尚未发布。计划中的发行形态包括：
 
 - **npm 包**——`@rin/*` 各包，含 `@rin/cli` 可执行文件。
-- **Windows 可执行文件**——由 `@rin/gui` 构建的 Tauri 安装程序（`nsis`）。
-- **Linux deb**——由 `@rin/gui` 构建的 Tauri `deb` 包。
+- **Windows 可执行文件**——由 `@rin/desktop` 构建的 Tauri 安装程序（`nsis`）。
+- **Linux deb**——由 `@rin/desktop` 构建的 Tauri `deb` 包。
 
 正式发布地址和包元数据将在 rin 建立独立公开仓库后补充。
 `deepseek-ai/deepseek-harness` 是 dsh 基座的上游仓库，不是 rin 的发布仓库。
@@ -65,8 +65,11 @@ rin 当前没有公开的 issue 或讨论区。产品处于预发布阶段时，
 
 ## 开发
 
-请先阅读 [rin 目录说明](rin/README.md)、[rin 工程规则](rin/AGENTS.md) 与
-[rin 文档索引](rin/docs/README.md)。
+请先阅读[文档索引](docs/README.md)，再阅读[当前架构](docs/architecture/CURRENT.md)、
+[已批准的目标架构](docs/architecture/TARGET.md)和[当前执行路线](docs/roadmap/ACTIVE.md)。
+当前 canonical workspace 有 21 个 package manifest：应用入口位于 `apps/`，
+可复用代码位于 `packages/<role>/<name>/`。过渡性的 `rin/` 外壳已经移除；
+历史迁移路径只保留在明确标记的 archive 和来源映射文档中。
 
 面向 agent：请遵循 [AGENTS.md](AGENTS.md)。
 

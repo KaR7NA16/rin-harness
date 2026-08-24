@@ -16,17 +16,17 @@ rin-harness inherits DeepSeek Harness's _developer preview_ status and is iterat
 
 rin layers a set of `@rin/*` packages on top of the `dsh` base:
 
-- **Asset repository and environments** (`@rin/repository`, `@rin/environment`, `@rin/agents`, `@rin/sandboxes`) — read the asset repository, project agents, and environment installation plans into runnable sandbox profiles.
-- **Filesystem and session backup** (`@rin/filesystem`, `@rin/session-backup`) — path-contained directory browsing and gzip session export/import.
-- **Memory** — four packages: `@rin/knowledge`, `@rin/prompt-memory`, `@rin/skill-memory`, and `@rin/session-search`.
+- **Asset repository and environments** (`@rin/assets`, `@rin/workspace/environment`, `@rin/workspace/agents`, `@rin/workspace/sandboxes`) — read the asset repository, project agents, and environment installation plans into runnable sandbox profiles.
+- **Filesystem and session backup** (`@rin/workspace/filesystem`, `@rin/backup`) — path-contained directory browsing and gzip session export/import.
+- **Memory** (`@rin/memory` with `prompt`, `skill`, and `session-search` subpaths; `@rin/knowledge`) — canonical memory, projections, and retrieval.
 - **Notes** (`@rin/notes`) — Obsidian-style notes with session backup.
-- **Optimization and code graph** (`@rin/token-optimization`, `@rin/smart-pruning`, `@rin/codegraph`) — token/output controls and SQLite code-graph visualization.
+- **Optimization and code graph** (`@rin/context/token-optimization`, `@rin/context/smart-pruning`, `@rin/context/codegraph`) — token/output controls and SQLite code-graph visualization.
 - **Evolution** (`@rin/evolution`) — self-evolution state and configuration.
-- **Diagnostics** (`@rin/monitor`, `@rin/doctor`) — Linux host metrics snapshots and honest host self-diagnostics.
-- **Automation and collaboration** (`@rin/tasks`, `@rin/mcp`, `@rin/mcp-client`, `@rin/provider-probe`, `@rin/computer-use`, `@rin/agent-migration`, `@rin/teams`) — tasks, MCP configuration and model-facing MCP bridging, provider probes, desktop computer-use policy, agent migration, and teams.
-- **LLM capabilities** (`@rin/brief`, `@rin/review`) — LLM-generated session briefs and artifact review.
-- **Web** (`@rin/web-server`, `@rin/web-ui`) — a standalone Web UI served on its own port (default `8320`), including a browser terminal over `/ws/terminal/<id>`.
-- **Desktop shell** (`@rin/gui`) — a Tauri shell embedding the same Web UI.
+- **Diagnostics** (`@rin/health/monitor`, `@rin/health/doctor`) — Linux host metrics snapshots and honest host self-diagnostics.
+- **Automation and collaboration** (`@rin/automation`, `@rin/mcp`, `@rin/mcp/client`, `@rin/providers`, `@rin/computer-use`, `@rin/agent-migration`, `@rin/collaboration`) — tasks, MCP configuration and model-facing MCP bridging, provider probes, desktop computer-use policy, agent migration, and teams.
+- **LLM capabilities** (`@rin/authoring/brief`, `@rin/authoring/review`) — LLM-generated session briefs and artifact review.
+- **Web** (`@rin/host/web-server`, `@rin/web`) — a standalone Web UI served on its own port (default `8320`), including a browser terminal over `/ws/terminal/<id>`.
+- **Desktop shell** (`@rin/desktop`) — a Tauri shell embedding the same Web UI.
 
 ## Run
 
@@ -36,20 +36,20 @@ rin's `dsh` base is installed as `@deepseek-ai/*` dependencies from the **public
 
 ```sh
 pnpm install
-pnpm run rin
+pnpm run start
 ```
 
 The `rin` host serves the Web UI at `http://127.0.0.1:8320` by default (standalone launch via `@rin/cli`).
 
-rin can also be launched hosted by the `dsh` CLI: create a `dsh` profile whose `dsh.profile.bundles` lists `@rin/bundle` (it declares `dsh.bundle.patch`), then `dsh --profile <name>` assembles the exact same assembly on `dsh`'s own launcher.
+rin can also be launched hosted by the `dsh` CLI: create a `dsh` profile whose `dsh.profile.bundles` lists `@rin/host` (it declares `dsh.bundle.patch`), then `dsh --profile <name>` assembles the exact same assembly on `dsh`'s own launcher.
 
 ### Distribution status
 
 rin is not published yet. The intended distribution surfaces are:
 
 - **npm package** — the `@rin/*` packages, including the `@rin/cli` binary.
-- **Windows executable** — a Tauri installer (`nsis`) built from `@rin/gui`.
-- **Linux deb** — a Tauri `deb` package built from `@rin/gui`.
+- **Windows executable** — a Tauri installer (`nsis`) built from `@rin/desktop`.
+- **Linux deb** — a Tauri `deb` package built from `@rin/desktop`.
 
 Release URLs and package repository metadata will be added when rin has a
 dedicated public repository. The `deepseek-ai/deepseek-harness` repository is
@@ -67,8 +67,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Development
 
-Start with the [rin directory guide](rin/README.md), [rin engineering rules](rin/AGENTS.md),
-and the [rin documentation index](rin/docs/README.md).
+Start with the [documentation index](docs/README.md), then read the
+[current architecture](docs/architecture/CURRENT.md), the
+[approved target architecture](docs/architecture/TARGET.md), and the
+[active execution route](docs/roadmap/ACTIVE.md). The canonical workspace has
+21 package manifests: applications are under `apps/` and reusable code is
+under `packages/<role>/<name>/`. The former `rin/` transition wrapper is
+absent; historical migration paths are retained only in clearly marked archive
+and source-mapping documents.
 
 For agents, follow [AGENTS.md](AGENTS.md).
 

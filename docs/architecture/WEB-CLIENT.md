@@ -1,0 +1,76 @@
+# 独立 Web Client 架构
+
+> 决策：**不动 dsh 原生 Web UI**，用独立端口跑 @rin 自己的 Web UI。
+> 该决策取代早前的 SlotMap 集成技术路线（PHASE4-CLIENT.md 已删除，其「功能适配映射表」并入
+> [MIGRATION.md](../archive/migration/MIGRATION.md) §4.2）。
+
+## 1. 为什么转向
+
+SlotMap 集成方案有三个真机前置缺口：
+
+1. 自建 `rin.workspace.*` 槽位要并入 `gen-client-catalog` 生成器。
+2. @rin host 服务缺 typert 生成的 Remote API 半（client 取数前置依赖）。
+3. client 插件要 tsdown bundle + `test:gui` 验证（沙箱 spawn EPERM 不可行）。
+
+独立端口方案用 `node:http` 直连 host 服务，把这三条全部绕开：
+
+- 不碰 dsh 的 client/ui-*/SlotMap/AppWebEntry，零侵入。
+- 不经 typert Remote API，HTTP 直接序列化 host 服务的读接口返回值。
+- 前端纯静态（vanilla HTML/JS/CSS），无构建步骤，沙箱可验证。
+
+## 2. 架构
+
+```
+@rin host 插件（repository/environment/...） —— 已在 ctx 上暴露读接口
+        │  ctx.get('repository') 等（可选读取，未挂载返回 undefined）
+        ▼
+@rin/host/web-server（host 插件，node:http，独立端口，默认 8320）
+  ├─ /api/*   JSON 接口（把 host 服务读接口序列化为 JSON）
+  └─ /        静态伺服 web/（前端单页）
+        ▲  fetch /api/*
+        │
+浏览器打开 http://127.0.0.1:8320 —— 独立于 dsh 原生 Web UI（3080）
+```
+
+## 3. API 契约（v1，权威）
+
+Base: `http://<host>:<port>`（默认 `http://127.0.0.1:8320`）。
+所有响应 `application/json`；错误返回 4xx/5xx，body 为 `{"error":"<message>"}`。
+
+| 端点 | 说明 |
+|---|---|
+| `GET /api/health` | `{"ok":true,"name":"rin-web","version":"0.1.0","services":{...}}`，services.* 表示各 @rin 服务是否挂载 |
+| `GET /api/repository?root=<abs>` | 返回完整 AssetRepository JSON；root 可省略（用 Config.repositoryRoot） |
+| `GET /api/environment/plan?profile=<id>&root=&platform=&apt=&python=&pip=&r=&npm=&tlmgr=` | 返回 ResolvedEnvironmentPlan JSON；platform 默认 process.platform，runtime 布尔默认 false |
+| `GET /api/smart-pruning/status` | `{"mounted":true,"enabled":<bool>,"level":<str>,"mode":<str>}` 或 `{"mounted":false}` |
+
+静态：`GET /` 伺服 `web/index.html`；`GET /<path>` 伺服 `web/` 下文件（path 穿越防护）；否则 404。
+
+## 4. 范围与进度
+
+**v1（已完成）**：`/api/health` + `/api/repository` + `/api/environment/plan` + `/api/smart-pruning/status` + vanilla 静态壳。
+
+**v2（已完成）**：新增 5 个服务的只读端点 + 用 React SPA 取代 vanilla 壳（完整 Web UI 主体）：
+
+- `/api/knowledge/{sources,documents,search,stats}` → `ctx.knowledge.open(dbPath)`。
+- `/api/sessions/{browse,discover,read}` → `ctx.sessionSearch`。
+- `/api/prompt-memory/{status,file,review-logs}` → `ctx.promptMemory`。
+- `/api/evolution/overview` → `ctx.evolution.readConfig/readState`。
+- `/api/skill-memory/overview` → `ctx['skill-memory'].createStore` + 路径助手枚举。
+- 前端 `@rin/web`（Vite + React + Router），源码在 `apps/web/src/`，真机构建。
+
+**v3（已完成，当前态）**：API 面扩展到全部已装配 @rin 服务，前端扩展为 18 页（17 个 `src/pages/*.tsx` + `ScheduledTasks`）：
+
+- 资产/环境/仓库：`/api/repository`、`/api/repositories*`、`/api/environment/plan`、`/api/agents*`、`/api/sandboxes*`、`/api/filesystem/browse`。
+- 记忆/笔记/会话：knowledge、knowledge-graph（`GET /api/knowledge-graph/graph` 与 `GET /api/knowledge-graph/related`）、prompt-memory、skill-memory、notes、sessions/export/import/backup、search/sessions 等路由组。
+- 自动化/协作/策略：`/api/tasks*`、`/api/mcp`、`/api/plugins*`、`/api/teams`、`/api/computer-use*`、`/api/agent-migration*`、`/api/permissions/*`。
+- 诊断：`/api/monitor/snapshot`（`ctx.monitor`，Linux `/proc`）与 `/api/doctor`（`ctx.doctor`）。
+- 终端：`/ws/terminal/<terminalId>`（xterm.js + WebSocket PTY，协议见 @rin/host/web-server README）。
+- `GET /api/health` 持续报告各 @rin 服务的挂载状态。
+
+## 5. 与历史迁移记录的关系
+
+[MIGRATION.md](../archive/migration/MIGRATION.md) §4.2 的「功能适配映射表」（设计参考页面 →
+host 数据源）是独立前端要覆盖哪些面板的功能清单；§4.1 定义三面共存策略（dsh 原生 Web UI 3080
+保留可开关 / rin Web UI 8320 / rin TUI）。SlotMap/typert/tsdown 集成技术路线作废。该文件只保留
+历史迁移证据，不改变当前目录和命令权威。

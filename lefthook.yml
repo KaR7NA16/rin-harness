@@ -6,7 +6,7 @@ pre-commit:
   jobs:
     - name: lint (staged)
       glob: '*.{ts,tsx,mts,cts,mjs}'
-      run: pnpm exec oxlint -c rin/.oxlintrc.json --fix --no-error-on-unmatched-pattern {staged_files}
+      run: pnpm exec oxlint -c .oxlintrc.json --fix --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
 
     - name: whitespace (staged)
@@ -15,4 +15,4 @@ pre-commit:
 pre-push:
   jobs:
     - name: typecheck
-      run: pnpm run rin:typecheck
+      run: pnpm run typecheck
