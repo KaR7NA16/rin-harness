@@ -48,14 +48,35 @@ function targetTriple() {
   return argument('--target') ?? process.env.TAURI_TARGET_TRIPLE ?? process.env.RUST_TARGET ?? nativeTriple()
 }
 
+function commandInvocation(command, args) {
+  if (process.platform === 'win32' && command.toLowerCase().endsWith('.cmd')) {
+    return {
+      command: process.env.ComSpec ?? 'cmd.exe',
+      args: ['/d', '/s', '/c', command, ...args],
+    }
+  }
+  return { command, args }
+}
+
 function run(command, args) {
-  const result = spawnSync(command, args, { cwd: repoRoot, encoding: 'utf8', stdio: 'inherit' })
+  const invocation = commandInvocation(command, args)
+  const result = spawnSync(invocation.command, invocation.args, {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    stdio: 'inherit',
+    windowsHide: true,
+  })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) throw new Error(command + ' ' + args.join(' ') + ' exited with status ' + result.status)
 }
 
 function capture(command, args) {
-  const result = spawnSync(command, args, { cwd: repoRoot, encoding: 'utf8' })
+  const invocation = commandInvocation(command, args)
+  const result = spawnSync(invocation.command, invocation.args, {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    windowsHide: true,
+  })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) throw new Error(command + ' ' + args.join(' ') + ' exited with status ' + result.status)
   return result.stdout.trim()
