@@ -1,7 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { App } from './App'
-import { ScreenshotOverlay } from './components/screenshot/ScreenshotOverlay'
 import './theme/globals.css'
 import { initializeTheme } from './stores/uiStore'
 
@@ -17,8 +16,19 @@ if (isScreenshotWindow) {
   document.getElementById('boot-splash')?.remove()
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    {isScreenshotWindow ? <ScreenshotOverlay /> : <App />}
-  </React.StrictMode>,
-)
+const root = ReactDOM.createRoot(document.getElementById('root')!)
+
+function renderRoot(node: React.ReactNode) {
+  root.render(<React.StrictMode>{node}</React.StrictMode>)
+}
+
+if (isScreenshotWindow) {
+  void import('./components/screenshot/ScreenshotOverlay')
+    .then(({ ScreenshotOverlay }) => renderRoot(<ScreenshotOverlay />))
+    .catch((error) => {
+      console.error('[bootstrap] Failed to load screenshot window', error)
+      renderRoot(<App />)
+    })
+} else {
+  renderRoot(<App />)
+}

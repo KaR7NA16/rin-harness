@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { adaptersApi } from '../api/adapters'
 import type { AdapterFileConfig } from '../types/adapter'
+import { invoke } from '../lib/tauriCore'
 
 /**
  * Tauri command 触发器：让主进程 kill + respawn adapter sidecar，
@@ -12,8 +13,7 @@ import type { AdapterFileConfig } from '../types/adapter'
  */
 async function notifyTauriRestartAdapters(): Promise<void> {
   try {
-    // 用 dynamic import 避开 SSR / non-tauri 测试环境的硬依赖
-    const { invoke } = await import('@tauri-apps/api/core')
+    // 用 Tauri core call 避开 SSR / non-tauri 测试环境的硬依赖
     await invoke('restart_adapters_sidecar')
   } catch (err) {
     // 不阻塞保存流程 —— 配置文件已经写入，下次启动 App 也会生效

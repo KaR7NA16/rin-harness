@@ -9,6 +9,18 @@ const openMock = { open: vi.fn(() => Promise.resolve()) }
 
 vi.mock('@tauri-apps/plugin-shell', () => openMock)
 
+// Keep this routing test independent from CodeViewer's asynchronous Shiki
+// grammar loading. The MarkdownRenderer contract under test is that a normal
+// fenced block reaches CodeViewer with the parsed language and source code;
+// CodeViewer has its own focused tests for syntax highlighting.
+vi.mock('../chat/CodeViewer', () => ({
+  CodeViewer: ({ code, language }: { code: string; language?: string }) => (
+    <div data-testid="markdown-code-viewer">
+      <span>{language ?? 'code'}</span>
+      <pre>{code}</pre>
+    </div>
+  ),
+}))
 describe('MarkdownRenderer', () => {
   beforeEach(() => {
     useSettingsStore.setState({ locale: 'en' })
@@ -73,11 +85,21 @@ describe('MarkdownRenderer', () => {
     expect(screen.queryByText('graph TB')).not.toBeInTheDocument()
   })
 
+  it('keeps unsupported Mermaid diagram types in the normal code viewer', async () => {
+    render(<MarkdownRenderer content={'```mermaid\ncynefin-beta\n```'} />)
+
+    const viewer = await screen.findByTestId('markdown-code-viewer')
+    expect(viewer).toHaveTextContent('mermaid')
+    expect(viewer).toHaveTextContent('cynefin-beta')
+    expect(screen.queryByText('Rendering diagram...')).not.toBeInTheDocument()
+  })
+
   it('keeps non-mermaid code fences in the normal code viewer', async () => {
     render(<MarkdownRenderer content={'```ts\nconst value = 1\n```'} />)
 
-    expect(await screen.findByText('ts', {}, { timeout: 3000 })).toBeInTheDocument()
-    expect(await screen.findByText('const value = 1', {}, { timeout: 3000 })).toBeInTheDocument()
+    const viewer = await screen.findByTestId('markdown-code-viewer')
+    expect(viewer).toHaveTextContent('ts')
+    expect(screen.getByText('const value = 1')).toBeInTheDocument()
     expect(screen.queryByText('Rendering diagram...')).not.toBeInTheDocument()
   })
 

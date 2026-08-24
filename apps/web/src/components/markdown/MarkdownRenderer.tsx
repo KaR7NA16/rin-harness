@@ -21,27 +21,58 @@ type CodeBlock = {
 
 const MERMAID_LANGUAGE = 'mermaid'
 const PLAINTEXT_LANGUAGES = new Set(['', 'text', 'plaintext', 'plain'])
-const MERMAID_DIAGRAM_START = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|requirementDiagram|quadrantChart|xychart-beta|sankey-beta|block-beta|packet-beta|architecture|kanban)\b/i
+
+// Mermaid's public API only adds diagrams; it does not expose a stable way to
+// unregister built-in detectors. Keep the product surface explicit here so an
+// unsupported Mermaid fence stays in the normal code path and never loads the
+// Mermaid renderer.
+const MERMAID_DIAGRAM_TYPES = new Set([
+  'graph',
+  'flowchart',
+  'sequencediagram',
+  'classdiagram',
+  'statediagram',
+  'statediagram-v2',
+  'erdiagram',
+  'journey',
+  'gantt',
+  'pie',
+  'gitgraph',
+  'mindmap',
+  'timeline',
+  'requirementdiagram',
+  'quadrantchart',
+  'xychart-beta',
+  'sankey-beta',
+  'block-beta',
+  'packet-beta',
+  'architecture',
+  'kanban',
+])
 
 function normalizeCodeLanguage(language: string | undefined): string | undefined {
   const normalized = language?.trim().split(/\s+/)[0]?.toLowerCase()
   return normalized || undefined
 }
 
-function looksLikeMermaid(code: string): boolean {
+function getMermaidDiagramType(code: string): string | undefined {
   const firstMeaningfulLine = code
     .split('\n')
     .map((line) => line.trim())
     .find(Boolean)
+  const diagramType = firstMeaningfulLine?.split(/\s+/)[0]?.toLowerCase()
+  return diagramType && MERMAID_DIAGRAM_TYPES.has(diagramType) ? diagramType : undefined
+}
 
-  return firstMeaningfulLine ? MERMAID_DIAGRAM_START.test(firstMeaningfulLine) : false
+function looksLikeMermaid(code: string): boolean {
+  return getMermaidDiagramType(code) !== undefined
 }
 
 function shouldRenderAsMermaid(block: CodeBlock): boolean {
   const normalizedLanguage = normalizeCodeLanguage(block.language)
 
   if (normalizedLanguage === MERMAID_LANGUAGE) {
-    return true
+    return looksLikeMermaid(block.code)
   }
 
   if (!PLAINTEXT_LANGUAGES.has(normalizedLanguage ?? '')) {

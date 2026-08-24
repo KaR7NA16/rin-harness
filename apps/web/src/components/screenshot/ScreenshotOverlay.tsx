@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, LoaderCircle, RotateCcw, X } from 'lucide-react'
-import { invoke } from '@tauri-apps/api/core'
 
 import { useTranslation } from '../../i18n'
+import { invoke } from '../../lib/tauriCore'
 
 export type ScreenshotSelection = {
   x: number

@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, type ReactNode } from 'react'
 import { useTabStore } from '../../stores/tabStore'
 import { useUIStore } from '../../stores/uiStore'
-import { ActiveSession } from '../../pages/ActiveSession'
 import { EmptySession } from '../../pages/EmptySession'
+
+const ActiveSession = lazy(() => import('../../pages/ActiveSession').then((module) => ({ default: module.ActiveSession })))
 
 const ScheduledTasks = lazy(() => import('../../features/scheduledTasks').then((module) => ({ default: module.ScheduledTasks })))
 const Notes = lazy(() => import('../../pages/Notes').then((module) => ({ default: module.Notes })))
@@ -100,7 +101,9 @@ export function ContentRouter() {
                 : 'content-route-panel--inactive invisible pointer-events-none z-0 opacity-0'
             }`}
           >
-            <ActiveSession sessionId={sessionId} projectPath={tab?.projectPath} isActive={isActive} />
+            <Suspended>
+              <ActiveSession sessionId={sessionId} projectPath={tab?.projectPath} isActive={isActive} />
+            </Suspended>
           </div>
         )
       })}

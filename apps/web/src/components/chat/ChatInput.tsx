@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { ArrowUp, Folder, Paperclip, Plus, Scissors, Square, UploadCloud } from 'lucide-react'
 import { Minimize2, FileDiff, Mic } from 'lucide-react'
-import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 
 import { useTranslation } from '../../i18n'
+import { convertFileSrc, invoke } from '../../lib/tauriCore'
 import { useChatStore } from '../../stores/chatStore'
 import { useTabStore } from '../../stores/tabStore'
 import { useUIStore } from '../../stores/uiStore'

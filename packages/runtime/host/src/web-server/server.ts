@@ -284,44 +284,50 @@ async function handleRequest(
   respondError(res, 405, 'method not allowed')
 }
 
-/** Read and parse an API JSON body, enforcing the 1 MiB cap and JSON syntax. */
-async function readJsonBody(
-  req: IncomingMessage,
-): Promise<{ ok: true; value: unknown } | { ok: false; status: number; message: string }> {
+class BodyTooLargeError extends Error {
+  readonly statusCode = 413
+
+  constructor(message: string) {
+    super(message)
+    this.name = 'BodyTooLargeError'
+  }
+}
+
+/** Read a request body once and enforce the caller's byte cap. */
+async function readBody(req: IncomingMessage, maxBytes: number, message: string): Promise<Buffer> {
   const chunks: Buffer[] = []
   let total = 0
   for await (const chunk of req) {
     const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
     total += buffer.length
-    if (total > MAX_BODY_BYTES) {
-      return { ok: false, status: 413, message: 'request body exceeds 1 MiB' }
-    }
+    if (total > maxBytes) throw new BodyTooLargeError(message)
     chunks.push(buffer)
   }
-  if (chunks.length === 0) return { ok: true, value: undefined }
-  const text = Buffer.concat(chunks).toString('utf-8')
+  return Buffer.concat(chunks)
+}
+
+/** Read and parse an API JSON body, enforcing the 1 MiB cap and JSON syntax. */
+async function readJsonBody(
+  req: IncomingMessage,
+): Promise<{ ok: true; value: unknown } | { ok: false; status: number; message: string }> {
+  let body: Buffer
   try {
-    return { ok: true, value: JSON.parse(text) }
+    body = await readBody(req, MAX_BODY_BYTES, 'request body exceeds 1 MiB')
+  } catch (err) {
+    if (err instanceof BodyTooLargeError) return { ok: false, status: err.statusCode, message: err.message }
+    throw err
+  }
+  if (body.length === 0) return { ok: true, value: undefined }
+  try {
+    return { ok: true, value: JSON.parse(body.toString('utf-8')) }
   } catch {
     return { ok: false, status: 400, message: 'invalid JSON body' }
   }
 }
 
 /** Read a raw request body as a Buffer, enforcing the import cap. */
-async function readRawBody(req: IncomingMessage): Promise<Buffer> {
-  const chunks: Buffer[] = []
-  let total = 0
-  for await (const chunk of req) {
-    const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
-    total += buffer.length
-    if (total > MAX_IMPORT_BODY_BYTES) {
-      const error = new Error('request body exceeds 64 MiB') as Error & { statusCode?: number }
-      error.statusCode = 413
-      throw error
-    }
-    chunks.push(buffer)
-  }
-  return Buffer.concat(chunks)
+function readRawBody(req: IncomingMessage): Promise<Buffer> {
+  return readBody(req, MAX_IMPORT_BODY_BYTES, 'request body exceeds 64 MiB')
 }
 
 /** Respond with a raw binary body. */

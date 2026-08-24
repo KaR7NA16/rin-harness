@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'vitest'
 import { request as httpRequest } from 'node:http'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { WebSocket } from 'ws'
 import { createWebServer } from '../../src/web-server/server.ts'
+import { FileScheduledTaskStore } from '@rin/automation'
 import type { RinServiceRefs } from '../../src/web-server/routes.ts'
 import type { Config } from '../../src/web-server/types.ts'
 
@@ -220,6 +224,106 @@ describe('web-server note-asset binary routes', () => {
       expect(upload.body).toEqual({ error: 'notes service is not mounted' })
     } finally {
       await s.close()
+    }
+  })
+})
+
+describe('web-server request body limits', () => {
+  test('rejects invalid JSON and bodies over the 1 MiB cap before routing', async () => {
+    const s = await startServer()
+    try {
+      const invalid = await rawRequest(s.port, '/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{not-json',
+      })
+      expect(invalid.status).toBe(400)
+      expect(invalid.body).toEqual({ error: 'invalid JSON body' })
+
+      const oversized = await rawRequest(s.port, '/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: 'x'.repeat(1024 * 1024 + 1),
+      })
+      expect(oversized.status).toBe(413)
+      expect(oversized.body).toEqual({ error: 'request body exceeds 1 MiB' })
+    } finally {
+      await s.close()
+    }
+  })
+})
+
+describe('web-server scheduled tasks integration', () => {
+  test('persists and executes a scheduled task through the real HTTP server', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'rin-scheduled-http-'))
+    const store = new FileScheduledTaskStore(root)
+    let seenPrompt = ''
+    const tasks = {
+      listScheduledTasks: () => store.list(),
+      getScheduledTask: (id: string) => store.get(id),
+      createScheduledTask: (input: never) => store.create(input),
+      updateScheduledTask: (id: string, patch: never) => store.update(id, patch),
+      deleteScheduledTask: (id: string) => store.delete(id),
+      runScheduledTask: (id: string, executor: never) => store.run(id, executor),
+      listScheduledTaskRuns: (limit?: number) => store.listRuns(limit),
+      listScheduledTaskRunsForTask: (id: string) => store.listTaskRuns(id),
+    }
+    const services: RinServiceRefs = {
+      ...emptyServices(),
+      tasks: () => tasks as never,
+      dshAgents: () => ({
+        async create(options: unknown) {
+          const sessionId = String((options as { sessionId?: string }).sessionId)
+          return {
+            agent: {
+              id: sessionId,
+              session: { id: sessionId },
+              ctx: { on() { return () => {} } },
+              followup(message: unknown) {
+                seenPrompt = String((message as { content?: Array<{ text?: string }> }).content?.[0]?.text ?? '')
+              },
+              cancel() {},
+              async whenIdle() {
+                expect(seenPrompt).toBe('run the integration check')
+              },
+            },
+            async dispose() {},
+          }
+        },
+        get() {
+          return undefined
+        },
+      }),
+    }
+    const server = await startServer({}, services)
+    try {
+      const created = await rawRequest(server.port, '/api/scheduled-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'HTTP integration',
+          cron: '0 9 * * *',
+          prompt: 'run the integration check',
+        }),
+      })
+      expect(created.status).toBe(200)
+      const taskId = (created.body as { task: { id: string } }).task.id
+
+      const run = await rawRequest(server.port, '/api/scheduled-tasks/' + taskId + '/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      expect(run.status).toBe(200)
+      expect(run.body).toMatchObject({ ok: true, run: { status: 'completed', prompt: 'run the integration check' } })
+      expect(seenPrompt).toBe('run the integration check')
+
+      const history = await rawRequest(server.port, '/api/scheduled-tasks/' + taskId + '/runs')
+      expect(history.status).toBe(200)
+      expect(history.body).toMatchObject({ runs: [{ status: 'completed', taskId }] })
+    } finally {
+      await server.close()
+      await rm(root, { recursive: true, force: true })
     }
   })
 })

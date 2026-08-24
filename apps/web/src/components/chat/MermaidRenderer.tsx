@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import DOMPurify from 'dompurify'
-import mermaid from 'mermaid'
 import { useTranslation } from '../../i18n'
 import { Modal } from '../shared/Modal'
 import { CopyButton } from '../shared/CopyButton'
@@ -10,7 +9,10 @@ type Props = {
   code: string
 }
 
+type MermaidInstance = typeof import('mermaid').default
+
 let mermaidInitialized = false
+let mermaidModulePromise: Promise<MermaidInstance> | null = null
 const MIN_PREVIEW_ZOOM = 0.5
 const MAX_PREVIEW_ZOOM = 3
 const PREVIEW_ZOOM_STEP = 0.25
@@ -28,7 +30,7 @@ type DragState = {
   scrollTop: number
 }
 
-function initMermaid() {
+function initMermaid(mermaid: MermaidInstance) {
   if (mermaidInitialized) return
   mermaid.initialize({
     startOnLoad: false,
@@ -38,6 +40,16 @@ function initMermaid() {
     fontFamily: 'var(--font-sans)',
   })
   mermaidInitialized = true
+}
+
+function loadMermaid(): Promise<MermaidInstance> {
+  if (!mermaidModulePromise) {
+    mermaidModulePromise = import('mermaid').then(({ default: mermaid }) => {
+      initMermaid(mermaid)
+      return mermaid
+    })
+  }
+  return mermaidModulePromise
 }
 
 let mermaidIdCounter = 0
@@ -109,24 +121,24 @@ export function MermaidRenderer({ code }: Props) {
 
   useEffect(() => {
     let cancelled = false
-    initMermaid()
+    const id = 'mermaid-' + ++mermaidIdCounter
 
-    const id = `mermaid-${++mermaidIdCounter}`
-
-    mermaid.render(id, code).then(
-      ({ svg: renderedSvg }) => {
-        if (!cancelled) {
-          setSvg(renderedSvg)
-          setError(null)
-        }
-      },
-      (err) => {
-        if (!cancelled) {
-          setError(String(err?.message || err))
-          setSvg(null)
-        }
-      },
-    )
+    void loadMermaid()
+      .then((mermaid) => mermaid.render(id, code))
+      .then(
+        ({ svg: renderedSvg }) => {
+          if (!cancelled) {
+            setSvg(renderedSvg)
+            setError(null)
+          }
+        },
+        (err) => {
+          if (!cancelled) {
+            setError(String(err?.message || err))
+            setSvg(null)
+          }
+        },
+      )
 
     return () => { cancelled = true }
   }, [code])

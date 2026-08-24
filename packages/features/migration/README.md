@@ -1,65 +1,55 @@
 # @rin/agent-migration
 
-rin agent-migration — the **external-agent scan** behind the desktop
-AgentMigration page. It reports which external agent config directories exist
-under the host home, so the UI can show what is available to import.
+@rin/agent-migration is the host-side discovery and import service behind the
+AgentMigration page. It exposes one shared DTO contract to the Web client and
+the Host route, so scanning, previewing, and importing cannot drift into
+different wire formats.
 
-This package only scans; it does not convert or write anything.
+## Supported sources
 
-## What it scans
+| id | name | config roots |
+| --- | --- | --- |
+| claude-code | Claude Code | ~/.claude |
+| codex | Codex | ~/.codex, ~/.agents |
+| cursor | Cursor | ~/.cursor |
+| openclaw | OpenClaw | ~/.openclaw |
+| hermes-agent | Hermes Agent | ~/.hermes |
+| deepseek-tui | DeepSeek TUI | ~/.codewhale, ~/.deepseek |
 
-Each known external agent has one or more home-relative config roots. The scan
-reports an agent only when at least one of its roots exists, and reads that
-root's <code>agents/</code> and <code>skills/</code> subdirectories to tell
-whether it holds any entries.
-
-| id           | name          | config roots                      |
-| ------------ | ------------- | --------------------------------- |
-| claude-code  | Claude Code   | ~/.claude                         |
-| codex        | Codex         | ~/.codex, ~/.agents               |
-| cursor       | Cursor        | ~/.cursor                         |
-| openclaw     | OpenClaw      | ~/.openclaw                       |
-| hermes-agent | Hermes Agent  | ~/.hermes                         |
-| deepseek-tui | DeepSeek TUI  | ~/.codewhale, ~/.deepseek         |
+The scanner reports detected roots and normalizes skill and instruction files
+into `AgentMigrationItem` records. Each item carries its source agent id,
+relative path, format, scope, destination path, byte size, modification time,
+and a preview-safe selection flag.
 
 ## Service API
 
-The Cordis plugin is named <code>agent-migration</code>, injects nothing, and
-registers a <code>FileAgentMigrationService</code> on
-<code>ctx.agentMigration</code>. Its config has two keys:
+The Cordis service is `ctx.agentMigration`.
 
-- <code>homeDir</code> — directory to scan; defaults to the OS home.
-- <code>targetAgentId</code> — destination agent id reported by
-  <code>scan()</code>; defaults to <code>claude-code</code>.
+- `scan(targetAgentId?)` returns `AgentMigrationScan`.
+- `listItems(agentId)` returns the normalized selectable inventory.
+- `preview(agentId, itemId)` returns `AgentMigrationPreview` with source content
+  and the proposed destination.
+- `migrate(request)` accepts `AgentMigrationRequest` and returns
+  `AgentMigrationResult`.
 
-~~~
-import type { Context } from '@deepseek-ai/cordis'
+The request preserves `agentId`, optional `targetAgentId`, `itemIds`,
+`projectIds`, and `allRecommended` end to end. The Web route uses the same
+types from this package; it does not maintain a second DTO definition.
 
-// ctx.agentMigration.scan() // AgentMigrationScan
-~~~
+## Storage behavior
 
-<code>scan()</code> returns <code>{ scannedAt, targetAgentId, agents }</code>,
-where each agent is <code>{ id, name, source, status }</code>:
+Skill files are imported into the configured RIN skills root and instruction
+files are imported into the configured RIN rules root. Existing destination
+files are not overwritten: the service reports them as skipped. Files larger
+than 2 MiB are previewable but not selectable. The operation returns per-item
+status and error text so a partial migration is auditable.
 
-- <code>source</code> — absolute path of the first existing config root.
-- <code>status</code> — <code>detected</code> when the root holds agents/skills
-  entries, <code>empty</code> when the root exists but has none. A missing root
-  is omitted, so a home with no external-agent directories yields
-  <code>agents: []</code>.
+## Known limitations and deferred work
 
-The scan core (<code>scanAgentMigration</code>) is exported from the package
-root and runs independently of cordis.
-
-## Known Limitations and Deferred Work
-
-- **Scan-only.** This package detects external agent config; it does not
-  implement import, conversion, or write-back of agents/skills. Those are
-  deferred to a later milestone.
-- **Fixed root conventions.** It only looks at the home-relative directories
-  listed above and their <code>agents/</code>/<code>skills/</code>
-  subdirectories; environment-variable overrides (e.g.
-  <code>CLAUDE_CONFIG_DIR</code>, <code>CODEX_HOME</code>) and per-profile roots
-  (e.g. Hermes profiles) are not yet honoured.
-- **No executable detection.** Unlike the legacy service, it does not resolve
-  the agent's binary, so an installed agent with no config directory is not
-  reported.
+- Project registration is not implemented yet. Non-empty `projectIds` are
+  rejected explicitly rather than silently ignored.
+- Memory migration, executable detection, environment-variable root overrides,
+  and native-format conversion are deferred.
+- The source table uses fixed home-relative roots; profile-specific roots are
+  not yet resolved.
+- Migration is file-backed and has no cross-process transaction or rollback.

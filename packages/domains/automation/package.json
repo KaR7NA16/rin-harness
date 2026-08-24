@@ -1,6 +1,6 @@
 {
   "name": "@rin/automation",
-  "description": "rin tasks: file-backed task-list / task CRUD with pending/in_progress/completed status transitions, exposed as ctx.tasks",
+  "description": "rin automation: file-backed task lists and scheduled prompt tasks exposed as ctx.tasks",
   "version": "0.1.0",
   "license": "MIT",
   "type": "module",

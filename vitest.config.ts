@@ -1,12 +1,23 @@
-import tsconfigPaths from 'vite-tsconfig-paths'
 import { existsSync, readFileSync } from 'node:fs'
 import ts from 'typescript'
 import { defineConfig } from 'vitest/config'
 
 const decoratorSyntax = /^\s*@[A-Za-z_$][\w$]*/m
 
-/** Worker arguments that keep process-wide Web Storage from shadowing jsdom storage. */
-const vitestExecArgv = process.allowedNodeEnvironmentFlags.has('--webstorage') ? ['--no-webstorage'] : []
+/**
+ * Worker arguments that keep process-wide Web Storage from shadowing jsdom
+ * storage and silence the known node:sqlite ExperimentalWarning in test
+ * workers. The latter is test-process hygiene only; production processes keep
+ * Node's warning behavior unchanged.
+ */
+const vitestExecArgv = [
+  ...(process.allowedNodeEnvironmentFlags.has('--webstorage')
+    ? ['--no-webstorage']
+    : []),
+  ...(process.allowedNodeEnvironmentFlags.has('--disable-warning')
+    ? ['--disable-warning=ExperimentalWarning']
+    : []),
+]
 
 /** Transform standard TypeScript decorators before Vite parses source files. */
 function standardDecoratorPlugin() {
@@ -37,15 +48,6 @@ function standardDecoratorPlugin() {
     },
   }
 }
-
-/**
- * Resolution facade shared by both lanes: the root tsconfig.base.json has no
- * include (match-all for vite-tsconfig-paths), so its paths map applies to
- * every rin test file. `projects` is resolved against vite's `root`
- * (= process.cwd()), and `pnpm test` runs from the repo root, so
- * './tsconfig.base.json' matches the dsh config exactly.
- */
-const pathsPlugin = (): ReturnType<typeof tsconfigPaths> => tsconfigPaths({ projects: ['./tsconfig.base.json'] })
 
 // Runtime packages put tests under their package tests/ directory; the Web app
 // colocates tests next to source under src/.
@@ -84,13 +86,16 @@ const coverageThresholds = Object.fromEntries([
 ])
 
 export default defineConfig({
-  plugins: [pathsPlugin(), standardDecoratorPlugin()],
+  // Vite 8 resolves the root tsconfig paths natively; keeping this in the
+  // shared config also makes both Vitest projects use the same aliases.
+  resolve: { tsconfigPaths: true },
+  plugins: [standardDecoratorPlugin()],
   test: {
     // Vitest 4 removed environmentMatchGlobs; the node/jsdom split is a
     // two-project workspace, mirroring the dsh config's project layout.
     projects: [
       {
-        plugins: [pathsPlugin(), standardDecoratorPlugin()],
+        plugins: [standardDecoratorPlugin()],
         test: {
           name: 'host',
           environment: 'node',
@@ -100,7 +105,7 @@ export default defineConfig({
         },
       },
       {
-        plugins: [pathsPlugin(), standardDecoratorPlugin()],
+        plugins: [standardDecoratorPlugin()],
         test: {
           name: 'web',
           environment: 'jsdom',

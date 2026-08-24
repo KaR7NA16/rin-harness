@@ -52,6 +52,16 @@ pnpm run start       # 启动 host，WebView/浏览器打开 http://127.0.0.1:83
 
 本装配**不含 `@deepseek-ai/dsh-web-app`**，因此 `rin` 默认不监听 3080。dsh 原生 Web UI 仍可用 `dsh --profile web` 原样启动，永不改动、永不被 rin fork 或内嵌。rin 自己的 Web 面是 8320（`@rin/host/web-server`，可用 `enabled: false` 单独关闭）。
 
+## Dependency inventory boundary
+
+The host manifest contains dynamic Cordis bundle plugins from the
+`@deepseek-ai/dsh-*` family. Some of these are resolved through the bundle
+roster, `src/cordis.yml`, and `cordis.patch.yml` rather than through a direct
+source import. Static dead-code scans must therefore treat those three files
+as dependency roots and must not remove a package only because `grep` finds no
+TypeScript import. A dependency removal is complete only after the manifest,
+resolver paths, host smoke boot, and CI lockfile check all agree.
+
 ## Known Limitations and Deferred Work
 
 - **`@rin/evolution` 的 `reviewModel` 是 boot 时适配器**：`src/index.ts` 导出的 `defaultConfig.evolution.reviewModel` 是 fail-loud 占位（需要 dsh llm seam，只在 boot 上下文存在）；真正可用的默认在 `src/cordis.yml` 的 `!!js` 里。该适配器已把消息内容构造成 `text` 内容块并检测 provider 错误 finish 分块（`tests/seam.smoke.ts` 用 fake llm 验证），完整真机 boot 仍由 `@rin/cli` 验收。

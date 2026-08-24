@@ -29,6 +29,13 @@ if (smokeFiles.length === 0) {
 
 console.log(`run-smokes: ${smokeFiles.length} smoke script(s) matched ${SMOKE_GLOB}.`)
 
+// node:sqlite is intentionally exercised by several smoke scripts. Keep its
+// known experimental warning out of the gate transcript without changing the
+// warning behavior of the application or other Node processes.
+const smokeNodeWarningArgs = process.allowedNodeEnvironmentFlags.has('--disable-warning')
+  ? ['--disable-warning=ExperimentalWarning']
+  : []
+
 const startedAt = performance.now()
 const failures = []
 for (const file of smokeFiles) {
@@ -64,7 +71,7 @@ function runSmoke(packageDir, script, label) {
   return new Promise((resolveExit) => {
     // tsx (not strip-types) so smokes may import @rin package names, which
     // resolve through tsconfig paths to src (strip-types only walks node_modules).
-    const child = spawn(process.execPath, ['--import', 'tsx/esm', script], {
+    const child = spawn(process.execPath, [...smokeNodeWarningArgs, '--import', 'tsx/esm', script], {
       cwd: packageDir,
       env: process.env,
       stdio: 'inherit',

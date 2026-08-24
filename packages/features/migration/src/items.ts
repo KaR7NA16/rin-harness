@@ -14,16 +14,18 @@
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
+import type { AgentMigrationItem, ExternalAgentId } from './types.ts'
 
 export type MigrationItemKind = 'skill' | 'instruction'
 
 export interface MigrationItem {
   id: string
-  agentId: string
+  agentId: ExternalAgentId
   kind: MigrationItemKind
   name: string
   sourcePath: string
   sizeBytes: number
+  modifiedAt: string
 }
 
 export interface MigrationResultItem {
@@ -62,7 +64,7 @@ async function isFile(path: string): Promise<boolean> {
 }
 
 /** Discover migratable skills + instructions under one agent config root. */
-export async function discoverItems(agentId: string, root: string): Promise<MigrationItem[]> {
+export async function discoverItems(agentId: ExternalAgentId, root: string): Promise<MigrationItem[]> {
   const items: MigrationItem[] = []
 
   const skillsRoot = join(root, 'skills')
@@ -71,7 +73,7 @@ export async function discoverItems(agentId: string, root: string): Promise<Migr
       const skillPath = join(dir, entryFile)
       if (!(await isFile(skillPath))) continue
       const size = (await stat(skillPath)).size
-      items.push({ id: 'skill-' + shortHash(skillPath), agentId, kind: 'skill', name: basename(dir), sourcePath: skillPath, sizeBytes: size })
+      items.push({ id: 'skill-' + shortHash(skillPath), agentId, kind: 'skill', name: basename(dir), sourcePath: skillPath, sizeBytes: size, modifiedAt: (await stat(skillPath)).mtime.toISOString() })
       break
     }
   }
@@ -79,7 +81,7 @@ export async function discoverItems(agentId: string, root: string): Promise<Migr
   const claudeMd = join(root, 'CLAUDE.md')
   if (await isFile(claudeMd)) {
     const size = (await stat(claudeMd)).size
-    items.push({ id: 'instruction-' + shortHash(claudeMd), agentId, kind: 'instruction', name: 'CLAUDE.md', sourcePath: claudeMd, sizeBytes: size })
+    items.push({ id: 'instruction-' + shortHash(claudeMd), agentId, kind: 'instruction', name: 'CLAUDE.md', sourcePath: claudeMd, sizeBytes: size, modifiedAt: (await stat(claudeMd)).mtime.toISOString() })
   }
   const rulesRoot = join(root, 'rules')
   try {
@@ -87,13 +89,62 @@ export async function discoverItems(agentId: string, root: string): Promise<Migr
       if (!entry.isFile() || !entry.name.endsWith('.md')) continue
       const rulePath = join(rulesRoot, entry.name)
       const size = (await stat(rulePath)).size
-      items.push({ id: 'instruction-' + shortHash(rulePath), agentId, kind: 'instruction', name: entry.name, sourcePath: rulePath, sizeBytes: size })
+      items.push({ id: 'instruction-' + shortHash(rulePath), agentId, kind: 'instruction', name: entry.name, sourcePath: rulePath, sizeBytes: size, modifiedAt: (await stat(rulePath)).mtime.toISOString() })
     }
   } catch {
     // A config root without a rules directory is normal.
   }
 
   return items
+}
+
+/**
+ * Map an internal item to the shared Web/Host DTO.
+ *
+ * The current adapter writes skills and instruction Markdown into rin's
+ * canonical roots. Project registration and format conversion stay explicit
+ * as unsupported fields.
+ *
+ * @param item - the discovered file.
+ * @param skillsRoot - destination root for skills.
+ * @param rulesRoot - destination root for instructions.
+ * @returns the wire item.
+ */
+export function toAgentMigrationItem(
+  item: MigrationItem,
+  skillsRoot: string,
+  rulesRoot: string,
+): AgentMigrationItem {
+  const destinationRoot = item.kind === 'skill' ? skillsRoot : rulesRoot
+  const destinationPath = item.kind === 'skill'
+    ? join(destinationRoot, item.name, 'SKILL.md')
+    : join(destinationRoot, item.name)
+  const selectable = item.sizeBytes <= MAX_ITEM_BYTES
+  const wire: AgentMigrationItem = {
+    id: item.id,
+    agentId: item.agentId,
+    kind: item.kind,
+    scope: 'global',
+    name: item.name,
+    sourcePath: item.sourcePath,
+    destinationPath,
+    destinationRoot,
+    projectPath: null,
+    sizeBytes: item.sizeBytes,
+    modifiedAt: item.modifiedAt,
+    previewable: true,
+    recommended: selectable,
+    selectable,
+    destinationState: 'ready',
+    adaptation: 'native',
+    destinationFormat: item.kind === 'skill' ? 'SKILL.md' : 'Markdown',
+    writeMode: item.kind === 'skill' ? 'skill-copy' : 'markdown-file',
+    compatibilityNote: item.kind === 'skill'
+      ? 'Imported into rin skill-memory.'
+      : 'Imported into rin rules.',
+  }
+  if (!selectable) wire.selectionIssue = 'size-limit'
+  return wire
 }
 
 /** Read a previewable text file's first bytes, reporting truncation. */

@@ -16,6 +16,7 @@ import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildPromptMemoryInsights } from '@rin/memory/prompt'
 import type { DiscoveryInput, ProviderTestInput } from '@rin/providers'
+import type { AgentMigrationRequest, ExternalAgentId } from '@rin/agent-migration'
 import type { BrowseInput } from '@rin/workspace/filesystem'
 import type { Config, JsonResponse } from '../types.ts'
 import {
@@ -31,6 +32,15 @@ import { isMonitorSupported } from '@rin/health/monitor'
 import type { DshShellLike, RinServiceRefs } from '../routes.ts'
 
 const NOTE_PATH_RE = /^\/api\/notes\/note\/(.+)$/
+
+const AGENT_MIGRATION_IDS: readonly ExternalAgentId[] = [
+  'openclaw',
+  'claude-code',
+  'codex',
+  'cursor',
+  'hermes-agent',
+  'deepseek-tui',
+]
 
 /**
  * Session ids removed through this host's lifetime. dsh's session store has
@@ -169,6 +179,18 @@ export async function handle(
   if (teamsItem !== null && teamsItem[1] !== undefined) {
     return teamsItemRoute(decodeURIComponent(teamsItem[1]), teamsItem[2] === undefined ? undefined : decodeURIComponent(teamsItem[2]), teamsItem[3], method, body, services)
   }
+  if (pathname === '/api/scheduled-tasks') return scheduledTasksCollectionRoute(method, body, services)
+  if (pathname === '/api/scheduled-tasks/runs') return scheduledTaskRunsRoute(search, method, services)
+  const scheduledTask = /^\/api\/scheduled-tasks\/([^/]+)(?:\/(run|runs))?$/.exec(pathname)
+  if (scheduledTask !== null && scheduledTask[1] !== undefined) {
+    return scheduledTaskItemRoute(
+      scheduledTask[1],
+      scheduledTask[2],
+      method,
+      body,
+      services,
+    )
+  }
   if (pathname === '/api/tasks') return tasksRoute(method, services)
   if (pathname === '/api/tasks/lists') return taskListsRoute(method, services)
   const taskListItem = /^\/api\/tasks\/lists\/([^/]+)(?:\/([^/]+))?$/.exec(pathname)
@@ -179,7 +201,7 @@ export async function handle(
   if (pathname === '/api/computer-use/apps') return computerUseAppsRoute(services)
   if (pathname === '/api/computer-use/authorized-apps') return computerUseAuthorizedAppsRoute(method, body, services)
   if (pathname === '/api/computer-use/setup') return computerUseSetupRoute(method, services)
-  if (pathname === '/api/agent-migration/scan' || pathname === '/api/agent-migration') return agentMigrationRoute(services)
+  if (pathname === '/api/agent-migration/scan' || pathname === '/api/agent-migration') return agentMigrationRoute(search, services)
   if (pathname === '/api/agent-migration/migrate') return agentMigrationMigrateRoute(method, body, services)
   const migrationItem = /^\/api\/agent-migration\/items\/([^/]+)$/.exec(pathname)
   if (migrationItem !== null && migrationItem[1] !== undefined) {
@@ -1823,6 +1845,127 @@ async function promptMemoryInsightsRoute(services: RinServiceRefs): Promise<Json
   }
 }
 
+async function scheduledTasksCollectionRoute(
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  const tasks = services.tasks()
+  if (tasks === undefined) return json(200, { tasks: [] })
+  try {
+    if (method === 'GET') return json(200, { tasks: await tasks.listScheduledTasks() })
+    if (method !== 'POST') return error(405, 'method not allowed')
+    const fields = asRecord(body)
+    if (fields === undefined) return error(400, 'task payload is required')
+    return json(200, { task: await tasks.createScheduledTask(fields as never) })
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
+}
+
+async function scheduledTaskRunsRoute(
+  search: string,
+  method: string,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  if (method !== 'GET') return error(405, 'method not allowed')
+  const tasks = services.tasks()
+  if (tasks === undefined) return json(200, { runs: [] })
+  const rawLimit = new URLSearchParams(search).get('limit')
+  const parsedLimit = rawLimit === null ? 50 : Number(rawLimit)
+  const limit = Number.isSafeInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : 50
+  try {
+    return json(200, { runs: await tasks.listScheduledTaskRuns(limit) })
+  } catch (err) {
+    return error(500, errorMessage(err))
+  }
+}
+
+async function scheduledTaskItemRoute(
+  rawId: string,
+  action: string | undefined,
+  method: string,
+  body: unknown,
+  services: RinServiceRefs,
+): Promise<JsonResponse> {
+  const tasks = services.tasks()
+  if (tasks === undefined) return notMounted()
+  let id: string
+  try {
+    id = decodeURIComponent(rawId)
+  } catch {
+    return error(400, 'invalid scheduled task id')
+  }
+
+  try {
+    if (action === 'runs') {
+      if (method !== 'GET') return error(405, 'method not allowed')
+      if (await tasks.getScheduledTask(id) === null) return error(404, 'scheduled task not found')
+      return json(200, { runs: await tasks.listScheduledTaskRunsForTask(id) })
+    }
+    if (action === 'run') {
+      if (method !== 'POST') return error(405, 'method not allowed')
+      const run = await tasks.runScheduledTask(id, task => executeScheduledTask(task, services))
+      if (run === null) return error(404, 'scheduled task not found')
+      return json(200, { ok: run.status === 'completed', run })
+    }
+    if (method === 'GET') {
+      const task = await tasks.getScheduledTask(id)
+      return task === null ? error(404, 'scheduled task not found') : json(200, { task })
+    }
+    if (method === 'DELETE') {
+      const deleted = await tasks.deleteScheduledTask(id)
+      return deleted ? json(200, { ok: true }) : error(404, 'scheduled task not found')
+    }
+    if (method !== 'PUT') return error(405, 'method not allowed')
+    const fields = asRecord(body)
+    if (fields === undefined) return error(400, 'task patch is required')
+    const task = await tasks.updateScheduledTask(id, fields as never)
+    return task === null ? error(404, 'scheduled task not found') : json(200, { task })
+  } catch (err) {
+    return error(400, errorMessage(err))
+  }
+}
+
+/**
+ * Execute one scheduled prompt through the existing dsh agent bridge.
+ * The automation package records the run; this callback only owns dsh
+ * lifecycle and deliberately returns the created session id.
+ */
+async function executeScheduledTask(
+  task: import('@rin/automation').CronTask,
+  services: RinServiceRefs,
+): Promise<{ sessionId: string }> {
+  const registry = services.dshAgents()
+  if (registry === undefined) throw new Error('agent runtime is not available')
+  const selection = services.agentDefaultModel()?.currentSelection()
+    ?? { provider: 'deepseek-official', model: 'deepseek-v4-flash' }
+  const sessionId = 'scheduled-' + randomUUID()
+  const handle = await registry.create({
+    sessionId,
+    meta: { cwd: task.folderPath ?? process.cwd() },
+    agentOptions: {
+      provider: task.providerId ?? selection.provider,
+      model: task.model ?? selection.model,
+      permissionMode: task.permissionMode,
+      contextWindow: task.contextWindow ?? undefined,
+      useWorktree: task.useWorktree ?? false,
+    },
+  })
+  try {
+    handle.agent.followup({
+      id: randomUUID(),
+      role: 'user',
+      content: [{ type: 'text', text: task.prompt }],
+      source: { kind: 'scheduled-task', taskId: task.id },
+    })
+    await handle.agent.whenIdle()
+    return { sessionId }
+  } finally {
+    await handle.dispose()
+  }
+}
+
 async function tasksRoute(method: string, services: RinServiceRefs): Promise<JsonResponse> {
   if (method !== 'GET') return error(405, 'method not allowed')
   const tasks = services.tasks()
@@ -2188,13 +2331,14 @@ async function computerUseSetupRoute(method: string, services: RinServiceRefs): 
   }
 }
 
-async function agentMigrationRoute(services: RinServiceRefs): Promise<JsonResponse> {
+async function agentMigrationRoute(search: string, services: RinServiceRefs): Promise<JsonResponse> {
   const agentMigration = services.agentMigration()
+  const targetAgentId = queryParam(search, 'targetAgentId') ?? 'claude-code'
   if (agentMigration === undefined) {
-    return json(200, { scannedAt: new Date().toISOString(), targetAgentId: 'claude-code', agents: [] })
+    return json(200, { scannedAt: new Date().toISOString(), targetAgentId, agents: [] })
   }
   try {
-    return json(200, await agentMigration.scan())
+    return json(200, await agentMigration.scan(targetAgentId))
   } catch (err) {
     return error(500, errorMessage(err))
   }
@@ -2211,8 +2355,9 @@ async function agentMigrationPreviewRoute(rawId: string, search: string, service
   }
   const agentId = queryParam(search, 'agentId')
   if (agentId === undefined) return error(400, 'agentId is required')
+  if (!AGENT_MIGRATION_IDS.includes(agentId as ExternalAgentId)) return error(400, 'agentId is invalid')
   try {
-    return json(200, await agentMigration.preview(agentId, itemId))
+    return json(200, await agentMigration.preview(agentId as ExternalAgentId, itemId))
   } catch (err) {
     return error(404, errorMessage(err))
   }
@@ -2350,13 +2495,31 @@ async function agentMigrationMigrateRoute(method: string, body: unknown, service
   const agentMigration = services.agentMigration()
   if (agentMigration === undefined) return notMounted()
   const fields = asRecord(body)
-  const agentId = fields === undefined ? undefined : stringField(fields, 'agentId')
-  if (agentId === undefined) return error(400, 'agentId is required')
-  const itemIds = Array.isArray(fields?.['itemIds']) ? fields['itemIds'].filter((value): value is string => typeof value === 'string') : []
+  const rawAgentId = fields === undefined ? undefined : stringField(fields, 'agentId')
+  if (rawAgentId === undefined || !AGENT_MIGRATION_IDS.includes(rawAgentId as ExternalAgentId)) {
+    return error(400, 'agentId is invalid')
+  }
+  const rawTargetAgentId = fields === undefined ? undefined : stringField(fields, 'targetAgentId')
+  if (rawTargetAgentId !== undefined && !AGENT_MIGRATION_IDS.includes(rawTargetAgentId as ExternalAgentId)) {
+    return error(400, 'targetAgentId is invalid')
+  }
+  const itemIds = Array.isArray(fields?.['itemIds'])
+    ? fields['itemIds'].filter((value): value is string => typeof value === 'string')
+    : []
+  const projectIds = Array.isArray(fields?.['projectIds'])
+    ? fields['projectIds'].filter((value): value is string => typeof value === 'string')
+    : []
+  const request: AgentMigrationRequest = {
+    agentId: rawAgentId as ExternalAgentId,
+    itemIds,
+    projectIds,
+  }
+  if (rawTargetAgentId !== undefined) request.targetAgentId = rawTargetAgentId as ExternalAgentId
+  if (typeof fields?.['allRecommended'] === 'boolean') request.allRecommended = fields['allRecommended']
   try {
-    return json(200, await agentMigration.migrate(agentId, itemIds))
+    return json(200, await agentMigration.migrate(request))
   } catch (err) {
-    return error(500, errorMessage(err))
+    return error(400, errorMessage(err))
   }
 }
 

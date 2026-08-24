@@ -156,6 +156,39 @@ async function request<T>(method: string, path: string, body?: unknown, options?
   throw new Error('Local desktop service request failed')
 }
 
+async function rawRequest<T>(
+  method: string,
+  path: string,
+  body: BodyInit | undefined,
+  decode: (response: Response) => Promise<T>,
+  timeoutMs = 120_000,
+): Promise<T> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const res = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: {
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+      ...(body === undefined ? {} : { body }),
+      signal: controller.signal,
+    })
+    if (!res.ok) {
+      const errorBody = await res.json().catch(() => res.text())
+      throw new ApiError(res.status, errorBody)
+    }
+    return decode(res)
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s`)
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 export const api = {
   get: <T>(path: string, options?: { timeout?: number }) => request<T>('GET', path, undefined, options),
   post: <T>(path: string, body?: unknown, options?: { timeout?: number }) => request<T>('POST', path, body, options),
@@ -163,68 +196,12 @@ export const api = {
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),
   /** Binary POST returning the JSON response body. */
-  rawPostJson: async <T>(path: string, body: BodyInit): Promise<T> => {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 120_000)
-    try {
-      const res = await fetch(`${baseUrl}${path}`, {
-        method: 'POST',
-        headers: {
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        },
-        body,
-        signal: controller.signal,
-      })
-      if (!res.ok) {
-        const errorBody = await res.json().catch(() => res.text())
-        throw new ApiError(res.status, errorBody)
-      }
-      return res.json() as Promise<T>
-    } finally {
-      clearTimeout(timeout)
-    }
-  },
-  /** Binary POST — returns raw ArrayBuffer, for multipart/zip uploads. */
-  rawPost: async (path: string, body: BodyInit): Promise<ArrayBuffer> => {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 120_000)
-    try {
-      const res = await fetch(`${baseUrl}${path}`, {
-        method: 'POST',
-        headers: {
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        },
-        body,
-        signal: controller.signal,
-      })
-      if (!res.ok) {
-        const errorBody = await res.json().catch(() => res.text())
-        throw new ApiError(res.status, errorBody)
-      }
-      return res.arrayBuffer()
-    } finally {
-      clearTimeout(timeout)
-    }
-  },
-  /** Binary GET — returns raw Blob, for zip downloads. */
-  rawGet: async (path: string): Promise<Blob> => {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 120_000)
-    try {
-      const res = await fetch(`${baseUrl}${path}`, {
-        method: 'GET',
-        headers: {
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        },
-        signal: controller.signal,
-      })
-      if (!res.ok) {
-        const errorBody = await res.json().catch(() => res.text())
-        throw new ApiError(res.status, errorBody)
-      }
-      return res.blob()
-    } finally {
-      clearTimeout(timeout)
-    }
-  },
+  rawPostJson: <T>(path: string, body: BodyInit): Promise<T> =>
+    rawRequest('POST', path, body, response => response.json() as Promise<T>),
+  /** Binary POST - returns raw ArrayBuffer, for multipart/zip uploads. */
+  rawPost: (path: string, body: BodyInit): Promise<ArrayBuffer> =>
+    rawRequest('POST', path, body, response => response.arrayBuffer()),
+  /** Binary GET - returns raw Blob, for zip downloads. */
+  rawGet: (path: string): Promise<Blob> =>
+    rawRequest('GET', path, undefined, response => response.blob()),
 }

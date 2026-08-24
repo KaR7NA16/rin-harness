@@ -5,9 +5,11 @@ import { CodeViewer } from './CodeViewer'
 const mockShikiState = vi.hoisted(() => ({
   lastProps: null as Record<string, unknown> | null,
   engine: { kind: 'js-regex-engine' as const },
+  highlighter: {},
 }))
 
-vi.mock('react-shiki', () => ({
+vi.mock('react-shiki/core', () => ({
+  createHighlighterCore: () => Promise.resolve(mockShikiState.highlighter),
   createJavaScriptRegexEngine: () => mockShikiState.engine,
   ShikiHighlighter: (props: { children: string } & Record<string, unknown>) => {
     mockShikiState.lastProps = props

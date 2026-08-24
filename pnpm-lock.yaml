@@ -77,9 +77,6 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
-      vite-tsconfig-paths:
-        specifier: ^6.1.1
-        version: 6.1.1(typescript@6.0.3)(vite@8.0.16(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       vitest:
         specifier: ^4.1.8
         version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@22.20.0)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1)(vite@8.0.16(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
@@ -111,9 +108,18 @@ importers:
 
   apps/web:
     dependencies:
+      '@rin/agent-migration':
+        specifier: workspace:^
+        version: link:../../packages/features/migration
+      '@rin/automation':
+        specifier: workspace:^
+        version: link:../../packages/domains/automation
       '@rin/contracts':
         specifier: workspace:^
         version: link:../../packages/runtime/contracts
+      '@shikijs/langs':
+        specifier: 4.3.1
+        version: 4.3.1
       '@tailwindcss/typography':
         specifier: ^0.5.19
         version: 0.5.20(tailwindcss@4.3.3)
@@ -212,15 +218,9 @@ importers:
       '@tauri-apps/api':
         specifier: ^2.11.0
         version: 2.11.1
-      '@tauri-apps/cli':
-        specifier: ^2.11.2
-        version: 2.11.4
       '@tauri-apps/plugin-dialog':
         specifier: ^2.2.1
         version: 2.7.2
-      '@tauri-apps/plugin-process':
-        specifier: ^2.2.1
-        version: 2.3.1
       '@tauri-apps/plugin-shell':
         specifier: ^2.2.1
         version: 2.3.5
@@ -4165,9 +4165,6 @@ packages:
   '@tauri-apps/plugin-dialog@2.7.2':
     resolution: {integrity: sha512-pX0IGm1I3I6wc+zeKYcq1GSqogK6okCNX5fOdaNU5ab1AjGS6l1E5wFNjEb7meg7ZFSp0JUs+0jQGQNyOvLrsg==}
 
-  '@tauri-apps/plugin-process@2.3.1':
-    resolution: {integrity: sha512-nCa4fGVaDL/B9ai03VyPOjfAHRHSBz5v6F/ObsB73r/dA3MHHhZtldaDMIc0V/pnUw9ehzr2iEG+XkSEyC0JJA==}
-
   '@tauri-apps/plugin-shell@2.3.5':
     resolution: {integrity: sha512-jewtULhiQ7lI7+owCKAjc8tYLJr92U16bPOeAa472LHJdgaibLP83NcfAF2e+wkEcA53FxKQAZ7byDzs2eeizg==}
 
@@ -5184,9 +5181,6 @@ packages:
   get-proto@1.0.1:
     resolution: {integrity: sha512-sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g==}
     engines: {node: '>= 0.4'}
-
-  globrex@0.1.2:
-    resolution: {integrity: sha512-uHJgbwAMwNFf5mLst7IWLNg14x1CkeqglJb/K3doi4dw6q2IvAAmM/Y81kevy83wP+Sst+nutFTYOGg3d1lsxg==}
 
   google-auth-library@10.7.0:
     resolution: {integrity: sha512-QpTAbNJ36TliZLx3TTtahR8HG0hN9RllL1e3FymOvQSIKK8JmgV58H924ub2wa2DsS3ANjjP1Aw1N+Ramc8hqQ==}
@@ -6483,17 +6477,6 @@ packages:
     resolution: {integrity: sha512-JfJeIHke7y2egdGGgRAvpCwYFUsHlM2gPcrVOxFkznt/4uzQ7HFmvE63iFHVLBJNDuyDOQgijDK/tXH/f6Msjg==}
     engines: {node: '>=6.10'}
 
-  tsconfck@3.1.6:
-    resolution: {integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==}
-    engines: {node: ^18 || >=20}
-    deprecated: unmaintained
-    hasBin: true
-    peerDependencies:
-      typescript: ^5.0.0
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -6584,11 +6567,6 @@ packages:
     resolution: {integrity: sha512-EbKSKh+bh1E1IFxeO0pg1n4dvoOTt0UDiXMd/qn++r98+jPO1xtJilvXldeuQ8giIB5IkpjCgMleHMNEsGH6pg==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
-
-  vite-tsconfig-paths@6.1.1:
-    resolution: {integrity: sha512-2cihq7zliibCCZ8P9cKJrQBkfgdvcFkOOc3Y02o3GWUDLgqjWsZudaoiuOwO/gzTzy17cS5F7ZPo4bsnS4DGkg==}
-    peerDependencies:
-      vite: '*'
 
   vite@6.4.3:
     resolution: {integrity: sha512-NTKlcQjlAK7MlQoyb6LgaqHc8sso/pVyUJYWMws3jg21uTJw/LddqIFPcPqP6PzpgbIcZyKI85sFE4HBrQDA8A==}
@@ -10270,11 +10248,6 @@ snapshots:
       '@tauri-apps/api': 2.11.1
     optional: true
 
-  '@tauri-apps/plugin-process@2.3.1':
-    dependencies:
-      '@tauri-apps/api': 2.11.1
-    optional: true
-
   '@tauri-apps/plugin-shell@2.3.5':
     dependencies:
       '@tauri-apps/api': 2.11.1
@@ -11428,8 +11401,6 @@ snapshots:
     dependencies:
       dunder-proto: 1.0.1
       es-object-atoms: 1.1.2
-
-  globrex@0.1.2: {}
 
   google-auth-library@10.7.0:
     dependencies:
@@ -13023,10 +12994,6 @@ snapshots:
 
   ts-dedent@2.3.0: {}
 
-  tsconfck@3.1.6(typescript@6.0.3):
-    optionalDependencies:
-      typescript: 6.0.3
-
   tslib@2.8.1: {}
 
   tsx@4.22.4:
@@ -13131,16 +13098,6 @@ snapshots:
       - terser
       - tsx
       - yaml
-
-  vite-tsconfig-paths@6.1.1(typescript@6.0.3)(vite@8.0.16(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)):
-    dependencies:
-      debug: 4.4.3
-      globrex: 0.1.2
-      tsconfck: 3.1.6(typescript@6.0.3)
-      vite: 8.0.16(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
-    transitivePeerDependencies:
-      - supports-color
-      - typescript
 
   vite@6.4.3(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.0):
     dependencies:

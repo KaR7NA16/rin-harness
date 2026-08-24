@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { handle } from '../../src/web-server/routes/legacy.ts'
+import { FileScheduledTaskStore } from '@rin/automation'
 
 const config = { port: 8320, host: '127.0.0.1', repositoryRoot: '/repo' }
 
@@ -1202,6 +1203,75 @@ describe('legacy: A/B/D services', () => {
     expect(await handle('/api/tasks/lists', '', 'GET', undefined, s, config)).toEqual({ status: 200, body: { lists: [{ id: 'l1' }] } })
   })
 
+  test('scheduled tasks use the real file store through the Host contract', async () => {
+    const store = new FileScheduledTaskStore(join(rinHome, 'tasks', 'scheduled'))
+    const tasks = {
+      listScheduledTasks: () => store.list(),
+      getScheduledTask: (id: string) => store.get(id),
+      createScheduledTask: (input: never) => store.create(input),
+      updateScheduledTask: (id: string, patch: never) => store.update(id, patch),
+      deleteScheduledTask: (id: string) => store.delete(id),
+      runScheduledTask: (id: string, executor: (task: unknown) => Promise<{ output?: string; sessionId?: string }>) =>
+        store.run(id, executor as never),
+      listScheduledTaskRuns: (limit?: number) => store.listRuns(limit),
+      listScheduledTaskRunsForTask: (id: string) => store.listTaskRuns(id),
+    }
+    const s = makeServices({
+      tasks: () => tasks,
+      dshAgents: () => ({
+        async create(options: unknown) {
+          let prompt = ''
+          return {
+            agent: {
+              id: String((options as { sessionId?: string }).sessionId),
+              session: { id: String((options as { sessionId?: string }).sessionId) },
+              ctx: { on() { return () => {} } },
+              followup(message: unknown) {
+                prompt = String((message as { content?: Array<{ text?: string }> }).content?.[0]?.text ?? '')
+              },
+              cancel() {},
+              async whenIdle() { expect(prompt).toBe('check the repository') },
+            },
+            async dispose() {},
+          }
+        },
+      }),
+    })
+    const created = await handle('/api/scheduled-tasks', '', 'POST', {
+      name: 'Repository check',
+      description: 'daily check',
+      cron: '0 9 * * *',
+      prompt: 'check the repository',
+    }, s, config)
+    expect(created?.status).toBe(200)
+    const taskId = (created?.body as { task: { id: string } }).task.id
+    expect((created?.body as { task: { enabled: boolean } }).task.enabled).toBe(true)
+    expect((await handle('/api/scheduled-tasks', '', 'GET', undefined, s, config))?.body.tasks).toHaveLength(1)
+
+    const updated = await handle('/api/scheduled-tasks/' + taskId, '', 'PUT', { enabled: false }, s, config)
+    expect(updated).toEqual({ status: 200, body: { task: expect.objectContaining({ enabled: false }) } })
+    expect(await handle('/api/scheduled-tasks/' + taskId + '/run', '', 'POST', {}, s, config)).toEqual({
+      status: 400,
+      body: { error: 'scheduled task is disabled' },
+    })
+
+    await handle('/api/scheduled-tasks/' + taskId, '', 'PUT', { enabled: true }, s, config)
+    const run = await handle('/api/scheduled-tasks/' + taskId + '/run', '', 'POST', {}, s, config)
+    expect(run?.status).toBe(200)
+    expect((run?.body as { ok: boolean }).ok).toBe(true)
+    expect((await handle('/api/scheduled-tasks/' + taskId + '/runs', '', 'GET', undefined, s, config))?.body.runs).toHaveLength(1)
+    expect((await handle('/api/scheduled-tasks/runs', '?limit=1', 'GET', undefined, s, config))?.body.runs).toHaveLength(1)
+
+    expect(await handle('/api/scheduled-tasks/' + taskId, '', 'DELETE', undefined, s, config)).toEqual({
+      status: 200,
+      body: { ok: true },
+    })
+    expect(await handle('/api/scheduled-tasks/' + taskId, '', 'GET', undefined, s, config)).toEqual({
+      status: 404,
+      body: { error: 'scheduled task not found' },
+    })
+  })
+
   test('teams wrong method returns 405', async () => {
     expect(await handle('/api/teams', '', 'POST', {}, makeServices(), config)).toEqual({ status: 405, body: { error: 'method not allowed' } })
   })
@@ -1323,6 +1393,55 @@ describe('legacy: A/B/D services', () => {
     const s = makeServices({ agentMigration: () => ({ async scan() { return { targetAgentId: 'cc', agents: [{ id: 'a' }] } } }) })
     const res = await handle('/api/agent-migration', '', 'GET', undefined, s, config)
     expect(res).toEqual({ status: 200, body: { targetAgentId: 'cc', agents: [{ id: 'a' }] } })
+  })
+
+  test('agent-migration contract forwards target, preview, and migrate DTOs', async () => {
+    let scannedTarget = ''
+    let previewArgs: string[] = []
+    let migrateRequest: unknown
+    const s = makeServices({
+      agentMigration: () => ({
+        async scan(targetAgentId: string) {
+          scannedTarget = targetAgentId
+          return { targetAgentId, agents: [] }
+        },
+        async preview(agentId: string, itemId: string) {
+          previewArgs = [agentId, itemId]
+          return { item: { id: itemId }, content: '# Skill', truncated: false }
+        },
+        async migrate(request: unknown) {
+          migrateRequest = request
+          return { imported: 1, skipped: 0, failed: 0, registeredProjects: [], items: [] }
+        },
+      }),
+    })
+    expect(await handle('/api/agent-migration', '?targetAgentId=codex', 'GET', undefined, s, config)).toEqual({
+      status: 200,
+      body: { targetAgentId: 'codex', agents: [] },
+    })
+    expect(scannedTarget).toBe('codex')
+    expect(await handle('/api/agent-migration/items/item-1', '?agentId=openclaw&targetAgentId=claude-code', 'GET', undefined, s, config)).toEqual({
+      status: 200,
+      body: { item: { id: 'item-1' }, content: '# Skill', truncated: false },
+    })
+    expect(previewArgs).toEqual(['openclaw', 'item-1'])
+    expect(await handle('/api/agent-migration/migrate', '', 'POST', {
+      agentId: 'openclaw',
+      targetAgentId: 'claude-code',
+      itemIds: ['item-1'],
+      projectIds: ['project-1'],
+      allRecommended: true,
+    }, s, config)).toEqual({
+      status: 200,
+      body: { imported: 1, skipped: 0, failed: 0, registeredProjects: [], items: [] },
+    })
+    expect(migrateRequest).toEqual({
+      agentId: 'openclaw',
+      targetAgentId: 'claude-code',
+      itemIds: ['item-1'],
+      projectIds: ['project-1'],
+      allRecommended: true,
+    })
   })
 })
 

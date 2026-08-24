@@ -14,6 +14,27 @@ Cordis `ctx.tasks` service.
 - Provide list / create / update / delete and `pending` / `in_progress` /
   `completed` status transitions.
 
+## Scheduled tasks
+
+The package also exposes a file-backed scheduled-task store through
+`ctx.tasks`:
+
+- `listScheduledTasks`, `getScheduledTask`, `createScheduledTask`,
+  `updateScheduledTask`, and `deleteScheduledTask` manage cron prompt records.
+- `runScheduledTask` records a run and delegates execution to a Host-supplied
+  callback, keeping the automation domain independent of dsh.
+- `listScheduledTaskRuns` and `listScheduledTaskRunsForTask` expose the audit
+  records used by the Web run panel.
+
+Scheduled records live below `<tasksRoot>/scheduled/`; run records live below
+`<tasksRoot>/scheduled/runs/`. The Host exposes collection, item, run-now, and
+run-history routes under `/api/scheduled-tasks*`.
+
+There is intentionally no autonomous timer loop in this package yet. A
+scheduler process may call the run-now operation after evaluating cron
+expressions; the current implementation provides durable records and an
+explicit execution seam.
+
 ## API
 
 `ctx.tasks` (class `TaskStore`) exposes:

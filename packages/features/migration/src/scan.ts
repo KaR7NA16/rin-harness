@@ -11,7 +11,7 @@
 
 import { readdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { AgentMigrationScan, DetectedExternalAgent, ExternalAgentStatus } from './types.ts'
+import type { AgentMigrationScan, DetectedExternalAgent, ExternalAgentId, ExternalAgentStatus } from './types.ts'
 
 /** Destination agent reported when the caller names none. */
 export const DEFAULT_TARGET_AGENT_ID = 'claude-code'
@@ -19,7 +19,7 @@ export const DEFAULT_TARGET_AGENT_ID = 'claude-code'
 /** One known external agent and its home-relative config roots. */
 export type AgentSource = {
   /** Stable agent id. */
-  id: string
+  id: ExternalAgentId
   /** Human-readable agent name. */
   name: string
   /** Home-relative config roots, tried in order; the first existing one wins. */
@@ -57,11 +57,18 @@ export async function scanAgentMigration(
   for (const source of AGENT_SOURCES) {
     const root = await firstExistingRoot(homeDir, source.roots)
     if (root === null) continue
+    const status = await detectStatus(root)
     agents.push({
       id: source.id,
       name: source.name,
       source: root,
-      status: await detectStatus(root),
+      status,
+      installed: true,
+      executablePath: null,
+      dataRoots: [root],
+      counts: { skills: 0, memories: 0, instructions: 0, projects: 0 },
+      items: [],
+      projects: [],
     })
   }
   return {

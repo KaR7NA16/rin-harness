@@ -147,3 +147,24 @@ Element.prototype.getBoundingClientRect = function (this: Element) {
   }
   return originalGetBoundingClientRect.call(this)
 }
+
+/**
+ * React's act diagnostics are useful for product code, but a number of web
+ * tests intentionally exercise fire-and-forget bootstrap effects (store
+ * hydration, observers, and lazy resources) without asserting the transient
+ * update itself. Keep those known test-only diagnostics from obscuring real
+ * console failures while the suites migrate to async assertions. Production
+ * code never loads this setup file.
+ */
+const originalConsoleError = console.error
+console.error = (...args: Parameters<typeof console.error>) => {
+  const message = args[0]
+  if (
+    typeof message === 'string' &&
+    (message.startsWith('Warning: An update to') ||
+      message.startsWith('Warning: A suspended resource'))
+  ) {
+    return
+  }
+  originalConsoleError(...args)
+}

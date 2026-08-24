@@ -74,3 +74,15 @@ Base: `http://<host>:<port>`（默认 `http://127.0.0.1:8320`）。
 host 数据源）是独立前端要覆盖哪些面板的功能清单；§4.1 定义三面共存策略（dsh 原生 Web UI 3080
 保留可开关 / rin Web UI 8320 / rin TUI）。SlotMap/typert/tsdown 集成技术路线作废。该文件只保留
 历史迁移证据，不改变当前目录和命令权威。
+
+## ScheduledTasks contract
+
+The scheduled-task API is a separate model from legacy task-list CRUD:
+
+- GET or POST /api/scheduled-tasks
+- GET, PUT, or DELETE /api/scheduled-tasks/:id
+- POST /api/scheduled-tasks/:id/run
+- GET /api/scheduled-tasks/:id/runs
+- GET /api/scheduled-tasks/runs?limit=N
+
+The Web client and Host route consume the shared DTOs from @rin/automation.

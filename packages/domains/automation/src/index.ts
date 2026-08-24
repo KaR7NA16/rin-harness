@@ -12,6 +12,8 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { FileTaskStore, resolveTasksRoot } from './storage.ts'
+import { FileScheduledTaskStore } from './scheduled.ts'
+import { join } from 'node:path'
 import type {
   Config as TasksConfig,
   Task,
@@ -20,8 +22,17 @@ import type {
   TaskPatch,
   TaskStatus,
 } from './types.ts'
+import type {
+  CreateScheduledTaskInput,
+  CronTask,
+  ScheduledTaskExecutor,
+  ScheduledTaskPatch,
+  TaskRun,
+} from './scheduled.ts'
 
 export type * from './types.ts'
+export type * from './scheduled.ts'
+export { FileScheduledTaskStore } from './scheduled.ts'
 export {
   FileTaskStore,
   defaultTasksRoot,
@@ -40,10 +51,13 @@ declare module '@deepseek-ai/cordis' {
 /** The tasks service exposed on the shared context. */
 export class TaskStore extends Service {
   private readonly store: FileTaskStore
+  private readonly scheduled: FileScheduledTaskStore
 
   constructor(ctx: Context, config: TasksConfig = {}) {
     super(ctx, 'tasks')
-    this.store = new FileTaskStore(resolveTasksRoot(config.tasksRoot))
+    const root = resolveTasksRoot(config.tasksRoot)
+    this.store = new FileTaskStore(root)
+    this.scheduled = new FileScheduledTaskStore(join(root, 'scheduled'))
   }
 
   /** @returns every non-empty task list with its status rollups. */
@@ -94,6 +108,46 @@ export class TaskStore extends Service {
    */
   status(taskListId: string, taskId: string, next: TaskStatus): Promise<Task | null> {
     return this.store.status(taskListId, taskId, next)
+  }
+
+  /** @returns every persisted ScheduledTasks prompt. */
+  listScheduledTasks(): Promise<CronTask[]> {
+    return this.scheduled.list()
+  }
+
+  /** @param id - scheduled task id. @returns the task or null. */
+  getScheduledTask(id: string): Promise<CronTask | null> {
+    return this.scheduled.get(id)
+  }
+
+  /** @param input - scheduled task fields. @returns the created task. */
+  createScheduledTask(input: CreateScheduledTaskInput): Promise<CronTask> {
+    return this.scheduled.create(input)
+  }
+
+  /** @param id - scheduled task id. @param patch - fields to merge. @returns the updated task or null. */
+  updateScheduledTask(id: string, patch: ScheduledTaskPatch): Promise<CronTask | null> {
+    return this.scheduled.update(id, patch)
+  }
+
+  /** @param id - scheduled task id. @returns whether a task was deleted. */
+  deleteScheduledTask(id: string): Promise<boolean> {
+    return this.scheduled.delete(id)
+  }
+
+  /** @param id - scheduled task id. @param executor - Host-owned agent callback. @returns the run or null. */
+  runScheduledTask(id: string, executor: ScheduledTaskExecutor): Promise<TaskRun | null> {
+    return this.scheduled.run(id, executor)
+  }
+
+  /** @param limit - maximum number of runs. @returns recent runs. */
+  listScheduledTaskRuns(limit?: number): Promise<TaskRun[]> {
+    return this.scheduled.listRuns(limit)
+  }
+
+  /** @param taskId - scheduled task id. @returns that task's runs. */
+  listScheduledTaskRunsForTask(taskId: string): Promise<TaskRun[]> {
+    return this.scheduled.listTaskRuns(taskId)
   }
 }
 

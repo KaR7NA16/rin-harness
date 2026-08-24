@@ -1,9 +1,8 @@
 /**
  * rin agent-migration — Cordis plugin entry.
  *
- * Exposes a ctx.agentMigration service whose scan() reports which external
- * agent config directories exist under the host home. The scan core lives in
- * scan.ts and stays cordis-free so it can run under plain node.
+ * Exposes a ctx.agentMigration service whose scan and item operations use the
+ * same DTO consumed by the Host API and the Web page.
  *
  * @module @rin/agent-migration
  */
@@ -12,14 +11,30 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { DEFAULT_TARGET_AGENT_ID, scanAgentMigration as scanAgentMigrationOnDisk } from './scan.ts'
-import { discoverItems, migrateItems, previewItem } from './items.ts'
-import type { MigrationItem, MigrationResult } from './items.ts'
-import type { AgentMigrationScan } from './types.ts'
+import {
+  discoverItems,
+  migrateItems,
+  previewItem,
+  toAgentMigrationItem,
+} from './items.ts'
+import type { MigrationItem } from './items.ts'
+import type {
+  AgentMigrationPreview,
+  ExternalAgentId,
+  AgentMigrationRequest,
+  AgentMigrationResult,
+  AgentMigrationScan,
+} from './types.ts'
 
 export type * from './types.ts'
 export { AGENT_SOURCES, DEFAULT_TARGET_AGENT_ID, scanAgentMigration } from './scan.ts'
 export type { AgentSource } from './scan.ts'
-export { discoverItems, migrateItems, previewItem } from './items.ts'
+export {
+  discoverItems,
+  migrateItems,
+  previewItem,
+  toAgentMigrationItem,
+} from './items.ts'
 export type { MigrationItem, MigrationResult } from './items.ts'
 
 declare module '@deepseek-ai/cordis' {
@@ -42,20 +57,20 @@ export abstract class AgentMigrationService extends Service {
     super(ctx, 'agentMigration')
   }
 
-  /** Scan the home directory and report the detected external agents. */
-  abstract scan(): Promise<AgentMigrationScan>
+  /** @param targetAgentId - destination reported in the scan. @returns detected agents. */
+  abstract scan(targetAgentId?: string): Promise<AgentMigrationScan>
 
-  /** Discover migratable items for one detected agent. */
-  abstract listItems(agentId: string): Promise<MigrationItem[]>
+  /** @param agentId - detected external agent id. @returns discovered internal items. */
+  abstract listItems(agentId: ExternalAgentId): Promise<MigrationItem[]>
 
-  /** Preview one item's text prefix. */
-  abstract preview(agentId: string, itemId: string): Promise<{ content: string; truncated: boolean }>
+  /** @param agentId - source agent. @param itemId - item id. @returns the item and preview text. */
+  abstract preview(agentId: ExternalAgentId, itemId: string): Promise<AgentMigrationPreview>
 
-  /** Migrate selected items into the rin skill-memory and rules roots. */
-  abstract migrate(agentId: string, itemIds: string[]): Promise<MigrationResult>
+  /** @param request - source, destination, and selected items. @returns migration counts. */
+  abstract migrate(request: AgentMigrationRequest): Promise<AgentMigrationResult>
 }
 
-/** File-backed implementation delegating to the smoke-testable scan core. */
+/** File-backed implementation delegating to the smoke-testable scan and item cores. */
 export class FileAgentMigrationService extends AgentMigrationService {
   private readonly config: Config
 
@@ -64,37 +79,68 @@ export class FileAgentMigrationService extends AgentMigrationService {
     this.config = config
   }
 
-  override scan(): Promise<AgentMigrationScan> {
-    return scanAgentMigrationOnDisk(this.homeDir(), this.targetAgentId())
+  override async scan(targetAgentId = this.targetAgentId()): Promise<AgentMigrationScan> {
+    const basic = await scanAgentMigrationOnDisk(this.homeDir(), targetAgentId)
+    const agents = await Promise.all(basic.agents.map(async agent => {
+      const items = await discoverItems(agent.id, agent.source)
+      const richItems = items.map(item => toAgentMigrationItem(item, this.skillsRoot(), this.rulesRoot()))
+      return {
+        ...agent,
+        counts: {
+          skills: richItems.filter(item => item.kind === 'skill').length,
+          memories: richItems.filter(item => item.kind === 'memory').length,
+          instructions: richItems.filter(item => item.kind === 'instruction').length,
+          projects: 0,
+        },
+        items: richItems,
+        projects: [],
+      }
+    }))
+    return { ...basic, targetAgentId, agents }
   }
 
-  override async listItems(agentId: string): Promise<MigrationItem[]> {
+  override async listItems(agentId: ExternalAgentId): Promise<MigrationItem[]> {
     const root = await this.findRoot(agentId)
     return discoverItems(agentId, root)
   }
 
-  override async preview(agentId: string, itemId: string): Promise<{ content: string; truncated: boolean }> {
+  override async preview(agentId: ExternalAgentId, itemId: string): Promise<AgentMigrationPreview> {
     const item = (await this.listItems(agentId)).find(entry => entry.id === itemId)
     if (item === undefined) throw new Error('Migration item was not found')
-    return previewItem(item)
+    return {
+      item: toAgentMigrationItem(item, this.skillsRoot(), this.rulesRoot()),
+      ...(await previewItem(item)),
+    }
   }
 
-  override async migrate(agentId: string, itemIds: string[]): Promise<MigrationResult> {
-    const all = await this.listItems(agentId)
-    const selected = all.filter(item => itemIds.includes(item.id))
-    return migrateItems(selected, this.skillsRoot(), this.rulesRoot())
+  override async migrate(request: AgentMigrationRequest): Promise<AgentMigrationResult> {
+    if (request.projectIds !== undefined && request.projectIds.length > 0) {
+      throw new Error('project migration is not supported by the current adapter')
+    }
+    const all = await this.listItems(request.agentId)
+    const selected = request.allRecommended
+      ? all.filter(item => item.sizeBytes <= 2 * 1024 * 1024)
+      : all.filter(item => (request.itemIds ?? []).includes(item.id))
+    const result = await migrateItems(selected, this.skillsRoot(), this.rulesRoot())
+    return { ...result, registeredProjects: [] }
   }
 
   private homeDir(): string {
-    return typeof this.config.homeDir === 'string' && this.config.homeDir.trim() !== '' ? this.config.homeDir : homedir()
+    return typeof this.config.homeDir === 'string' && this.config.homeDir.trim() !== ''
+      ? this.config.homeDir
+      : homedir()
   }
 
   private targetAgentId(): string {
-    return typeof this.config.targetAgentId === 'string' && this.config.targetAgentId.trim() !== '' ? this.config.targetAgentId : DEFAULT_TARGET_AGENT_ID
+    return typeof this.config.targetAgentId === 'string' && this.config.targetAgentId.trim() !== ''
+      ? this.config.targetAgentId
+      : DEFAULT_TARGET_AGENT_ID
   }
 
   private rinHome(): string {
-    return process.env.RIN_HOME !== undefined && process.env.RIN_HOME.trim() !== '' ? process.env.RIN_HOME : join(homedir(), '.rin')
+    return process.env.RIN_HOME !== undefined && process.env.RIN_HOME.trim() !== ''
+      ? process.env.RIN_HOME
+      : join(homedir(), '.rin')
   }
 
   private skillsRoot(): string {

@@ -4,6 +4,10 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }))
 
+vi.mock('../desktopRuntime', () => ({
+  isTauriRuntime: () => true,
+}))
+
 import { invoke } from '@tauri-apps/api/core'
 import { notifyWhenUnfocused } from '../osNotifications'
 

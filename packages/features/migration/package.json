@@ -1,6 +1,6 @@
 {
   "name": "@rin/agent-migration",
-  "description": "rin agent-migration: scan external agent config directories (Claude Code, Codex, ...) for migratable agents and skills",
+  "description": "rin agent-migration: shared scan, preview, and import service for external agent skills and instructions",
   "version": "0.1.0",
   "license": "MIT",
   "type": "module",

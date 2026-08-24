@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { act } from 'react'
 
@@ -48,6 +48,7 @@ import { useTeamStore } from '../stores/teamStore'
 const originalEnsureSessionReady = useChatStore.getState().ensureSessionReady
 
 afterEach(() => {
+  cleanup()
   vi.useRealTimers()
   useTabStore.setState({ tabs: [], activeTabId: null })
   useSessionStore.setState({ sessions: [], activeSessionId: null, isLoading: false, error: null })

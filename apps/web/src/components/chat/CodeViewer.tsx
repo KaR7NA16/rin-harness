@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { ShikiHighlighter, createJavaScriptRegexEngine } from 'react-shiki'
+import {
+  createHighlighterCore,
+  createJavaScriptRegexEngine,
+  ShikiHighlighter,
+  type LanguageRegistration,
+} from 'react-shiki/core'
 import 'react-shiki/css'
 import { useTranslation } from '../../i18n'
 import { CopyButton } from '../shared/CopyButton'
@@ -48,7 +53,81 @@ const warmCodeTheme = {
 
 const CODE_AREA_PADDING = '0.5rem 12px'
 const CODE_LINE_HEIGHT = 1.3
+
 const shikiEngine = createJavaScriptRegexEngine({ forgiving: true })
+
+const shikiLanguageAliases = {
+  shell: 'bash',
+  sh: 'bash',
+  zsh: 'bash',
+  xml: 'html',
+  js: 'javascript',
+  jsx: 'javascript',
+  md: 'markdown',
+  py: 'python',
+  rb: 'ruby',
+  rs: 'rust',
+  ts: 'typescript',
+  yml: 'yaml',
+}
+
+type ShikiLanguageModule = {
+  default: LanguageRegistration[]
+}
+
+type ShikiLanguageLoader = () => Promise<ShikiLanguageModule>
+
+type ShikiHighlighterInstance = Awaited<ReturnType<typeof createHighlighterCore>>
+
+const shikiLanguageLoaders: Record<string, ShikiLanguageLoader> = {
+  bash: () => import('@shikijs/langs/bash'),
+  css: () => import('@shikijs/langs/css'),
+  go: () => import('@shikijs/langs/go'),
+  html: () => import('@shikijs/langs/html'),
+  javascript: () => import('@shikijs/langs/javascript'),
+  json: () => import('@shikijs/langs/json'),
+  markdown: () => import('@shikijs/langs/markdown'),
+  python: () => import('@shikijs/langs/python'),
+  ruby: () => import('../../lib/shiki/ruby'),
+  rust: () => import('@shikijs/langs/rust'),
+  sql: () => import('@shikijs/langs/sql'),
+  toml: () => import('@shikijs/langs/toml'),
+  tsx: () => import('@shikijs/langs/tsx'),
+  typescript: () => import('@shikijs/langs/typescript'),
+  yaml: () => import('@shikijs/langs/yaml'),
+}
+
+const shikiHighlighterCache = new Map<string, Promise<ShikiHighlighterInstance | null>>()
+
+function normalizeShikiLanguage(language?: string): string | null {
+  const normalized = language?.trim().split(/\s+/)[0]?.toLowerCase()
+  if (!normalized) return null
+  return shikiLanguageAliases[normalized as keyof typeof shikiLanguageAliases] ?? normalized
+}
+
+function getShikiHighlighter(language?: string): Promise<ShikiHighlighterInstance | null> {
+  const languageId = normalizeShikiLanguage(language)
+  if (!languageId) return Promise.resolve(null)
+
+  const loader = shikiLanguageLoaders[languageId]
+  if (!loader) return Promise.resolve(null)
+
+  const cached = shikiHighlighterCache.get(languageId)
+  if (cached) return cached
+
+  const highlighterPromise = createHighlighterCore({
+    langs: [loader()],
+    themes: [warmCodeTheme],
+    engine: shikiEngine,
+    langAlias: shikiLanguageAliases,
+  }).catch((error: unknown) => {
+    console.warn('[CodeViewer] Failed to load the Shiki language "' + languageId + '":', error)
+    return null
+  })
+
+  shikiHighlighterCache.set(languageId, highlighterPromise)
+  return highlighterPromise
+}
 
 /**
  * Wraps ShikiHighlighter with a plain-text fallback so the code area
@@ -58,6 +137,18 @@ const shikiEngine = createJavaScriptRegexEngine({ forgiving: true })
 function CodeArea({ code, language, showLineNumbers }: { code: string; language?: string; showLineNumbers: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [loaded, setLoaded] = useState(false)
+  const [highlighter, setHighlighter] = useState<ShikiHighlighterInstance | null>(null)
+
+  useEffect(() => {
+    let active = true
+    setHighlighter(null)
+    void getShikiHighlighter(language).then((value) => {
+      if (active && value) setHighlighter(value)
+    })
+    return () => {
+      active = false
+    }
+  }, [language])
 
   useEffect(() => {
     // ShikiHighlighter renders `null` until the async highlight completes.
@@ -115,25 +206,28 @@ function CodeArea({ code, language, showLineNumbers }: { code: string; language?
               }
         }
       >
-        <ShikiHighlighter
-          language={language || 'text'}
-          theme={warmCodeTheme}
-          engine={shikiEngine}
-          defaultColor="dark"
-          cssVariablePrefix="--shiki-"
-          langAlias={{}}
-          showLineNumbers={showLineNumbers}
-          showLanguage={false}
-          addDefaultStyles={false}
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-mono)',
-            fontSize: '12px',
-            lineHeight: String(CODE_LINE_HEIGHT),
-          }}
-        >
-          {code}
-        </ShikiHighlighter>
+        {highlighter && (
+          <ShikiHighlighter
+            language={language || 'text'}
+            theme={warmCodeTheme}
+            highlighter={highlighter}
+            engine={shikiEngine}
+            defaultColor="dark"
+            cssVariablePrefix="--shiki-"
+            langAlias={shikiLanguageAliases}
+            showLineNumbers={showLineNumbers}
+            showLanguage={false}
+            addDefaultStyles={false}
+            style={{
+              margin: 0,
+              fontFamily: 'var(--font-mono)',
+              fontSize: '12px',
+              lineHeight: String(CODE_LINE_HEIGHT),
+            }}
+          >
+            {code}
+          </ShikiHighlighter>
+        )}
       </div>
     </div>
   )

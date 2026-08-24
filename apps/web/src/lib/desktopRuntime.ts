@@ -5,6 +5,7 @@ import {
   setBaseUrl,
   setServerConnectionRefresher,
 } from '../api/client'
+import { invoke } from './tauriCore'
 
 export function isTauriRuntime() {
   if (typeof window === 'undefined') return false
@@ -27,7 +28,6 @@ export async function initializeDesktopServerUrl() {
   }
 
   try {
-    const { invoke } = await import(/* @vite-ignore */ '@tauri-apps/api/core')
     const refreshConnection = async () => {
       const connection = await invoke<{ url: string; authToken: string }>('get_server_connection')
       await waitForHealth(connection.url)
