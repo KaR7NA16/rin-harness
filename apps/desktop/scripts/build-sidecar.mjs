@@ -58,6 +58,15 @@ function commandInvocation(command, args) {
   return { command, args }
 }
 
+function pnpmCommand() {
+  if (process.platform !== 'win32') return 'pnpm'
+  const result = spawnSync('where.exe', ['pnpm'], { encoding: 'utf8', windowsHide: true })
+  const matches = result.status === 0
+    ? result.stdout.split(/\r?\n/u).map(value => value.trim()).filter(Boolean)
+    : []
+  return matches.find(value => value.toLowerCase().endsWith('.exe')) ?? matches[0] ?? 'pnpm'
+}
+
 function run(command, args) {
   const invocation = commandInvocation(command, args)
   const result = spawnSync(invocation.command, invocation.args, {
@@ -199,7 +208,7 @@ async function build() {
   await rm(runtimeDir, { recursive: true, force: true })
   await mkdir(outputDir, { recursive: true })
 
-  const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
+  const pnpm = pnpmCommand()
   // Deployment consumes compiled package outputs. Build the host project and
   // all of its project references so a clean checkout never depends on ignored
   // lib/ artifacts left behind by an earlier local typecheck.
