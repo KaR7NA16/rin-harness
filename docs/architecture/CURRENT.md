@@ -53,7 +53,7 @@ dependencies 解析。`patches/` 只保存有明确来源和决策记录的第�
 - `apps/desktop` 是 Tauri 2 壳；frontendDist 指向 `apps/web/dist`，
   builtin assets 指向 `packages/domains/assets/builtin`。开发态通过
   `rin web` 启动 host，发布态通过 `rin-sidecar web` 启动 sidecar；
-  真正的 Cargo 构建、安装、签名、升级和干净机器 E2E 仍需独立证据。
+  Cargo 构建、安装和四平台干净机器 E2E 已有原生 GitHub runner 证据；签名、公证和真实升级仍需独立发布证据。
 - `@rin/host/web-server` 是 `@rin/host` 的公开子路径，不是独立 package；
   默认服务 8320，并与 `apps/web` 的静态产物共用 host。
 
@@ -109,8 +109,8 @@ test、smoke、lint、Web build 与 coverage；最新数字和命令记录见
 - coverage threshold 是否在故意降低覆盖率时确实阻断 CI；
 - React 异步 warning 和 unhandled rejection 的治理；
 - 真 provider、container、remote、install 生命周期；
-- Windows/macOS sidecar 与安装包、跨平台签名/公证、真实升级/回滚和 GitHub
-  clean-machine E2E；
+- 跨平台签名/公证、真实 GitHub release updater 升级/回滚；
+- Windows/macOS 的视觉交互、托盘动作和系统集成（原生 sidecar、安装与 clean-machine 启动已通过）；
 - SBOM、构建 provenance 和 artifact attestation；
 - Companion/Relationship 产品域、安全流程和消费者生命周期 UI。
 

@@ -112,5 +112,10 @@ Every job removes Node-specific environment variables, waits for
 `/api/status` with `status: "ok"`, force-kills the GUI, and checks that the
 sidecar parent watchdog removes the orphaned Host process. These jobs do not
 cover visual interaction, tray clicks, OS code signing/notarization, or an
-old-version-to-new-version updater transaction. They only become execution
-evidence after the corresponding GitHub-hosted jobs actually pass.
+old-version-to-new-version updater transaction.
+
+Execution evidence now exists for commit `8c77226530`: GitHub Actions run
+[`32685813649`](https://github.com/KaR7NA16/rin-harness/actions/runs/32685813649)
+passed all four native jobs (Linux x64, Windows x64, macOS Apple Silicon, and
+macOS Intel). This is installation/start/watchdog evidence only; it does not
+promote the unsigned artifacts into a signed or published updater release.

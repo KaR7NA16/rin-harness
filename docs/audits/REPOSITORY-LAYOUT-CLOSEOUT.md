@@ -9,8 +9,8 @@
 - 仓库根下的 `rin/` 目录已移除；没有把 `rin/<group>/<name>` 当作当前物理路径继续引用。
 - 当前文档已将 CURRENT、TARGET、ACTIVE、根 README、桌面入口文档切换到 `apps/` 与 `packages/<role>/<name>/`。
 - 目录结论由 manifest glob、references、paths、Cordis、测试和 coverage 链路共同覆盖；
-  Linux/WSL 的 Tauri/Rust、sidecar、`.deb` 安装与崩溃回收另有本轮实测。Windows/macOS
-  签名、公证、真实 updater 和 clean-machine CI 仍须单独验收。
+  Linux/WSL 的 Tauri/Rust、sidecar、`.deb` 安装与崩溃回收另有本轮实测；GitHub 原生 runner 上的 Linux、Windows 与双架构 macOS clean-machine 安装/启动也已全部通过。
+  Windows/macOS 签名、公证和真实 updater 仍须凭据与发布链单独验收。
 
 ## 只读证据
 
@@ -77,12 +77,12 @@ find . -type f \( -name '*.md' -o -name 'AGENTS.md' \) \
 - apps/packages 全量 test、typecheck、lint、smoke 与 coverage gate；
 - manifest/project references/paths/Cordis 门禁；
 - Linux/WSL 的 `@rin/desktop` Cargo check、release `.deb`、apt 安装启动、
-  8320 health 与 GUI 崩溃后的 sidecar 回收。
+  8320 health 与 GUI 崩溃后的 sidecar 回收；
+- GitHub Actions run `32685813649`：Linux `.deb`、Windows NSIS、macOS Apple Silicon/Intel DMG 的安装后启动、8320 health 与 sidecar 回收全部通过。
 
 仍需由外部平台或凭据提供：
 
-- Windows NSIS 与 macOS DMG 的 clean-machine jobs 已配置，但仍需真实 runner
-  成功记录；Authenticode、macOS code signing/notarization 仍需发布凭据；
+- Authenticode、macOS code signing/notarization 仍需发布凭据；
 - 真实 GitHub release updater 签名、发布、旧版本升级；
 - SBOM/provenance 与安全门禁；
 - 当前目标中的 Companion/Relationship 产品域是否真正实现。

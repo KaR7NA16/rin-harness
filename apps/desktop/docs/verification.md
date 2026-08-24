@@ -5,8 +5,8 @@
 
 ## 前置
 
-- [x] Linux/WSL：Rust 1.98.0 stable 与 Tauri CLI 2.11.4 可用。Windows/macOS 工具链仍由对应 CI 验证。
-- [x] Linux/WSL：webkit2gtk-4.1 + ayatana-appindicator3 + rsvg + patchelf 已安装；Windows/macOS 系统 WebView 仍待对应平台验证。
+- [x] Linux/WSL：Rust 1.98.0 stable 与 Tauri CLI 2.11.4 可用；Windows 2025、macOS 15 Apple Silicon/Intel 的原生 GitHub runner 构建已通过。
+- [x] Linux/WSL：webkit2gtk-4.1 + ayatana-appindicator3 + rsvg + patchelf 已安装；Windows/macOS runner 已能启动安装后的原生 GUI。WebView 视觉交互仍是独立边界。
 - [x] `pnpm install`、`@rin/web` 构建，以及 sidecar 构建脚本触发的 `@rin/host`/`@rin/cli` 编译通过。
 - [ ] 品牌资产已由主线程按 `docs/asset-migration.md` Copy-Item 就位（图标/字体/provider-icons）。
 
@@ -16,7 +16,8 @@
 - [ ] 发布构建：`cargo tauri build` 成功产出安装包：
   - Windows：NSIS `.exe`；Linux：`.deb` + `.AppImage`；macOS：`.dmg`（由 `tauri.conf.json` 的 nsis/deb/appimage/dmg 目标生成）。
 - [x] Linux/WSL：`pnpm --dir apps/desktop exec tauri build --bundles deb` 成功产出 `rin_0.1.0_amd64.deb`。
-- [ ] 产物在 `src-tauri/target/release/bundle/{nsis,deb,appimage,dmg}/` 就位；图标（icon.ico/icns）已打进包（无缺图警告）。
+- [x] GitHub 原生 runner：Windows x64 成功生成并安装 NSIS；macOS Apple Silicon/Intel 成功生成、挂载并安装 DMG。
+- [ ] 产物在 `src-tauri/target/release/bundle/{nsis,deb,appimage,dmg}/` 全部就位；AppImage 与图标完整性仍需单独验收。
 - [ ] `cargo tauri build --target x86_64-pc-windows-msvc`（或对应平台 triple）交叉/本机构建通过。
 
 ## 2. WebView 连 8320
@@ -67,12 +68,9 @@
 
 ## 9. clean-machine 安装/启动 E2E
 
-- [ ] `.github/workflows/desktop-e2e.yml` 已配置 Linux x64、Windows x64、macOS
-      Apple Silicon 与 Intel 原生 runner；仍须真实 GitHub Actions job 成功后才能勾选。
-- [ ] Linux job 安装 `.deb`，Windows job 静默安装 NSIS，macOS jobs 挂载 DMG 并复制
-      `rin.app`；三平台均从安装后的路径启动，而不是从构建目录直接运行。
-- [ ] 各 job 等待 `http://127.0.0.1:8320/api/status` 返回 `status: "ok"`，并在
-      GUI 强制退出后确认没有残留 `rin-sidecar`。任一平台通过都不能外推其他平台。
+- [x] `.github/workflows/desktop-e2e.yml` 的 Linux x64、Windows x64、macOS Apple Silicon 与 Intel 原生 jobs 已在提交 `8c77226530` 上全部通过（GitHub Actions run `32685813649`）。
+- [x] Linux job 安装 `.deb`，Windows job 静默安装 NSIS，macOS jobs 挂载 DMG 并复制 `rin.app`；各平台均从安装后的路径启动，而不是从构建目录直接运行。
+- [x] 各 job 等待 `http://127.0.0.1:8320/api/status` 返回 `status: "ok"`，并在 GUI 强制退出后确认没有残留 `rin-sidecar`。此证据不覆盖视觉交互、签名、公证或真实升级。
 
 ## 10. updater 产物与密钥边界
 
@@ -88,6 +86,6 @@
 | WebView 连 8320 | Linux x64 / Xvfb | 通过 | apt 安装后 `/api/status` 为 `ok` |
 | 托盘回收 | Linux x64 / Xvfb | 部分通过 | 崩溃看门狗通过；交互式托盘动作未测 |
 | sidecar 打包 | Linux x64 / WSL | 通过 | 自包含 hoisted runtime + builtin repository |
-| NSIS 安装器 | | | |
-| clean-machine E2E | Linux/Windows/macOS workflows | 已配置，未执行 | 需各原生 GitHub Actions job 证据 |
+| NSIS 安装器 | Windows 2025 x64 | 通过 | 静默安装、启动、8320 health 与 sidecar 回收 |
+| clean-machine E2E | Linux/Windows/macOS workflows | 通过 | run `32685813649`；四个原生 jobs 同提交绿色 |
 | updater 签名/安装 | | | |
