@@ -21,8 +21,8 @@ jobs:
       - run: pnpm sync:references
       - run: git diff --exit-code -- tsconfig.json tsconfig.base.json 'apps/*/tsconfig.json' 'packages/*/*/tsconfig.json'
       - run: pnpm metadata
-      - run: pnpm hygiene
       - run: pnpm typecheck
+      - run: pnpm hygiene
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm test:coverage
