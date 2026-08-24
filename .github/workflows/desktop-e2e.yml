@@ -250,9 +250,37 @@ jobs:
         run: pnpm exec node apps/desktop/scripts/build-sidecar.mjs --target ${{ matrix.target }}
 
       - name: Build the app and DMG
+        if: matrix.target != 'x86_64-apple-darwin'
         env:
           CI: 'true'
         run: pnpm --dir apps/desktop exec tauri build --verbose --target ${{ matrix.target }} --bundles app,dmg
+
+      - name: Build the Intel app bundle
+        if: matrix.target == 'x86_64-apple-darwin'
+        env:
+          CI: 'true'
+        run: pnpm --dir apps/desktop exec tauri build --verbose --target ${{ matrix.target }} --bundles app
+
+      # create-dmg's temporary read/write image intermittently fails to detach
+      # on GitHub's Intel runner. Build the equivalent read-only image directly
+      # so this gate still verifies a real DMG without DiskArbitration mounts.
+      - name: Create the Intel DMG without a temporary mount
+        if: matrix.target == 'x86_64-apple-darwin'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bundle_root='apps/desktop/src-tauri/target/x86_64-apple-darwin/release/bundle'
+          staging="$RUNNER_TEMP/rin-intel-dmg"
+          rm -rf "$staging"
+          mkdir -p "$staging" "$bundle_root/dmg"
+          ditto "$bundle_root/macos/rin.app" "$staging/rin.app"
+          ln -s /Applications "$staging/Applications"
+          hdiutil create \
+            -volname rin \
+            -srcfolder "$staging" \
+            -ov \
+            -format UDZO \
+            "$bundle_root/dmg/rin_0.1.0_x64.dmg"
 
       - name: Mount, copy, and start the packaged app
         shell: bash

@@ -108,19 +108,20 @@ fn sidecar_args() -> [&'static str; 5] {
 /// Release sidecars are target-platform Node executables. The executable
 /// receives this JavaScript module as argv[1], which preserves native Node's
 /// dynamic-import and module-resolution behavior.
-fn packaged_entrypoint(app: &AppHandle) -> Result<String, String> {
+fn packaged_runtime(app: &AppHandle) -> Result<PathBuf, String> {
     let resource_dir = app
         .path()
         .resource_dir()
         .map_err(|err| format!("resolve packaged resource directory: {err}"))?;
-    let entry = resource_dir.join("sidecar-runtime").join("entry.mjs");
+    let runtime_dir = resource_dir.join("sidecar-runtime");
+    let entry = runtime_dir.join("entry.mjs");
     if !entry.is_file() {
         return Err(format!(
             "packaged sidecar entrypoint is missing: {}",
             entry.display()
         ));
     }
-    Ok(entry.to_string_lossy().into_owned())
+    Ok(runtime_dir)
 }
 
 /// Spawn the host and return its handle.
@@ -140,16 +141,20 @@ fn start_host(app: &AppHandle) -> Result<HostProcess, String> {
             program,
         )
     } else {
-        let entry = packaged_entrypoint(app)?;
+        let runtime_dir = packaged_runtime(app)?;
         let mut args = sidecar_args()
             .into_iter()
             .map(str::to_string)
             .collect::<Vec<_>>();
-        args.insert(0, entry);
+        // Keep the Node entrypoint relative to its working directory. In
+        // particular, this avoids drive-qualified Windows paths being reduced
+        // to the bare drive (for example `D:`) by the sidecar launch boundary.
+        args.insert(0, "entry.mjs".to_string());
         (
             app.shell()
                 .sidecar("rin-sidecar")
-                .map_err(|err| format!("resolve packaged rin-sidecar: {err}"))?,
+                .map_err(|err| format!("resolve packaged rin-sidecar: {err}"))?
+                .current_dir(runtime_dir),
             args,
             "rin-sidecar".to_string(),
         )
