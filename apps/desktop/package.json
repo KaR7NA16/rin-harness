@@ -15,6 +15,7 @@
     "sidecar:check": "node scripts/build-sidecar.mjs --check",
     "release:config": "node scripts/prepare-release-config.mjs",
     "release:verify": "node scripts/verify-release-artifacts.mjs",
+    "release:verify:test": "node --test scripts/verify-release-artifacts.test.mjs",
     "build": "pnpm run build:web && pnpm run build:sidecar && tauri build",
     "build:bundle": "pnpm run build:web && pnpm run build:sidecar && tauri build --bundles nsis,deb,appimage,dmg"
   },

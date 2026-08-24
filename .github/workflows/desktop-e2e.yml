@@ -150,3 +150,93 @@ jobs:
             echo 'rin-sidecar remained after the GUI exited.' >&2
             exit 1
           fi
+
+  windows-install-start:
+    name: Windows NSIS install/start smoke
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> apps/desktop/src-tauri/target
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the web frontend
+        run: pnpm --filter @rin/web run build
+
+      - name: Build the Windows target-suffixed sidecar
+        run: pnpm exec node apps/desktop/scripts/build-sidecar.mjs --target x86_64-pc-windows-msvc
+
+      - name: Build the NSIS installer
+        run: pnpm --dir apps/desktop exec tauri build --target x86_64-pc-windows-msvc --bundles nsis
+
+      - name: Install and start the packaged app
+        shell: pwsh
+        run: ./apps/desktop/scripts/e2e-windows.ps1
+
+  macos-install-start:
+    name: macOS ${{ matrix.arch }} DMG install/start smoke
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: Apple Silicon
+            runner: macos-15
+            target: aarch64-apple-darwin
+          - arch: Intel
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> apps/desktop/src-tauri/target
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the web frontend
+        run: pnpm --filter @rin/web run build
+
+      - name: Build the macOS target-suffixed sidecar
+        run: pnpm exec node apps/desktop/scripts/build-sidecar.mjs --target ${{ matrix.target }}
+
+      - name: Build the app and DMG
+        run: pnpm --dir apps/desktop exec tauri build --target ${{ matrix.target }} --bundles app,dmg
+
+      - name: Mount, copy, and start the packaged app
+        shell: bash
+        run: bash ./apps/desktop/scripts/e2e-macos.sh

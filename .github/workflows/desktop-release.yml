@@ -187,6 +187,7 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
         with:
           projectPath: apps/desktop
+          retryAttempts: 3
           tagName: rin-v__VERSION__
           releaseName: rin v__VERSION__
           releaseBody: Signed desktop installers and updater artifacts.
@@ -197,6 +198,10 @@ jobs:
       - name: Verify installer/updater artifact pairs
         env:
           RIN_RELEASE_PLATFORM: ${{ matrix.platform }}
+          RIN_RELEASE_TARGET: ${{ matrix.target }}
+          RIN_RELEASE_UPDATER_JSON: latest.json
+          RIN_RELEASE_VERIFY_REMOTE_ASSET: 'true'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node apps/desktop/scripts/verify-release-artifacts.mjs
 
       - name: Verify Windows Authenticode signature
