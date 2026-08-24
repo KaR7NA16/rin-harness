@@ -46,10 +46,19 @@ worktrees/
 # Open-source hygiene (audit wave 4): generated build maps, local env, and key material.
 *.d.ts.map
 .env.local
+.env.*
+!.env.example
+!.env.*.example
 *.pem
 *.crt
 *.key
 *.p12
+*.pfx
+*.cer
+*.der
+*.mobileprovision
+*.jks
+*.keystore
 id_rsa
 id_ed25519
 *.coverage
