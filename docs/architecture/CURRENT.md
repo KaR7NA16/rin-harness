@@ -98,14 +98,19 @@ graph read model。它可以读取 memory、notes、assets 与 codegraph 的公�
 ## 尚未证明
 
 布局迁移本身已由 manifest census、`rin/` 缺失检查、references/path 同步以及
-结构/Cordis/README/publint/dependency gates 证明。以下项目仍必须以新鲜命令或真机
-产物证明，不能从静态文档或迁移结果推断：
+结构/Cordis/README/publint/dependency gates 证明。本轮还已实际通过完整
+test、smoke、lint、Web build 与 coverage；最新数字和命令记录见
+[ACTIVE.md](../roadmap/ACTIVE.md) 与
+[REPOSITORY-LAYOUT-CLOSEOUT.md](../audits/REPOSITORY-LAYOUT-CLOSEOUT.md)。
 
-- 本轮迁移后的完整 test、smoke、lint、Web build 与 coverage 结果；
+以下项目仍必须以故障注入、对应平台或真实发布产物证明，不能从静态配置或 Linux
+结果推断：
+
 - coverage threshold 是否在故意降低覆盖率时确实阻断 CI；
 - React 异步 warning 和 unhandled rejection 的治理；
 - 真 provider、container、remote、install 生命周期；
-- Tauri sidecar 目标 triple 产物、Cargo.lock、安装包、签名、升级、回滚和干净机器 E2E；
+- Windows/macOS sidecar 与安装包、跨平台签名/公证、真实升级/回滚和 GitHub
+  clean-machine E2E；
 - SBOM、构建 provenance 和 artifact attestation；
 - Companion/Relationship 产品域、安全流程和消费者生命周期 UI。
 

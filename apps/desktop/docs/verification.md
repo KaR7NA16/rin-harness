@@ -67,9 +67,12 @@
 
 ## 9. clean-machine 安装/启动 E2E
 
-- [ ] `.github/workflows/desktop-e2e.yml` 已配置在全新 Ubuntu runner 上安装构建出的 `.deb`，但仍须真实 GitHub Actions job 成功后才能勾选。
-- [ ] E2E 等待 `http://127.0.0.1:8320/api/status` 返回 `status: "ok"`，并在 GUI 退出后确认没有残留 `rin-sidecar`。
-- [ ] Windows NSIS、macOS DMG 仍需各自 clean-machine runner 验证；Linux workflow 的通过不能外推到其他平台。
+- [ ] `.github/workflows/desktop-e2e.yml` 已配置 Linux x64、Windows x64、macOS
+      Apple Silicon 与 Intel 原生 runner；仍须真实 GitHub Actions job 成功后才能勾选。
+- [ ] Linux job 安装 `.deb`，Windows job 静默安装 NSIS，macOS jobs 挂载 DMG 并复制
+      `rin.app`；三平台均从安装后的路径启动，而不是从构建目录直接运行。
+- [ ] 各 job 等待 `http://127.0.0.1:8320/api/status` 返回 `status: "ok"`，并在
+      GUI 强制退出后确认没有残留 `rin-sidecar`。任一平台通过都不能外推其他平台。
 
 ## 10. updater 产物与密钥边界
 
@@ -86,5 +89,5 @@
 | 托盘回收 | Linux x64 / Xvfb | 部分通过 | 崩溃看门狗通过；交互式托盘动作未测 |
 | sidecar 打包 | Linux x64 / WSL | 通过 | 自包含 hoisted runtime + builtin repository |
 | NSIS 安装器 | | | |
-| clean-machine E2E | Ubuntu workflow | 已配置，未执行 | 需真实 GitHub Actions 证据 |
+| clean-machine E2E | Linux/Windows/macOS workflows | 已配置，未执行 | 需各原生 GitHub Actions job 证据 |
 | updater 签名/安装 | | | |

@@ -81,8 +81,8 @@ find . -type f \( -name '*.md' -o -name 'AGENTS.md' \) \
 
 仍需由外部平台或凭据提供：
 
-- Windows NSIS Authenticode 与 clean-machine 安装；
-- macOS code signing/notarization 与 clean-machine 安装；
+- Windows NSIS 与 macOS DMG 的 clean-machine jobs 已配置，但仍需真实 runner
+  成功记录；Authenticode、macOS code signing/notarization 仍需发布凭据；
 - 真实 GitHub release updater 签名、发布、旧版本升级；
 - SBOM/provenance 与安全门禁；
 - 当前目标中的 Companion/Relationship 产品域是否真正实现。

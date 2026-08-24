@@ -159,11 +159,11 @@ apps 下的直接子目录，以及 packages/<role>/<name>，才是 workspace pa
 | apps/cli | rin/cli/rin | 保留 bin/args；host.ts 迁往 packages/runtime/host |
 | apps/web | rin/web/web-ui | 包改名；删除对领域实现的直接依赖，改用 contracts |
 | apps/desktop | rin/gui/gui | 去除 gui/gui 重复路径；Tauri 归产品入口 |
-| packages/runtime/host | rin/host/rin、rin/web/web-server、rin/cli/rin 的 host 部分 | 合并装配、HTTP 和生命周期；移除 @rin/host |
+| packages/runtime/host | rin/bundle/rin、rin/web/web-server、rin/cli/rin 的 host 部分 | 合并装配、HTTP 和生命周期；移除 @rin/host |
 | packages/runtime/contracts | 新建 | 从 web-ui 手抄类型和 routes 响应抽取纯 DTO |
 | packages/runtime/health | rin/core/monitor、rin/core/doctor | 合并共享诊断采集与检查编排 |
 | packages/runtime/backup | rin/core/session-backup | 保留独立包，因为它拥有 RIN_HOME 级恢复事务 |
-| packages/domains/assets | rin/core/assets | 改名，明确它是资产领域而不是泛用 core |
+| packages/domains/assets | rin/core/repository | 改名，明确它是资产领域而不是泛用 core |
 | packages/domains/workspace | rin/core/environment、rin/core/filesystem、rin/workspace/agents、rin/workspace/plugins、rin/workspace/sandboxes | 合并同一条 repository → plan → sandbox/agent/plugin 装配链 |
 | packages/domains/memory | rin/core/memory、rin/memory/prompt-memory、rin/memory/skill-memory、rin/memory/session-search | canonical store 为根，其余作为投影模块 |
 | packages/domains/knowledge | rin/memory/knowledge、rin/memory/knowledge-graph | index 与 graph 同包；graph 是 read model，不再独立发包 |

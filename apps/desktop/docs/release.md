@@ -85,15 +85,32 @@ release. The release must publish both the artifact and signature, and an
 installed previous version must check the HTTPS endpoint before this path is
 called operational.
 
+## Release artifact verification
+
+After each signed matrix build, `verify-release-artifacts.mjs` checks that the
+current platform has an installer/updater artifact, a non-empty matching
+`.sig`, and a `latest.json` entry whose version, target key, signature, and
+HTTPS asset URL agree with the local files. For Tauri Action's GitHub API asset
+URLs, the verifier restricts credentialed requests to `GITHUB_API_URL` and
+checks the remote asset type and byte size. `retryAttempts: 3` reduces the
+known concurrent `latest.json` replacement race; a successful draft build
+still does not prove that the public `releases/latest` endpoint is usable.
+
 ## Clean-machine E2E
 
-`.github/workflows/desktop-e2e.yml` builds the Linux web frontend and
-target-suffixed sidecar, builds a Debian installer, installs it on a fresh
-Ubuntu runner, and launches `/usr/bin/rin` with a sanitized `PATH` and no
-Node environment variables. It waits for `/api/status` with `status: "ok"` on
-port 8320, force-kills the GUI, and checks that the sidecar parent watchdog
-removes the orphaned Host process.
+`.github/workflows/desktop-e2e.yml` defines native installation/start smoke
+jobs for Linux x64, Windows x64, macOS Apple Silicon, and macOS Intel:
 
-This is a Linux installation/start smoke test. It does not prove Windows NSIS
-installation, macOS DMG installation, OS code signing/notarization, or a
-published updater. Those require their own runners and credentials.
+- Linux installs the generated Debian package and starts `/usr/bin/rin` under
+  Xvfb.
+- Windows silently installs the generated NSIS package into an isolated runner
+  directory and starts the installed `rin.exe`.
+- macOS mounts the generated DMG read-only, copies `rin.app` into an isolated
+  runner directory, and starts `Contents/MacOS/rin`.
+
+Every job removes Node-specific environment variables, waits for
+`/api/status` with `status: "ok"`, force-kills the GUI, and checks that the
+sidecar parent watchdog removes the orphaned Host process. These jobs do not
+cover visual interaction, tray clicks, OS code signing/notarization, or an
+old-version-to-new-version updater transaction. They only become execution
+evidence after the corresponding GitHub-hosted jobs actually pass.

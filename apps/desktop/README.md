@@ -168,27 +168,24 @@ cd apps/desktop
 cargo tauri dev
 ```
 
-构建安装包（发布产物 = Windows exe / Linux deb）：
+构建安装包前先在目标平台生成 sidecar。sidecar 构建必须使用与目标三元组一致的原生 Node 运行时：
 
 ```sh
-cd apps/desktop
-cargo tauri build --bundles deb   # Linux：src-tauri/target/release/host/deb/rin_<version>_amd64.deb
-cargo tauri build --bundles nsis  # Windows：src-tauri/target/release/host/nsis/rin_<version>_x64-setup.exe
+pnpm exec node apps/desktop/scripts/build-sidecar.mjs --target x86_64-unknown-linux-gnu
+pnpm --dir apps/desktop exec tauri build --bundles deb,appimage
 ```
 
-`tauri.conf.json` 的 `bundle.targets` 固定为 nsis（Windows exe）与 deb（Linux deb），不发布
-rpm/appimage/msi/dmg。打 tag `rin-v*` 后由 `.github/workflows/rin-release.yml` 自动出 deb/exe
-并上传 GitHub Releases。
-
-发布态还需先产出 sidecar（见 `scripts/build-sidecar.md`）并放入 `src-tauri/binaries/`，
-否则 bundle 里的 `externalBin` 会失败；rin-release.yml 已留 sidecar 构建占位。
+`tauri.conf.json` 声明 `nsis`、`deb`、`appimage` 与 `dmg`。打 `rin-v*` tag 后，
+`.github/workflows/desktop-release.yml` 在 Linux x64、Windows x64、macOS x64/arm64
+原生 runner 上构建 sidecar 和安装包，并生成 updater 产物。签名发布需要仓库中的 updater、
+Windows 和 Apple 凭据；详细密钥与产物边界见 `docs/release.md`。
 
 ## Known Limitations and Deferred Work
 
-- **真机构建未验证**：本包在沙箱内仅做静态自查（结构/语法/无拼写），`cargo tauri
-  dev/build` 需在真机验证（Rust + WebView + 联网 + 前端 dist + sidecar 齐备）。验收点见
-  `docs/verification.md`。
-- **host 起收由 Rust 侧实现**：`src-tauri/src/main.rs` 通过 Tauri shell plugin spawn `rin` 或 packaged sidecar，接收输出/终止事件，并在退出事件调用 `CommandChild.kill()`。Rust 侧的 `/api/health` 就绪门禁、自动重启和 sidecar 父进程看门狗仍是发布态待验证项；前端 bootstrap 仅做健康探测。
+- **平台验证边界**：Linux x64 已完成 `.deb` 构建、安装、Host 健康检查与 GUI 崩溃后的
+  sidecar 回收验证；Windows/macOS 的安装、签名、公证与真实 updater 仍须对应 runner 执行。
+  验收点见 `docs/verification.md`。
+- **host 起收由 Rust 侧实现**：`src-tauri/src/main.rs` 通过 Tauri shell plugin spawn `rin` 或 packaged sidecar，接收输出/终止事件，并在退出事件调用 `CommandChild.kill()`。sidecar 父进程看门狗已在 Linux GUI 强制终止场景验证；托盘正常退出、自动重启和多平台行为仍待验证。
 - **通知（系统通知）后置**：托盘常驻但不接系统通知推送；通知插件（Tauri notification）后置。
 - **开机自启（auto-launch）后置**：不做登录自启；需要时加 Tauri autostart 插件。
 - **远程实例后置**：GUI 只连本机 8320，不支持连接远端 host（对应 @rin/remote 后置）。
