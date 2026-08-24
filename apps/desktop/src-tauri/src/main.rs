@@ -11,7 +11,12 @@
 //!   3. keep a system tray icon so closing the window hides to tray instead
 //!      of quitting, and the tray menu is the only way to quit.
 
-use std::sync::Mutex;
+use std::{
+    fs::OpenOptions,
+    io::Write,
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
 use serde::Serialize;
 use tauri::{
@@ -43,6 +48,17 @@ const HOST_CMD_ENV: &str = "RIN_GUI_HOST_CMD";
 const NO_SPAWN_ENV: &str = "RIN_GUI_NO_SPAWN";
 /// Opt-in flag used by the release E2E to exercise the signed updater.
 const UPDATER_E2E_ENV: &str = "RIN_UPDATER_E2E";
+/// Optional diagnostic sink used by clean-machine E2E jobs.
+const HOST_LOG_ENV: &str = "RIN_HOST_LOG_PATH";
+
+fn log_host_event(message: &str, log_path: Option<&Path>) {
+    eprintln!("{message}");
+    if let Some(path) = log_path {
+        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
+            let _ = writeln!(file, "{message}");
+        }
+    }
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -112,6 +128,7 @@ fn packaged_entrypoint(app: &AppHandle) -> Result<String, String> {
 /// Development resolves an arbitrary `rin` command; release uses Tauri's
 /// authoritative externalBin resolver for the packaged `rin-sidecar`.
 fn start_host(app: &AppHandle) -> Result<HostProcess, String> {
+    let log_path = std::env::var_os(HOST_LOG_ENV).map(PathBuf::from);
     let (command, args, label) = if tauri::is_dev() {
         let program = std::env::var(HOST_CMD_ENV).unwrap_or_else(|_| "rin".to_string());
         (
@@ -146,16 +163,28 @@ fn start_host(app: &AppHandle) -> Result<HostProcess, String> {
         while let Some(event) = events.recv().await {
             match event {
                 CommandEvent::Stdout(bytes) => {
-                    eprintln!("[rin host] {}", String::from_utf8_lossy(&bytes));
+                    log_host_event(
+                        &format!("[rin host] {}", String::from_utf8_lossy(&bytes)),
+                        log_path.as_deref(),
+                    );
                 }
                 CommandEvent::Stderr(bytes) => {
-                    eprintln!("[rin host stderr] {}", String::from_utf8_lossy(&bytes));
+                    log_host_event(
+                        &format!("[rin host stderr] {}", String::from_utf8_lossy(&bytes)),
+                        log_path.as_deref(),
+                    );
                 }
                 CommandEvent::Error(error) => {
-                    eprintln!("[rin host] process error: {error}");
+                    log_host_event(
+                        &format!("[rin host] process error: {error}"),
+                        log_path.as_deref(),
+                    );
                 }
                 CommandEvent::Terminated(payload) => {
-                    eprintln!("[rin host] terminated: {:?}", payload.code);
+                    log_host_event(
+                        &format!("[rin host] terminated: {:?}", payload.code),
+                        log_path.as_deref(),
+                    );
                 }
                 _ => {}
             }
@@ -320,7 +349,11 @@ pub fn run() {
                             }
                         }
                         Err(err) => {
-                            eprintln!("[rin gui] failed to start host: {err}");
+                            let log_path = std::env::var_os(HOST_LOG_ENV).map(PathBuf::from);
+                            log_host_event(
+                                &format!("[rin gui] failed to start host: {err}"),
+                                log_path.as_deref(),
+                            );
                         }
                     }
                 });

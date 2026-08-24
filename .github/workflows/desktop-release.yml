@@ -198,6 +198,7 @@ jobs:
       - name: Build and publish signed release assets
         uses: tauri-apps/tauri-action@v1
         env:
+          CI: 'true'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
         with:
@@ -208,7 +209,7 @@ jobs:
           releaseBody: Signed desktop installers and updater artifacts.
           releaseDraft: true
           prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
-          args: --config src-tauri/tauri.release.generated.json --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+          args: --verbose --config src-tauri/tauri.release.generated.json --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
 
       - name: Verify installer/updater artifact pairs
         env:

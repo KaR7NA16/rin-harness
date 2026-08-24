@@ -250,7 +250,9 @@ jobs:
         run: pnpm exec node apps/desktop/scripts/build-sidecar.mjs --target ${{ matrix.target }}
 
       - name: Build the app and DMG
-        run: pnpm --dir apps/desktop exec tauri build --target ${{ matrix.target }} --bundles app,dmg
+        env:
+          CI: 'true'
+        run: pnpm --dir apps/desktop exec tauri build --verbose --target ${{ matrix.target }} --bundles app,dmg
 
       - name: Mount, copy, and start the packaged app
         shell: bash

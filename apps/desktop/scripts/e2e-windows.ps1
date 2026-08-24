@@ -24,6 +24,7 @@ if (-not (Test-Path -LiteralPath $app)) {
 
 $logRoot = Join-Path $env:RUNNER_TEMP 'rin-desktop-e2e'
 New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
+$env:RIN_HOST_LOG_PATH = Join-Path $logRoot 'host.log'
 [Environment]::SetEnvironmentVariable('NODE_OPTIONS', $null, 'Process')
 [Environment]::SetEnvironmentVariable('NODE_PATH', $null, 'Process')
 $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
@@ -58,6 +59,18 @@ try {
   if (Get-Process -Name 'rin-sidecar' -ErrorAction SilentlyContinue) {
     throw 'rin-sidecar remained after the GUI was force-killed.'
   }
+} catch {
+  Get-ChildItem $installRoot -Recurse -File |
+    Select-Object FullName, Length |
+    Format-Table -AutoSize
+  foreach ($log in @('rin.stdout.log', 'rin.stderr.log', 'host.log')) {
+    $path = Join-Path $logRoot $log
+    if (Test-Path -LiteralPath $path) {
+      Write-Host "=== $log ==="
+      Get-Content -LiteralPath $path
+    }
+  }
+  throw
 } finally {
   if ($null -ne $gui -and -not $gui.HasExited) {
     Stop-Process -Id $gui.Id -Force -ErrorAction SilentlyContinue
