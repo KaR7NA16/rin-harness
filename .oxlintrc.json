@@ -1,0 +1,92 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "categories": {
+    "correctness": "off"
+  },
+  // The shared dsh rules set this to "warn". The repository root keeps it off
+  // because the root lint script scans the canonical apps/packages tree;
+  // unrelated upstream files would otherwise add
+  // noisy "unused disable directive" warnings.
+  "options": {
+    "reportUnusedDisableDirectives": "off"
+  },
+  "env": {
+    "builtin": true
+  },
+  // Both ignorePatterns and overrides[].files resolve within the repository
+  // root. The explicit canonical workspace globs below keep lint scope stable.
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/lib/**",
+    "**/dist/**",
+    "**/*.smoke.ts",
+    "**/*.js",
+    "**/*.mjs"
+  ],
+  "overrides": [
+    {
+      // Reuses dsh shared strict rules (root .oxlintrc.json override #1), retargeted
+      // at canonical packages and repository TypeScript tooling.
+      // Type-aware rules remain a separate migration because oxlint enables that
+      // mode globally; these are the verified non-type-aware rules.
+      "files": [
+        "packages/*/*/src/**/*.{ts,tsx}",
+        "packages/*/*/tests/**/*.{ts,tsx}",
+        "apps/*/src/**/*.{ts,tsx}",
+        "apps/*/tests/**/*.{ts,tsx}",
+        "tooling/**/*.ts",
+        "vitest.config.ts"
+      ],
+      "rules": {
+        "no-var": "error",
+        "prefer-const": "error",
+        "prefer-rest-params": "error",
+        "prefer-spread": "error",
+        "no-array-constructor": "error",
+        "no-unused-expressions": "error",
+        "no-unused-vars": [
+          "error",
+          {
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^_",
+            "caughtErrorsIgnorePattern": "^_"
+          }
+        ],
+        "no-useless-constructor": "error",
+        "typescript/ban-ts-comment": [
+          "error",
+          {
+            "minimumDescriptionLength": 10
+          }
+        ],
+        "typescript/no-duplicate-enum-values": "error",
+        "typescript/no-dynamic-delete": "error",
+        "typescript/no-empty-object-type": "off",
+        "typescript/no-explicit-any": "error",
+        "typescript/no-extra-non-null-assertion": "error",
+        "typescript/no-extraneous-class": "error",
+        "typescript/no-invalid-void-type": "off",
+        "typescript/no-misused-new": "error",
+        "typescript/no-namespace": "off",
+        "typescript/no-non-null-asserted-nullish-coalescing": "error",
+        "typescript/no-non-null-asserted-optional-chain": "error",
+        "typescript/no-require-imports": "error",
+        "typescript/no-this-alias": "error",
+        "typescript/no-unnecessary-type-constraint": "error",
+        "typescript/no-unsafe-declaration-merging": "error",
+        "typescript/no-unsafe-function-type": "error",
+        "typescript/no-wrapper-object-types": "error",
+        "typescript/prefer-as-const": "error",
+        "typescript/prefer-literal-enum-member": "error",
+        "typescript/prefer-namespace-keyword": "error",
+        "typescript/triple-slash-reference": "error",
+        "typescript/unified-signatures": "error",
+        "no-void": "off"
+      },
+      "plugins": [
+        "typescript"
+      ]
+    }
+  ]
+}

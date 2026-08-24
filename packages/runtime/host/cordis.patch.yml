@@ -1,0 +1,236 @@
+# @rin/host dsh harness patch layer — the insert rows mirror src/cordis.yml.
+# The storage overrides below are part of the same portable path contract:
+# they replace dsh-base's session/settings/credentials defaults with the
+# explicitly resolved RIN helpers after the insert layer has mounted them.
+# Declared by dsh.bundle.patch, this layer stacks over dsh-base. The
+# rin-providers row provides every !!js path helper before these expressions
+# are evaluated.
+- insert:
+    - id: rin-providers
+      name: '@rin/host/providers'
+    - id: repository
+      name: '@rin/assets'
+    - id: environment
+      name: '@rin/workspace/environment'
+    - id: filesystem
+      name: '@rin/workspace/filesystem'
+    - id: session-backup
+      name: '@rin/backup'
+      inject: [rinHome, dshHome, sessionRoot, settingsPath, credentialsPath, memory]
+      config:
+        sessionsRoot: !!js sessionRoot()
+        backupsRoot: !!js rinHome('backups')
+        settingsPath: !!js rinHome('backup-settings.json')
+        archiveRoot: !!js rinHome()
+        dshRoot: !!js dshHome()
+        dshSettingsPath: !!js settingsPath()
+        beforeArchive: !!js |-
+          (() => {
+            const memory = ctx.get('memory')
+            if (memory && typeof memory.prepareForArchive === 'function') memory.prepareForArchive()
+          })
+        credentialsPath: !!js credentialsPath()
+    - id: memory
+      name: '@rin/memory'
+      inject: [rinHome, sessionRoot, settingsPath, credentialsPath]
+      config:
+        dbPath: !!js rinHome('memory/memory.db')
+        manifestPath: !!js rinHome('memory/manifest.json')
+        homeRoot: !!js rinHome()
+        sessionRoot: !!js sessionRoot()
+        settingsPath: !!js settingsPath()
+        credentialsPath: !!js credentialsPath()
+        archiveRoot: !!js rinHome()
+    - id: knowledge
+      name: '@rin/knowledge'
+      inject: [rinHome, memory]
+      config:
+        dbPath: !!js rinHome('knowledge/knowledge.db')
+        configHome: !!js rinHome()
+    - id: knowledge-graph
+      name: '@rin/knowledge/graph'
+      inject: [rinHome, builtinRepositoryRoot]
+      config:
+        dbPath: !!js rinHome('knowledge-graph.db')
+        knowledgeDbPath: !!js rinHome('knowledge/knowledge.db')
+        repositoryRoot: !!js builtinRepositoryRoot()
+        filesystemRoots:
+          - !!js rinHome('notes')
+          - !!js builtinRepositoryRoot()
+    - id: prompt-memory
+      name: '@rin/memory/prompt'
+      inject: [rinHome, memory]
+      config:
+        configRoot: !!js rinHome('prompt-memory')
+        initialSoul: >-
+          # Rin
+
+
+          A harness assistant built on the DeepSeek Harness base with the @rin
+          asset layer.
+    - id: skill-memory
+      name: '@rin/memory/skill'
+      inject: [rinHome]
+      config:
+        roots:
+          globalConfigRoot: !!js rinHome()
+          projectConfigRoot: !!js rinHome()
+    - id: session-search
+      name: '@rin/memory/session-search'
+      inject: [rinHome, memory]
+      config:
+        configRoot: !!js rinHome('session-search')
+    - id: evolution
+      name: '@rin/evolution'
+      inject: [rinHome]
+      config:
+        globalConfigRoot: !!js rinHome('evolution')
+        reviewModel: !!js |-
+          (async (prompt, model) => {
+            const llm = ctx.get('llm')
+            if (!llm || typeof llm.stream !== 'function') {
+              throw new Error('rin evolution: reviewModel requires a composed dsh llm seam')
+            }
+            const provider = llm.listProviders?.()[0]?.id
+            if (!provider) throw new Error('rin evolution: no llm provider registered')
+            const text = []
+            for await (const chunk of llm.stream({
+              provider,
+              model,
+              messages: [{
+                role: 'user',
+                content: [{ type: 'text', text: prompt }],
+                source: { kind: 'user' },
+                id: crypto.randomUUID(),
+              }],
+            })) {
+              if (chunk.type === 'finish') {
+                const reason = chunk.reason
+                if (reason.kind === 'error' || reason.kind === 'aborted') {
+                  throw new Error('rin evolution: review model call failed: ' + (reason.failure ? reason.failure.message : reason.kind))
+                }
+              }
+              if (chunk.type === 'text-delta' && typeof chunk.text === 'string') text.push(chunk.text)
+            }
+            return text.join('')
+          })
+    - id: token-optimization
+      name: '@rin/context/token-optimization'
+    - id: codegraph
+      name: '@rin/context/codegraph'
+    - id: smart-pruning
+      name: '@rin/context/smart-pruning'
+    - id: notes
+      name: '@rin/notes'
+      inject: [rinHome, memory]
+      config:
+        vaultRoot: !!js rinHome('notes')
+    - id: agents
+      name: '@rin/workspace/agents'
+      inject: [rinHome, builtinRepositoryRoot]
+      config:
+        agentsHome: !!js rinHome('agents')
+        defaultRepositoryRoot: !!js builtinRepositoryRoot()
+    - id: plugins
+      name: '@rin/workspace/plugins'
+    - id: sandboxes
+      name: '@rin/workspace/sandboxes'
+      inject: [rinHome]
+      config:
+        profilesPath: !!js rinHome('sandbox.yaml')
+    - id: tasks
+      name: '@rin/automation'
+      inject: [rinHome]
+      config:
+        tasksRoot: !!js rinHome('tasks')
+    - id: mcp
+      name: '@rin/mcp'
+      inject: [rinHome]
+      config:
+        storeRoot: !!js rinHome('mcp')
+    - id: mcp-client
+      name: '@rin/mcp/client'
+    - id: provider-probe
+      name: '@rin/providers'
+    - id: computer-use
+      name: '@rin/computer-use'
+      inject: [rinHome]
+      config:
+        configRoot: !!js rinHome('computer-use')
+    - id: agent-migration
+      name: '@rin/agent-migration'
+    - id: teams
+      name: '@rin/collaboration'
+      inject: [rinHome]
+      config:
+        teamsHome: !!js rinHome('teams')
+    - id: brief
+      name: '@rin/authoring/brief'
+    - id: review
+      name: '@rin/authoring/review'
+    - id: monitor
+      name: '@rin/health/monitor'
+    - id: doctor
+      name: '@rin/health/doctor'
+    - id: storage
+      name: '@deepseek-ai/dsh-storage'
+    - id: storage-json
+      name: '@deepseek-ai/dsh-storage-json'
+      inject: [rinHome]
+      config:
+        root: !!js rinHome('storage')
+    - id: storage-domain
+      name: '@deepseek-ai/dsh-storage-domain'
+      config:
+        backend: json
+    - id: workspace
+      name: '@deepseek-ai/dsh-workspace'
+    - id: web-server
+      name: '@rin/host/web-server'
+      inject: [rinHome, builtinRepositoryRoot, webUiDistRoot]
+      config:
+        port: 8320
+        host: 127.0.0.1
+        enabled: true
+        repositoryRoot: !!js builtinRepositoryRoot()
+        staticRoot: !!js webUiDistRoot()
+        knowledgeDbPath: !!js rinHome('knowledge/knowledge.db')
+        knowledgeSourcesRoots:
+          - !!js rinHome('knowledge/sources')
+        skillMemoryRoots:
+          globalConfigRoot: !!js rinHome()
+          projectConfigRoot: !!js rinHome()
+    - id: code-runtime
+      name: '@deepseek-ai/dsh-code-runtime-worker-thread'
+    - id: time-context
+      name: '@deepseek-ai/dsh-time-context'
+    - id: terminal
+      name: '@deepseek-ai/dsh-terminal'
+    - id: terminal-bash
+      name: '@deepseek-ai/dsh-terminal-bash'
+    - id: tool-terminal
+      name: '@deepseek-ai/dsh-tool-terminal'
+    - id: tool-bash-persistent
+      name: '@deepseek-ai/dsh-tool-bash-persistent'
+    - id: lsp
+      name: '@deepseek-ai/dsh-lsp'
+    - id: lsp-stdio
+      name: '@deepseek-ai/dsh-lsp-stdio'
+      disabled: true
+    - id: tool-lsp
+      name: '@deepseek-ai/dsh-tool-lsp'
+    - id: schedule
+      name: '@deepseek-ai/dsh-schedule'
+    - id: tool-session-query
+      name: '@deepseek-ai/dsh-tool-session-query'
+- id: session-persistence-jsonl
+  config:
+    root: !!js sessionRoot()
+- id: settings
+  config:
+    path: !!js settingsPath()
+    dshHome: !!js dshHome()
+- id: credentials
+  config:
+    path: !!js credentialsPath()
+    dshHome: !!js dshHome()

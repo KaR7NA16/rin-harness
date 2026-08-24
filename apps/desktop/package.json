@@ -1,0 +1,26 @@
+{
+  "name": "@rin/desktop",
+  "description": "rin desktop GUI shell: a Tauri 2 thin shell that spawns the rin host and embeds the rin web-ui",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "tauri": "tauri",
+    "build:web": "pnpm --filter @rin/web run build",
+    "build:sidecar": "node scripts/build-sidecar.mjs",
+    "sidecar:check": "node scripts/build-sidecar.mjs --check",
+    "release:config": "node scripts/prepare-release-config.mjs",
+    "release:verify": "node scripts/verify-release-artifacts.mjs",
+    "build": "pnpm run build:web && pnpm run build:sidecar && tauri build",
+    "build:bundle": "pnpm run build:web && pnpm run build:sidecar && tauri build --bundles nsis,deb,appimage,dmg"
+  },
+  "devDependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/cli": "^2",
+    "typescript": "^6.0.3"
+  }
+}

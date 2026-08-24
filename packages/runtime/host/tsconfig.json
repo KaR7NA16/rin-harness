@@ -1,0 +1,60 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../features/migration"
+    },
+    {
+      "path": "../../domains/assets"
+    },
+    {
+      "path": "../../features/authoring"
+    },
+    {
+      "path": "../../domains/automation"
+    },
+    {
+      "path": "../backup"
+    },
+    {
+      "path": "../../domains/collaboration"
+    },
+    {
+      "path": "../../features/computer-use"
+    },
+    {
+      "path": "../../features/context"
+    },
+    {
+      "path": "../../features/evolution"
+    },
+    {
+      "path": "../health"
+    },
+    {
+      "path": "../../domains/knowledge"
+    },
+    {
+      "path": "../../integrations/mcp"
+    },
+    {
+      "path": "../../domains/memory"
+    },
+    {
+      "path": "../../domains/notes"
+    },
+    {
+      "path": "../../integrations/providers"
+    },
+    {
+      "path": "../../domains/workspace"
+    }
+  ]
+}

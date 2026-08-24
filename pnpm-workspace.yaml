@@ -1,7 +1,9 @@
 packages:
-  - rin/*/*
+  - apps/*
+  - packages/*/*
 
 linkWorkspacePackages: true
+injectWorkspacePackages: true
 
 overrides:
   # F1c dependency hardening (audit #3): force patched versions of the

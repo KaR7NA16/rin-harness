@@ -1,0 +1,35 @@
+{
+  "name": "@rin/cli",
+  "description": "rin launcher: boots the @rin/host host assembly on 8320 and prints its URL",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "main": "lib/types/index.js",
+  "types": "lib/types/index.d.ts",
+  "bin": {
+    "rin": "lib/types/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/types/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/types/**/*"
+  ],
+  "dependencies": {
+    "@rin/host": "workspace:^"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

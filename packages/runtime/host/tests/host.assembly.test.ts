@@ -1,0 +1,134 @@
+/**
+ * rin launcher — host assembly contract tests.
+ *
+ * These describe behavior, not correctness: they drive {@link startHost}
+ * against a fake @deepseek-ai/dsh-app-boot (no Cordis tree is actually booted)
+ * and assert the resolved defaults, the --port/--host override, the prepare
+ * hook, and the close disposer.
+ *
+ * @module @rin/host
+ */
+
+import { beforeEach, describe, expect, test, vi } from 'vitest'
+
+const appBoot = vi.hoisted(() => ({
+  boot: vi.fn(),
+  installFailLoud: vi.fn(),
+  loadOverlayPatches: vi.fn(),
+}))
+
+vi.mock('@deepseek-ai/dsh-app-boot', () => appBoot)
+
+import { startHost } from '../src/host.ts'
+import {
+  baseBundlePatchPath,
+  builtinRepositoryRoot,
+  configPath,
+  credentialsPath,
+  defaultConfig,
+  rinHome,
+  sessionRoot,
+  settingsPath,
+  webUiDistRoot,
+} from '@rin/host'
+import type { HostOptions } from '../src/host.ts'
+
+function makeOptions(overrides: HostOptions = {}): HostOptions {
+  return overrides
+}
+
+describe('startHost assembly', () => {
+  beforeEach(() => {
+    appBoot.boot.mockReset()
+    appBoot.installFailLoud.mockReset()
+    appBoot.loadOverlayPatches.mockReset()
+  })
+
+  test('installs fail-loud, loads the base patch layer, and boots the resolved defaults', async () => {
+    appBoot.loadOverlayPatches.mockReturnValue([{ id: 'dsh-base' }])
+    const dispose = vi.fn().mockResolvedValue(undefined)
+    appBoot.boot.mockResolvedValue({ fiber: { dispose } })
+
+    const host = await startHost(makeOptions())
+
+    expect(appBoot.installFailLoud).toHaveBeenCalledWith('rin')
+    expect(appBoot.loadOverlayPatches).toHaveBeenCalledWith('rin', baseBundlePatchPath())
+    expect(appBoot.boot).toHaveBeenCalledTimes(1)
+
+    const bootCall = appBoot.boot.mock.calls[0]
+    expect(bootCall?.[0]).toBe('rin')
+    expect(bootCall?.[1]).toBe(configPath())
+    expect(bootCall?.[4]).toBeUndefined()
+    const patches = bootCall?.[2] as Array<{ id?: string; config?: Record<string, unknown>; disabled?: boolean }>
+    // The mocked dsh-base layer contributes one row; the launcher adds seven overrides.
+    expect(patches).toHaveLength(8)
+    expect(patches?.find(patch => patch.id === 'web-server')).toEqual({
+      id: 'web-server',
+      config: { ...defaultConfig['web-server'], port: defaultConfig['web-server'].port, host: defaultConfig['web-server'].host },
+    })
+    expect(patches?.find(patch => patch.id === 'session-query-sqlite')).toEqual({
+      id: 'session-query-sqlite',
+      config: { path: rinHome('sessions/search.sqlite'), openAt: 'first-search' },
+    })
+    expect(patches?.find(patch => patch.id === 'session-persistence-jsonl')).toEqual({
+      id: 'session-persistence-jsonl',
+      config: { root: sessionRoot() },
+    })
+    expect(patches?.find(patch => patch.id === 'settings')).toEqual({
+      id: 'settings',
+      config: { path: settingsPath(), dshHome: expect.any(String) },
+    })
+    expect(patches?.find(patch => patch.id === 'credentials')).toEqual({
+      id: 'credentials',
+      config: { path: credentialsPath(), dshHome: expect.any(String) },
+    })
+    expect(patches?.find(patch => patch.id === 'tools')).toEqual({
+      id: 'tools',
+      config: { mode: 'both' },
+    })
+    expect(patches?.find(patch => patch.id === 'tool-bash')).toEqual({
+      id: 'tool-bash',
+      disabled: true,
+    })
+
+    const provide = vi.fn()
+    const prepare = bootCall?.[3] as (ctx: { provide: (key: string, value: unknown) => void }) => void
+    prepare({ provide })
+    expect(provide).toHaveBeenCalledWith('rinHome', rinHome)
+    expect(provide).toHaveBeenCalledWith('sessionRoot', sessionRoot)
+    expect(provide).toHaveBeenCalledWith('settingsPath', settingsPath)
+    expect(provide).toHaveBeenCalledWith('credentialsPath', credentialsPath)
+    expect(provide).toHaveBeenCalledWith('builtinRepositoryRoot', builtinRepositoryRoot)
+    expect(provide).toHaveBeenCalledWith('webUiDistRoot', webUiDistRoot)
+
+    expect(host.port).toBe(defaultConfig['web-server'].port)
+    expect(host.host).toBe(defaultConfig['web-server'].host)
+    expect(host.baseUrl).toBe('http://' + defaultConfig['web-server'].host + ':' + defaultConfig['web-server'].port)
+
+    await host.close()
+    expect(dispose).toHaveBeenCalledTimes(1)
+  })
+
+  test('overrides port and host from the parsed args', async () => {
+    appBoot.loadOverlayPatches.mockReturnValue([])
+    appBoot.boot.mockResolvedValue({ fiber: { dispose: vi.fn() } })
+
+    const host = await startHost(makeOptions({ port: 9000, host: '0.0.0.0' }))
+
+    const bootCall = appBoot.boot.mock.calls[0]
+    const patches = bootCall?.[2] as Array<{ id?: string; config?: Record<string, unknown> }>
+    expect(patches?.find(patch => patch.id === 'web-server')).toMatchObject({ id: 'web-server', config: { port: 9000, host: '0.0.0.0' } })
+    expect(host.baseUrl).toBe('http://0.0.0.0:9000')
+  })
+
+  test('passes a packaged bare-module base URL to dsh boot', async () => {
+    vi.stubEnv('RIN_BARE_MODULE_BASE_URL', 'file:///snapshot/rin-sidecar.cjs')
+    appBoot.loadOverlayPatches.mockReturnValue([])
+    appBoot.boot.mockResolvedValue({ fiber: { dispose: vi.fn() } })
+
+    await startHost(makeOptions())
+
+    expect(appBoot.boot.mock.calls[0]?.[4]).toBe('file:///snapshot/rin-sidecar.cjs')
+    vi.unstubAllEnvs()
+  })
+})

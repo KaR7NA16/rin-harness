@@ -1,0 +1,62 @@
+{
+  "name": "@rin/workspace",
+  "description": "rin workspace domain: environment planning, filesystem access, agents, plugins, and sandbox lifecycle",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "main": "lib/types/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/types/index.js"
+    },
+    "./environment": {
+      "types": "./lib/types/environment/index.d.ts",
+      "default": "./lib/types/environment/index.js"
+    },
+    "./filesystem": {
+      "types": "./lib/types/filesystem/index.d.ts",
+      "default": "./lib/types/filesystem/index.js"
+    },
+    "./agents": {
+      "types": "./lib/types/agents/index.d.ts",
+      "default": "./lib/types/agents/index.js"
+    },
+    "./plugins": {
+      "types": "./lib/types/plugins/index.d.ts",
+      "default": "./lib/types/plugins/index.js"
+    },
+    "./sandboxes": {
+      "types": "./lib/types/sandboxes/index.d.ts",
+      "default": "./lib/types/sandboxes/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/types/**/*"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.1"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-agent-presets": "0.1.0-rc.8",
+    "@rin/assets": "workspace:^",
+    "yaml": "^2.8.3"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/dsh-agent-presets": "0.1.0-rc.8",
+    "@deepseek-ai/schemastery": "3.18.1",
+    "@rin/assets": "workspace:^",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8",
+    "yaml": "^2.8.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "name": "@rin/context",
+  "description": "rin context: smart pruning, token optimization, and per-project codegraph capabilities",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "main": "lib/types/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/types/index.js"
+    },
+    "./smart-pruning": {
+      "types": "./lib/types/smart-pruning/plugin.d.ts",
+      "default": "./lib/types/smart-pruning/plugin.js"
+    },
+    "./token-optimization": {
+      "types": "./lib/types/token-optimization/plugin.d.ts",
+      "default": "./lib/types/token-optimization/plugin.js"
+    },
+    "./codegraph": {
+      "types": "./lib/types/codegraph/plugin.d.ts",
+      "default": "./lib/types/codegraph/plugin.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/types/**/*",
+    "grammars/**/*"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "3.18.1",
+    "web-tree-sitter": "^0.24.1"
+  }
+}

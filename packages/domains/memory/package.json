@@ -1,0 +1,50 @@
+{
+  "name": "@rin/memory",
+  "description": "rin memory: canonical local memory catalog, projection manifest, provenance, revocation, deletion, and injection audit",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "main": "lib/types/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/types/index.js"
+    },
+    "./prompt": {
+      "types": "./lib/types/prompt/index.d.ts",
+      "default": "./lib/types/prompt/index.js"
+    },
+    "./skill": {
+      "types": "./lib/types/skill/index.d.ts",
+      "default": "./lib/types/skill/index.js"
+    },
+    "./session-search": {
+      "types": "./lib/types/session-search/index.d.ts",
+      "default": "./lib/types/session-search/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/types/**/*"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.1"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-skill": "0.1.0-rc.8",
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.8",
+    "@rin/contracts": "workspace:^"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

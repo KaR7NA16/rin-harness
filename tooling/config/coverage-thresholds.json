@@ -1,0 +1,156 @@
+{
+  "$schema": "internal",
+  "$comment": "Coverage regression policy read directly by vitest.config.ts. Each package entry declares the canonical source glob that Vitest enforces in addition to the global floor.",
+  "baseline": {
+    "command": "pnpm test:coverage",
+    "vitest": "4.1.8",
+    "recordedAt": "2026-08-24",
+    "testFiles": {
+      "total": 193,
+      "passed": 193,
+      "failed": 0
+    },
+    "tests": {
+      "total": 1695,
+      "passed": 1695,
+      "failed": 0
+    },
+    "globalCoverage": {
+      "statements": 60.35,
+      "branches": 54.6,
+      "functions": 57.1,
+      "lines": 62.58
+    }
+  },
+  "globalThresholds": {
+    "statements": 58,
+    "branches": 53,
+    "functions": 53,
+    "lines": 60
+  },
+  "packages": {
+    "@rin/host": {
+      "source": "packages/runtime/host/src/**/*.{ts,tsx}",
+      "statements": 51,
+      "branches": 45,
+      "functions": 34,
+      "lines": 51
+    },
+    "@rin/cli": {
+      "source": "apps/cli/src/**/*.{ts,tsx}",
+      "statements": 60,
+      "branches": 50,
+      "functions": 50,
+      "lines": 60
+    },
+    "@rin/workspace/environment": {
+      "source": "packages/domains/workspace/src/environment/**/*.{ts,tsx}",
+      "statements": 47,
+      "branches": 37,
+      "functions": 41,
+      "lines": 49
+    },
+    "@rin/assets": {
+      "source": "packages/domains/assets/src/**/*.{ts,tsx}",
+      "statements": 55,
+      "branches": 50,
+      "functions": 55,
+      "lines": 55
+    },
+    "@rin/evolution": {
+      "source": "packages/features/evolution/src/**/*.{ts,tsx}",
+      "statements": 37,
+      "branches": 26,
+      "functions": 37,
+      "lines": 39
+    },
+    "@rin/knowledge": {
+      "source": "packages/domains/knowledge/src/**/*.{ts,tsx}",
+      "statements": 44,
+      "branches": 35,
+      "functions": 45,
+      "lines": 47
+    },
+    "@rin/memory/prompt": {
+      "source": "packages/domains/memory/src/prompt/**/*.{ts,tsx}",
+      "statements": 40,
+      "branches": 30,
+      "functions": 42,
+      "lines": 42
+    },
+    "@rin/memory/session-search": {
+      "source": "packages/domains/memory/src/session-search/**/*.{ts,tsx}",
+      "statements": 60,
+      "branches": 50,
+      "functions": 55,
+      "lines": 60
+    },
+    "@rin/memory/skill": {
+      "source": "packages/domains/memory/src/skill/**/*.{ts,tsx}",
+      "statements": 40,
+      "branches": 32,
+      "functions": 36,
+      "lines": 41
+    },
+    "@rin/notes": {
+      "source": "packages/domains/notes/src/**/*.{ts,tsx}",
+      "statements": 38,
+      "branches": 32,
+      "functions": 33,
+      "lines": 39
+    },
+    "@rin/context/smart-pruning": {
+      "source": "packages/features/context/src/smart-pruning/**/*.{ts,tsx}",
+      "statements": 30,
+      "branches": 33,
+      "functions": 33,
+      "lines": 32
+    },
+    "@rin/context/token-optimization": {
+      "source": "packages/features/context/src/token-optimization/**/*.{ts,tsx}",
+      "statements": 60,
+      "branches": 55,
+      "functions": 45,
+      "lines": 60
+    },
+    "@rin/host/web-server": {
+      "source": "packages/runtime/host/src/web-server/**/*.{ts,tsx}",
+      "statements": 55,
+      "branches": 50,
+      "functions": 55,
+      "lines": 55
+    },
+    "@rin/web": {
+      "source": "apps/web/src/**/*.{ts,tsx}",
+      "statements": 55,
+      "branches": 50,
+      "functions": 50,
+      "lines": 55
+    },
+    "@rin/workspace/agents": {
+      "source": "packages/domains/workspace/src/agents/**/*.{ts,tsx}",
+      "statements": 55,
+      "branches": 50,
+      "functions": 55,
+      "lines": 55
+    },
+    "@rin/workspace/sandboxes": {
+      "source": "packages/domains/workspace/src/sandboxes/**/*.{ts,tsx}",
+      "statements": 38,
+      "branches": 34,
+      "functions": 32,
+      "lines": 38
+    }
+  },
+  "smokeLane": {
+    "$comment": "Packages with only .smoke.ts (run by the root smoke command via the source launcher); 0% in the Vitest lane by design, excluded from Vitest coverage enforcement.",
+    "packages": [
+      "@rin/agent-migration",
+      "@rin/computer-use",
+      "@rin/mcp",
+      "@rin/automation",
+      "@rin/collaboration",
+      "@rin/desktop"
+    ]
+  }
+}

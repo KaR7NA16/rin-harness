@@ -1,0 +1,69 @@
+{
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/cli"
+    },
+    {
+      "path": "./apps/desktop"
+    },
+    {
+      "path": "./apps/web"
+    },
+    {
+      "path": "./packages/domains/assets"
+    },
+    {
+      "path": "./packages/domains/automation"
+    },
+    {
+      "path": "./packages/domains/collaboration"
+    },
+    {
+      "path": "./packages/domains/knowledge"
+    },
+    {
+      "path": "./packages/domains/memory"
+    },
+    {
+      "path": "./packages/domains/notes"
+    },
+    {
+      "path": "./packages/domains/workspace"
+    },
+    {
+      "path": "./packages/features/authoring"
+    },
+    {
+      "path": "./packages/features/computer-use"
+    },
+    {
+      "path": "./packages/features/context"
+    },
+    {
+      "path": "./packages/features/evolution"
+    },
+    {
+      "path": "./packages/features/migration"
+    },
+    {
+      "path": "./packages/integrations/mcp"
+    },
+    {
+      "path": "./packages/integrations/providers"
+    },
+    {
+      "path": "./packages/runtime/backup"
+    },
+    {
+      "path": "./packages/runtime/contracts"
+    },
+    {
+      "path": "./packages/runtime/health"
+    },
+    {
+      "path": "./packages/runtime/host"
+    }
+  ]
+}

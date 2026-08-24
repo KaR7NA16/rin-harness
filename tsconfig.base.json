@@ -1,7 +1,4 @@
 {
-  // Doubles as the resolution facade for vite-tsconfig-paths (vitest configs
-  // point here). NEVER add include/files to this file: it would leak into
-  // every extending package project and narrow the facade's match-all scope.
   "compilerOptions": {
     "target": "es2024",
     "module": "esnext",
@@ -23,43 +20,133 @@
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["node"],
-    // Source-level resolution for every repo-local graph. Project references,
-    // not declaration path aliases, keep each package/vendor source compiled
-    // under its own tsconfig boundary.
+    "types": [
+      "node"
+    ],
     "paths": {
-      // rin-only aliases; @deepseek-ai/dsh-* resolve via node_modules from the registry.
-      "@rin/repository": ["./rin/core/repository/src"],
-      "@rin/environment": ["./rin/core/environment/src"],
-      "@rin/monitor": ["./rin/core/monitor/src"],
-      "@rin/doctor": ["./rin/core/doctor/src"],
-      "@rin/knowledge": ["./rin/memory/knowledge/src"],
-      "@rin/knowledge-graph": ["./rin/memory/knowledge-graph/src"],
-      "@rin/prompt-memory": ["./rin/memory/prompt-memory/src"],
-      "@rin/skill-memory": ["./rin/memory/skill-memory/src"],
-      "@rin/session-search": ["./rin/memory/session-search/src"],
-      "@rin/evolution": ["./rin/learning/evolution/src"],
-      "@rin/token-optimization": ["./rin/optimization/token-optimization/src"],
-      "@rin/codegraph": ["./rin/optimization/codegraph/src"],
-      "@rin/smart-pruning": ["./rin/optimization/smart-pruning/src"],
-      "@rin/web-server": ["./rin/web/web-server/src"],
-      "@rin/agents": ["./rin/workspace/agents/src"],
-      "@rin/plugins": ["./rin/workspace/plugins/src"],
-      "@rin/filesystem": ["./rin/core/filesystem/src"],
-      "@rin/session-backup": ["./rin/core/session-backup/src"],
-      "@rin/sandboxes": ["./rin/workspace/sandboxes/src"],
-      "@rin/notes": ["./rin/notes/notes/src"],
-      "@rin/bundle": ["./rin/bundle/rin/src"],
-      "@rin/cli": ["./rin/cli/rin/src"],
-      "@rin/tasks": ["./rin/automation/tasks/src"],
-      "@rin/mcp": ["./rin/automation/mcp/src"],
-      "@rin/mcp-client": ["./rin/automation/mcp-client/src"],
-      "@rin/provider-probe": ["./rin/automation/provider-probe/src"],
-      "@rin/computer-use": ["./rin/automation/computer-use/src"],
-      "@rin/agent-migration": ["./rin/automation/agent-migration/src"],
-      "@rin/teams": ["./rin/collaboration/teams/src"],
-      "@rin/brief": ["./rin/capability/brief/src"],
-      "@rin/review": ["./rin/capability/review/src"]
+      "@rin/agent-migration": [
+        "./packages/features/migration/src"
+      ],
+      "@rin/assets": [
+        "./packages/domains/assets/src"
+      ],
+      "@rin/authoring": [
+        "./packages/features/authoring/src"
+      ],
+      "@rin/authoring/brief": [
+        "./packages/features/authoring/src/brief/plugin"
+      ],
+      "@rin/authoring/review": [
+        "./packages/features/authoring/src/review/plugin"
+      ],
+      "@rin/automation": [
+        "./packages/domains/automation/src"
+      ],
+      "@rin/backup": [
+        "./packages/runtime/backup/src"
+      ],
+      "@rin/cli": [
+        "./apps/cli/src"
+      ],
+      "@rin/collaboration": [
+        "./packages/domains/collaboration/src"
+      ],
+      "@rin/computer-use": [
+        "./packages/features/computer-use/src"
+      ],
+      "@rin/context": [
+        "./packages/features/context/src"
+      ],
+      "@rin/context/codegraph": [
+        "./packages/features/context/src/codegraph/plugin"
+      ],
+      "@rin/context/smart-pruning": [
+        "./packages/features/context/src/smart-pruning/plugin"
+      ],
+      "@rin/context/token-optimization": [
+        "./packages/features/context/src/token-optimization/plugin"
+      ],
+      "@rin/contracts": [
+        "./packages/runtime/contracts/src"
+      ],
+      "@rin/desktop": [
+        "./apps/desktop/src"
+      ],
+      "@rin/evolution": [
+        "./packages/features/evolution/src"
+      ],
+      "@rin/health": [
+        "./packages/runtime/health/src"
+      ],
+      "@rin/health/doctor": [
+        "./packages/runtime/health/src/doctor"
+      ],
+      "@rin/health/monitor": [
+        "./packages/runtime/health/src/monitor"
+      ],
+      "@rin/host": [
+        "./packages/runtime/host/src"
+      ],
+      "@rin/host/launcher": [
+        "./packages/runtime/host/src/host"
+      ],
+      "@rin/host/providers": [
+        "./packages/runtime/host/src/providers"
+      ],
+      "@rin/host/web-server": [
+        "./packages/runtime/host/src/web-server"
+      ],
+      "@rin/knowledge": [
+        "./packages/domains/knowledge/src"
+      ],
+      "@rin/knowledge/graph": [
+        "./packages/domains/knowledge/src/graph"
+      ],
+      "@rin/mcp": [
+        "./packages/integrations/mcp/src"
+      ],
+      "@rin/mcp/client": [
+        "./packages/integrations/mcp/src/client"
+      ],
+      "@rin/memory": [
+        "./packages/domains/memory/src"
+      ],
+      "@rin/memory/prompt": [
+        "./packages/domains/memory/src/prompt"
+      ],
+      "@rin/memory/session-search": [
+        "./packages/domains/memory/src/session-search"
+      ],
+      "@rin/memory/skill": [
+        "./packages/domains/memory/src/skill"
+      ],
+      "@rin/notes": [
+        "./packages/domains/notes/src"
+      ],
+      "@rin/providers": [
+        "./packages/integrations/providers/src"
+      ],
+      "@rin/web": [
+        "./apps/web/src"
+      ],
+      "@rin/workspace": [
+        "./packages/domains/workspace/src"
+      ],
+      "@rin/workspace/agents": [
+        "./packages/domains/workspace/src/agents"
+      ],
+      "@rin/workspace/environment": [
+        "./packages/domains/workspace/src/environment"
+      ],
+      "@rin/workspace/filesystem": [
+        "./packages/domains/workspace/src/filesystem"
+      ],
+      "@rin/workspace/plugins": [
+        "./packages/domains/workspace/src/plugins"
+      ],
+      "@rin/workspace/sandboxes": [
+        "./packages/domains/workspace/src/sandboxes"
+      ]
     }
   }
 }
