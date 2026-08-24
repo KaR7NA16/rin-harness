@@ -2,6 +2,8 @@ CLAUDE.local.md
 .env
 node_modules/
 lib/
+!tooling/lib/
+!tooling/lib/**
 !apps/web/src/lib/
 *.tsbuildinfo
 pnpm-debug.log
