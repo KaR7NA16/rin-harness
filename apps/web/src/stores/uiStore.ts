@@ -61,6 +61,7 @@ export type WorkspaceView =
   | 'sandbox'
   | 'repository'
   | 'agents'
+  | 'memoryCenter'
 
 export type SidebarGrouping = 'project' | 'time' | 'flat'
 

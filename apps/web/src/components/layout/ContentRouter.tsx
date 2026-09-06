@@ -15,6 +15,7 @@ const Tags = lazy(() => import('../../pages/Tags').then((module) => ({ default: 
 const Sandboxes = lazy(() => import('../../pages/Sandboxes').then((module) => ({ default: module.Sandboxes })))
 const RepositoryWorkspace = lazy(() => import('../../pages/RepositoryWorkspace').then((module) => ({ default: module.RepositoryWorkspace })))
 const AgentWorkspace = lazy(() => import('../../pages/AgentWorkspace').then((module) => ({ default: module.AgentWorkspace })))
+const MemoryCenter = lazy(() => import('../../pages/MemoryCenter').then((module) => ({ default: module.MemoryCenter })))
 const Terminal = lazy(() => import('../../pages/Terminal').then((module) => ({ default: module.Terminal })))
 
 const WARM_SESSION_PANEL_COUNT = 2
@@ -72,6 +73,7 @@ export function ContentRouter() {
     : resolvedWorkspaceView === 'sandbox' ? <Suspended><Sandboxes /></Suspended>
     : resolvedWorkspaceView === 'repository' ? <Suspended><RepositoryWorkspace /></Suspended>
     : resolvedWorkspaceView === 'agents' ? <Suspended><AgentWorkspace /></Suspended>
+    : resolvedWorkspaceView === 'memoryCenter' ? <Suspended><MemoryCenter /></Suspended>
     : null
 
   const showEmptySession = !resolvedWorkspaceView && (!activeTabId || !activeTabType)
