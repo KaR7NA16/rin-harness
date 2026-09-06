@@ -35,8 +35,9 @@ The dsh source is resolved from the public registry. Do not create or edit a loc
 The documentation authority index is [docs/README.md](docs/README.md).
 Current package facts are in [CURRENT.md](docs/architecture/CURRENT.md);
 the approved destination is [TARGET.md](docs/architecture/TARGET.md);
-seam rules are in [SEAMS.md](docs/architecture/SEAMS.md); and the active
-execution route is [ACTIVE.md](docs/roadmap/ACTIVE.md).
+seam rules are in [SEAMS.md](docs/architecture/SEAMS.md); and the active memory execution route is
+[MEMORY-IMPLEMENTATION.md](docs/roadmap/MEMORY-IMPLEMENTATION.md); engineering
+and release evidence is retained in [ACTIVE.md](docs/roadmap/ACTIVE.md).
 
 ## Commands
 

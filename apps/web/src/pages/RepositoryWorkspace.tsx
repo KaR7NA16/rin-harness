@@ -11,6 +11,7 @@ import { repositoriesApi, type RepositoryConnection, type RepositoryPackage, typ
 import { Button } from '../components/shared/Button'
 import { Input } from '../components/shared/Input'
 import { Modal } from '../components/shared/Modal'
+import { PageHeader } from '../components/shared/PageHeader'
 import { isTauriRuntime } from '../lib/desktopRuntime'
 import { useTranslation } from '../i18n'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -124,26 +125,23 @@ export function RepositoryWorkspace() {
   return (
     <div className="h-full overflow-y-auto bg-[var(--color-background)] p-[24px]">
       <div className="mx-auto flex max-w-[1160px] flex-col gap-[18px]">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--color-signal)]">
-              <FolderGit2 size={14} /> {t('repository.title')}
-            </div>
-            <h1 className="mt-1 text-[22px] font-semibold text-[var(--color-text-primary)]">{t('repository.title')}</h1>
-            <p className="mt-1 max-w-[680px] text-[13px] leading-5 text-[var(--color-text-tertiary)]">{t('repository.subtitle')}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" onClick={() => void refresh(true)} loading={refreshing}>
-              <RefreshCw size={14} className="mr-1" />{t('common.refresh')}
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => openConnectionDialog('connect')}>
-              <FolderOpen size={14} className="mr-1" />{t('repository.connect')}
-            </Button>
-            <Button size="sm" onClick={() => openConnectionDialog('create')}>
-              <Plus size={14} className="mr-1" />{t('repository.create')}
-            </Button>
-          </div>
-        </header>
+        <PageHeader
+          title={t('repository.title')}
+          description={t('repository.subtitle')}
+          actions={(
+            <>
+              <Button size="sm" variant="secondary" onClick={() => void refresh(true)} loading={refreshing}>
+                <RefreshCw size={14} className="mr-1" />{t('common.refresh')}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => openConnectionDialog('connect')}>
+                <FolderOpen size={14} className="mr-1" />{t('repository.connect')}
+              </Button>
+              <Button size="sm" onClick={() => openConnectionDialog('create')}>
+                <Plus size={14} className="mr-1" />{t('repository.create')}
+              </Button>
+            </>
+          )}
+        />
 
         {!selected ? (
           <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[16px] border border-dashed border-[var(--color-border)] bg-[var(--color-surface-container-low)] px-6 text-center">

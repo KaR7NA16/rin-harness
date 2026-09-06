@@ -7,6 +7,11 @@
 > 本文定义已批准的目标信息架构及其来源映射。目标目录已落地；本文不替代
 > [CURRENT.md](CURRENT.md) 对当前事实的记录，也不把静态布局证明提升为运行时、
 > 安装、签名或升级证明。
+>
+> 记忆系统的目标认知语义由 [MEMORY-BLUEPRINT.md](MEMORY-BLUEPRINT.md) 定义。
+> 本文只确定 repository/package 分类，不把现有 package、投影或数据库结构冻结为
+> 统一记忆连续体的最终实现；执行拆解见
+> [MEMORY-IMPLEMENTATION.md](../roadmap/MEMORY-IMPLEMENTATION.md)。
 
 ## 1. 设计结论
 
@@ -325,7 +330,8 @@ docs/
 │  ├─ ADR-0001-*.md
 │  └─ ...
 ├─ roadmap/
-│  ├─ ACTIVE.md                # 唯一活跃计划
+│  ├─ ACTIVE.md                # 工程与发布活动路线及证据
+│  ├─ MEMORY-IMPLEMENTATION.md # 统一记忆唯一活动实施主计划
 │  └─ BACKLOG.md               # deferred 项
 ├─ audits/
 │  └─ YYYY-MM-DD-*.md
@@ -340,12 +346,13 @@ docs/
 | CURRENT.md | 当前仓库实现事实；必须由代码或门禁输出支持 |
 | TARGET.md | 已批准但未必实现的目标态 |
 | ADR | 已决定且不可静默改写的架构决策 |
-| ACTIVE.md | 唯一当前执行计划 |
+| ACTIVE.md | 工程与发布活动路线及证据；记忆实施不在本文执行 |
+| MEMORY-IMPLEMENTATION.md | 统一记忆系统的唯一活动实施主计划 |
 | BACKLOG.md | 未承诺排期的需求和 deferred 项 |
 | audits | 某一时间点的证据快照 |
 | archive | 历史材料，不作为当前事实来源 |
 
-蓝图获批后，MIGRATION.md 应转入 archive/migration；它不再同时承担历史审计、当前事实、目标架构和待办列表。DEFERRED-ITEMS.md 应合并进 roadmap/BACKLOG.md。现有多个 PLAN 文档要么合并进 ACTIVE.md，要么进入 archive，并在索引中标明 superseded。
+蓝图获批后，MIGRATION.md 应转入 archive/migration；它不再同时承担历史审计、当前事实、目标架构和待办列表。DEFERRED-ITEMS.md 应合并进 roadmap/BACKLOG.md。普通 PLAN 文档要么并入对应的活动路线，要么进入 archive；已在 docs/README.md 声明为领域权威的 MEMORY-BLUEPRINT.md 与 MEMORY-IMPLEMENTATION.md 保持独立，并在索引中标明 owner 和状态。
 
 ## 10. 聚合与门禁
 
@@ -500,7 +507,7 @@ docs authority and generated artifacts final cleanup
 
 ### B-07：文档权威切换
 
-是否让 architecture/CURRENT.md、roadmap/ACTIVE.md 和 decisions/ADR 成为新的权威体系，并将 MIGRATION.md 降为历史迁移档案。
+是否让 architecture/CURRENT.md、architecture/TARGET.md、领域蓝图/实施主计划、roadmap/ACTIVE.md 和 decisions/ADR 组成分层权威体系，并将 MIGRATION.md 降为历史迁移档案。
 
 推荐：接受。当前最大治理风险之一就是历史迁移计划继续冒充实时架构事实。
 

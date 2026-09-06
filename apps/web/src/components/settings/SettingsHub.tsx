@@ -180,17 +180,28 @@ export function SettingsNavigation({
   )
 }
 
+export type SettingsOverviewSectionCard = {
+  id: string
+  icon: string
+  label: string
+  description: string
+  entryTab: string
+  entryLabel: string
+}
+
 export function SettingsOverview({
   title,
   description,
   statusCards,
   emptyStatusLabel,
+  sections,
   onSelect,
 }: {
   title: string
   description: string
   statusCards: SettingsOverviewStatus[]
   emptyStatusLabel?: string
+  sections?: SettingsOverviewSectionCard[]
   onSelect: (tab: string) => void
 }) {
   return (
@@ -205,23 +216,53 @@ export function SettingsOverview({
         </div>
       </header>
 
-      <section className="settings-overview-status" aria-label={title}>
-        {statusCards.length === 0 && emptyStatusLabel ? (
-          <p className="settings-overview-status-empty">{emptyStatusLabel}</p>
-        ) : statusCards.map((card) => (
-          <button
-            type="button"
-            key={card.label}
-            className={`settings-overview-status-card tone-${card.tone}`}
-            onClick={() => onSelect(card.tab)}
-          >
-            <span className="settings-overview-status-label">{card.label}</span>
-            <strong>{card.value}</strong>
-            <span className="settings-overview-status-detail">{card.detail}</span>
-            <Icon name="arrow_forward" size={14} />
-          </button>
-        ))}
-      </section>
+      {statusCards.length > 0 && (
+        <section className="settings-overview-status" aria-label={title}>
+          {statusCards.map((card) => (
+            <button
+              type="button"
+              key={card.label}
+              className={`settings-overview-status-card tone-${card.tone}`}
+              onClick={() => onSelect(card.tab)}
+            >
+              <span className="settings-overview-status-label">{card.label}</span>
+              <strong>{card.value}</strong>
+              <span className="settings-overview-status-detail">{card.detail}</span>
+              <Icon name="arrow_forward" size={14} />
+            </button>
+          ))}
+        </section>
+      )}
+      {statusCards.length === 0 && emptyStatusLabel && (
+        <p className="settings-overview-status-empty">{emptyStatusLabel}</p>
+      )}
+
+      {sections !== undefined && sections.length > 0 && (
+        <section aria-label={title} className="mt-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {sections.map((section) => (
+              <button
+                type="button"
+                key={section.id}
+                onClick={() => onSelect(section.entryTab)}
+                className="rounded-[14px] border border-[var(--color-border-separator)] bg-[var(--color-surface)] p-4 text-left transition-colors hover:border-[var(--color-border-focus)] hover:bg-[var(--color-surface-hover)]"
+              >
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--color-text-primary)]">
+                  <Icon name={section.icon} size={16} className="text-[var(--color-signal)]" />
+                  {section.label}
+                </div>
+                <p className="mt-1.5 line-clamp-2 min-h-[36px] text-[12px] leading-[18px] text-[var(--color-text-tertiary)]">
+                  {section.description}
+                </p>
+                <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-signal)]">
+                  {section.entryLabel}
+                  <Icon name="arrow_forward" size={12} />
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
     </div>
   )

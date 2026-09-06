@@ -338,9 +338,6 @@ importers:
       '@deepseek-ai/dsh-tools':
         specifier: 0.1.0-rc.8
         version: 0.1.0-rc.8(9e11fd3ea91863e4d6836e794bb620b7)
-      '@rin/memory':
-        specifier: workspace:^
-        version: link:../memory
       yaml:
         specifier: ^2.8.3
         version: 2.9.0
@@ -849,6 +846,9 @@ importers:
       '@rin/context':
         specifier: workspace:^
         version: link:../../features/context
+      '@rin/contracts':
+        specifier: workspace:^
+        version: link:../contracts
       '@rin/evolution':
         specifier: workspace:^
         version: link:../../features/evolution
@@ -9758,6 +9758,7 @@ snapshots:
       '@rin/collaboration': file:packages/domains/collaboration(@deepseek-ai/cordis@4.0.1)
       '@rin/computer-use': file:packages/features/computer-use(@deepseek-ai/cordis@4.0.1)
       '@rin/context': file:packages/features/context(@deepseek-ai/cordis@4.0.1)
+      '@rin/contracts': file:packages/runtime/contracts
       '@rin/evolution': file:packages/features/evolution(9e11fd3ea91863e4d6836e794bb620b7)
       '@rin/health': file:packages/runtime/health(9e11fd3ea91863e4d6836e794bb620b7)
       '@rin/knowledge': file:packages/domains/knowledge(9e11fd3ea91863e4d6836e794bb620b7)
@@ -9860,7 +9861,6 @@ snapshots:
     dependencies:
       '@deepseek-ai/cordis': 4.0.1(@deepseek-ai/cordis-plugin-include@1.0.6)(@deepseek-ai/cordis-plugin-loader@1.0.2)
       '@deepseek-ai/dsh-tools': 0.1.0-rc.8(9e11fd3ea91863e4d6836e794bb620b7)
-      '@rin/memory': file:packages/domains/memory(9e11fd3ea91863e4d6836e794bb620b7)
       yaml: 2.9.0
     transitivePeerDependencies:
       - '@deepseek-ai/dsh-agent'

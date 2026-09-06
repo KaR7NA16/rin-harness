@@ -1,9 +1,15 @@
-# rin-harness 当前执行路线
+# rin-harness 旧版产品与发布路线
 
-> 状态：Active
+> 状态：Partially superseded
 > 基线日期：2026-08-24
 > 规划周期：12 周
-> 适用范围：当前 migration/registry-deps 分支所代表的 Web/Host/Memory 底座，以及拟新增的 Companion Domain、桌面发布与治理能力。
+> 保留范围：工程质量、桌面发布、治理缺口和历史执行证据。
+
+> 记忆与关系范围已由 [MEMORY-BLUEPRINT.md](../architecture/MEMORY-BLUEPRINT.md) 和
+> [MEMORY-IMPLEMENTATION.md](MEMORY-IMPLEMENTATION.md) 取代。本文后续的四 lane 检索、
+> 关系事件 schema、独立 package、五平面和周计划仅作为旧缺口及历史判断保留，不得
+> 继续实施，也不得与新主计划并行。工程质量、桌面发布及已经执行的证据仍可按其原有
+> 边界引用。
 
 ## 1. 执行摘要
 
@@ -62,6 +68,24 @@
 - `cargo fmt --check`、`cargo check` 与 Linux x64 release `.deb` 构建通过；
   通过 apt 安装后的 `/usr/bin/rin` 在无系统 Node/pnpm 运行路径下返回
   `/api/status = ok`，GUI 被 `SIGKILL` 后 sidecar 看门狗完成回收。测试包随后已卸载。
+
+记忆 Wave 7–8 收口后的新鲜证据（2026-09-06）：
+
+- `pnpm run check` 全绿：metadata（21 manifests）、hygiene（5 gates）、
+  typecheck、lint（0 警告 0 错误）、203 个测试文件中的 1860 项测试、
+  desktop release verify，以及 41/41 smoke。
+- M8-04：`packages/domains/memory/tests/long-range-scenarios.test.ts` 为 §12 的
+  E-01 至 E-20 提供领域级可执行断言（21 测试）；§12 要求进入 Host smoke 的
+  E-01/E-10（memory-runtime.smoke.ts）与 E-13/E-16/E-18
+  （memory-lifecycle.smoke.ts，真实 Host 装配：授权擦除 scope 原子性、投影更新
+  崩溃回滚与模型输入门禁、模型输入顺序与 hash 重建）全部具备真实 Host smoke
+  证据。
+- M8-05：`pnpm run bench:memory`（200 个 observe 事务）本机基线：
+  journal append 平均 7.22 ms/事务；全量 journal 重放中位数 25.1 ms；
+  recall（maxItems=8，20 次）中位数 51.3 ms；物化状态 hash 0.55 ms；
+  数据库体积约 1.2 MiB。该数字是单机相对基线，不是生产硬件声明。
+- M8-01/M8-02：v1 MemoryItem 目录、generic catalog 路由与 prompt 静态 canonical
+  路径已删除。
 
 ### 2.2 尚未证明
 

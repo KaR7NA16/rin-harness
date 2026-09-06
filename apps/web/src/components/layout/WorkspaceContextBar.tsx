@@ -32,17 +32,17 @@ function ContextChip({ icon, label, resource, statusLabel, loading, onActivate }
   const content = (
     <>
       <Icon name={icon} size={13} className="shrink-0 text-[var(--color-text-tertiary)]" />
-      <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)] sm:inline">
+      <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)] xl:inline">
         {label}
       </span>
-      <span className="min-w-0 truncate text-[11px] font-medium text-[var(--color-text-primary)]">{value}</span>
+      <span className="min-w-0 max-w-[110px] truncate text-[11px] font-medium text-[var(--color-text-primary)]">{value}</span>
       <span
         className={
           'h-[6px] w-[6px] shrink-0 rounded-full ' +
           (loading ? 'animate-pulse bg-[var(--color-brand)]' : WORKSPACE_CONTEXT_STATUS_CLASSES[resource.status])
         }
       />
-      <span className="hidden shrink-0 text-[10px] text-[var(--color-text-tertiary)] lg:inline">{statusLabel}</span>
+      <span className="hidden shrink-0 text-[10px] text-[var(--color-text-tertiary)] 2xl:inline">{statusLabel}</span>
     </>
   )
   const className = "flex min-w-0 items-center gap-[7px] border-l border-[var(--color-border-separator)] pl-[10px] first:border-l-0 first:pl-0"

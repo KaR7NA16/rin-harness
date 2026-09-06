@@ -56,8 +56,6 @@ import {
   type PromptMemoryStatus,
   type PromptMemoryTarget,
 } from '../api/promptMemory'
-import { memoryApi } from '../api/memory'
-import type { MemoryManifest } from '@rin/contracts'
 import { EvolutionProfile } from '../components/memory/EvolutionProfile'
 import { AdapterSettings } from './AdapterSettings'
 import { AgentMigration } from './AgentMigration'
@@ -191,6 +189,18 @@ function SettingsOverviewPage({ onSelect }: { onSelect: (tab: SettingsTab) => vo
       description={t('settings.overview.description')}
       statusCards={statusCards}
       emptyStatusLabel={t('settings.overview.allClear')}
+      sections={SETTINGS_SECTIONS.map((section) => {
+        const entryTab = section.tabs[0]
+        if (entryTab === undefined) return null
+        return {
+          id: section.id,
+          icon: section.icon,
+          label: t(section.labelKey as never) as string,
+          description: t(section.descriptionKey as never) as string,
+          entryTab: entryTab.id,
+          entryLabel: t(`settings.tab.${entryTab.id}` as never) as string,
+        }
+      }).filter((card): card is NonNullable<typeof card> => card !== null)}
       onSelect={(tab) => onSelect(tab as SettingsTab)}
     />
   )
@@ -1741,12 +1751,15 @@ const MEMORY_TARGET_ICONS = {
 export function MemorySettings() {
   const t = useTranslation()
   const addToast = useUIStore((s) => s.addToast)
+  const openMemoryCenter = useCallback(() => {
+    useUIStore.getState().closeSettings()
+    useUIStore.getState().openWorkspaceView('memoryCenter')
+  }, [])
   const [activeView, setActiveView] = useState<'profile' | 'files' | 'history'>('profile')
   const [target, setTarget] = useState<PromptMemoryTarget>('brief')
   const [status, setStatus] = useState<PromptMemoryStatus | null>(null)
   const [autoLogs, setAutoLogs] = useState<PromptMemoryAutoReviewLogEntry[]>([])
   const [insights, setInsights] = useState<PromptMemoryInsights | null>(null)
-  const [canonicalManifest, setCanonicalManifest] = useState<MemoryManifest | null>(null)
   const [draft, setDraft] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -1764,13 +1777,11 @@ export function MemorySettings() {
     setIsLoading(true)
     setError(null)
     try {
-      const [nextStatus, nextLogs, nextInsights, nextManifest] = await Promise.all([
+      const [nextStatus, nextLogs, nextInsights] = await Promise.all([
         promptMemoryApi.status(),
         promptMemoryApi.logs(20),
         promptMemoryApi.insights(),
-        memoryApi.manifest().catch(() => null),
       ])
-      setCanonicalManifest(nextManifest)
       if (nextStatus === null) {
         setStatus(null)
         setAutoLogs([])
@@ -1988,28 +1999,15 @@ export function MemorySettings() {
         </SettingsRow>
       </SettingsSection>
 
-      {canonicalManifest && (
-        <SettingsSection
-          title={t('settings.memory.catalog.title')}
-          description={t('settings.memory.catalog.description')}
-        >
-          <SettingsRow
-            label={t('settings.memory.catalog.projections')}
-            hint={t('settings.memory.catalog.projectionsHint')}
-          >
-            <span className="font-mono text-[12px] tabular-nums text-[var(--color-text-secondary)]">
-              {canonicalManifest.projections.length}
-            </span>
-          </SettingsRow>
-          <SettingsRow
-            label={t('settings.memory.catalog.archive')}
-            hint={t('settings.memory.catalog.archiveHint')}
-          >
-            <span className="max-w-[260px] truncate font-mono text-[11px] text-[var(--color-text-tertiary)]">
-              {canonicalManifest.storage.archiveRoot}
-            </span>
-          </SettingsRow>
-        </SettingsSection>
+      {openMemoryCenter && (
+        <div className="mb-[16px] flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-container-low)] px-[16px] py-[12px]">
+          <p className="min-w-0 text-[12.5px] leading-[18px] text-[var(--color-text-secondary)]">
+            {t('settings.memory.centerHint')}
+          </p>
+          <Button size="sm" variant="secondary" onClick={openMemoryCenter}>
+            {t('settings.memory.openCenter')}
+          </Button>
+        </div>
       )}
 
       <AnimatePresence initial={false}>

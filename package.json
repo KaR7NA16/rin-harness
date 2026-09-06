@@ -18,6 +18,7 @@
     "test": "vitest run -c vitest.config.ts",
     "test:coverage": "vitest run -c vitest.config.ts --coverage",
     "test:release": "pnpm --filter @rin/desktop run release:verify:test",
+    "bench:memory": "tsx packages/domains/memory/scripts/benchmark-memory.ts",
     "lint": "oxlint -c .oxlintrc.json apps packages tooling vitest.config.ts",
     "hygiene": "tsx tooling/gates/runner.ts check",
     "smoke": "node tooling/gates/run-smokes.mjs",

@@ -26,7 +26,11 @@ export function EmptySession() {
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-[var(--color-background)] text-[var(--color-text-primary)] transition-colors duration-150">
-      <div className="flex min-h-0 flex-1 items-center justify-center px-[24px] py-[48px]">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-[24px] py-[48px]">
+        <div className="text-center">
+          <h2 className="text-[17px] font-semibold text-[var(--color-text-primary)]">{t('newSession.welcomeTitle')}</h2>
+          <p className="mt-2 text-[13px] text-[var(--color-text-tertiary)]">{t('newSession.welcomeHint')}</p>
+        </div>
         <div
           role="group"
           aria-label={t('newSession.title')}

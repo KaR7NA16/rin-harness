@@ -495,7 +495,15 @@ export function Sidebar() {
 
   const handleNewSession = useCallback(() => {
     setContextMenu(null)
+    // 两个侧栏浮层互斥：打开新建会话菜单时收起"更多"菜单，避免叠加。
+    setMoreMenuOpen(false)
     setNewSessionMenuOpen((open) => !open)
+  }, [])
+
+  const handleMoreMenuToggle = useCallback(() => {
+    // 打开"更多"菜单时收起新建会话菜单，避免两个浮层叠加。
+    setNewSessionMenuOpen(false)
+    setMoreMenuOpen((open) => !open)
   }, [])
 
   const openSession = useCallback((session: SessionListItem, displayTitle: string) => {
@@ -669,7 +677,7 @@ export function Sidebar() {
             open={moreMenuOpen}
             anchorRef={moreButtonRef}
             workspaceView={workspaceView}
-            onToggle={() => setMoreMenuOpen((open) => !open)}
+            onToggle={handleMoreMenuToggle}
             onOpenWorkspace={openWorkspace}
           />
         </nav>
@@ -1228,6 +1236,7 @@ function SidebarMoreMenu({
     { key: 'atlas', label: t('atlas.title'), icon: 'hub', active: workspaceView === 'atlas', onClick: () => onOpenWorkspace('atlas') },
     { key: 'queries', label: t('queries.title'), icon: 'filter_list', active: workspaceView === 'queries', onClick: () => onOpenWorkspace('queries') },
     { key: 'tags', label: t('tags.title'), icon: 'tag', active: workspaceView === 'tags', onClick: () => onOpenWorkspace('tags') },
+    { key: 'memoryCenter', label: t('memoryCenter.title'), icon: 'psychology', active: workspaceView === 'memoryCenter', onClick: () => onOpenWorkspace('memoryCenter') },
   ]
 
   return (
