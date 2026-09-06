@@ -33,6 +33,42 @@ import {
 } from '@rin/host'
 import type { HostOptions } from '../src/host.ts'
 
+function fakeBootContext(dispose: ReturnType<typeof vi.fn>) {
+  return {
+    root: {
+      get(name: string) {
+        if (name === 'systemPrompt') return { section: vi.fn(() => vi.fn()) }
+        if (name === 'memory') {
+          return {
+            recall: vi.fn(async () => ({
+              workspace: {
+                cycleId: 'fake-cycle',
+                materializedVersion: 0,
+                budget: { maxItems: 0, maxTokens: 0, usedItems: 0, usedTokens: 0 },
+                currentField: undefined,
+                items: [],
+                links: [],
+                uncertainty: [],
+                hash: 'fake-workspace-hash',
+              },
+              trace: {},
+            })),
+            readCognitionState: vi.fn(() => ({ version: 0 })),
+            getProjectionCheckpoint: vi.fn(() => ({ status: 'clean', materializedVersion: 0, stateHash: 'fake-workspace-hash' })),
+            requireProjectionReady: vi.fn(),
+            markProjectionDirty: vi.fn(),
+            markProjectionCleanAtCurrent: vi.fn(),
+          }
+        }
+        return undefined
+      },
+      on: vi.fn(() => vi.fn()),
+      effect: vi.fn(),
+    },
+    fiber: { dispose },
+  }
+}
+
 function makeOptions(overrides: HostOptions = {}): HostOptions {
   return overrides
 }
@@ -47,7 +83,7 @@ describe('startHost assembly', () => {
   test('installs fail-loud, loads the base patch layer, and boots the resolved defaults', async () => {
     appBoot.loadOverlayPatches.mockReturnValue([{ id: 'dsh-base' }])
     const dispose = vi.fn().mockResolvedValue(undefined)
-    appBoot.boot.mockResolvedValue({ fiber: { dispose } })
+    appBoot.boot.mockResolvedValue(fakeBootContext(dispose))
 
     const host = await startHost(makeOptions())
 
@@ -111,7 +147,7 @@ describe('startHost assembly', () => {
 
   test('overrides port and host from the parsed args', async () => {
     appBoot.loadOverlayPatches.mockReturnValue([])
-    appBoot.boot.mockResolvedValue({ fiber: { dispose: vi.fn() } })
+    appBoot.boot.mockResolvedValue(fakeBootContext(vi.fn()))
 
     const host = await startHost(makeOptions({ port: 9000, host: '0.0.0.0' }))
 
@@ -124,7 +160,7 @@ describe('startHost assembly', () => {
   test('passes a packaged bare-module base URL to dsh boot', async () => {
     vi.stubEnv('RIN_BARE_MODULE_BASE_URL', 'file:///snapshot/rin-sidecar.cjs')
     appBoot.loadOverlayPatches.mockReturnValue([])
-    appBoot.boot.mockResolvedValue({ fiber: { dispose: vi.fn() } })
+    appBoot.boot.mockResolvedValue(fakeBootContext(vi.fn()))
 
     await startHost(makeOptions())
 

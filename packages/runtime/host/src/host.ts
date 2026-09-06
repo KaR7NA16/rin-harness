@@ -13,6 +13,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { boot, installFailLoud, loadOverlayPatches } from '@deepseek-ai/dsh-app-boot'
+import { registerPromptMemorySeam, type PromptMemorySeam } from '@rin/memory/prompt'
 import {
   baseBundlePatchPath,
   builtinRepositoryRoot,
@@ -129,6 +130,7 @@ export async function startHost(args: HostOptions = {}): Promise<RinHost> {
     },
     process.env.RIN_BARE_MODULE_BASE_URL?.trim() || undefined,
   )
+  await registerRinPromptMemorySeam(ctx)
 
   return {
     port,
@@ -136,4 +138,24 @@ export async function startHost(args: HostOptions = {}): Promise<RinHost> {
     baseUrl: `http://${host}:${port}`,
     close: async () => { await ctx.fiber.dispose() },
   }
+}
+
+/** Register the host-wide memory projection after all isolated entries are mounted. */
+export async function registerRinPromptMemorySeam(ctx: Context): Promise<void> {
+  const root = ctx.root
+  const systemPrompt = root.get('systemPrompt')
+  if (systemPrompt === undefined) {
+    throw new Error('rin host: root systemPrompt service is required')
+  }
+  const seam: PromptMemorySeam = {
+    systemPrompt,
+    on: root.on.bind(root) as PromptMemorySeam['on'],
+    effect: root.effect.bind(root) as unknown as PromptMemorySeam['effect'],
+  }
+  const memory = root.get('memory')
+  if (memory !== undefined) seam.memory = memory
+  await registerPromptMemorySeam(seam, {
+    injectSoul: true,
+    injectBrief: true,
+  })
 }

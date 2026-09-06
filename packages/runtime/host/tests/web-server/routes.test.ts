@@ -81,40 +81,60 @@ describe('routeApi dispatch', () => {
     expect(res).toEqual({ status: 200, body: { mounted: true, files: {} } })
   })
 
-  test('dispatches unified memory manifest and item routes', async () => {
-    const item = {
-      id: 'prompt-memory:user',
-      projection: 'prompt-memory',
-      kind: 'prompt',
-      content: 'prefers concise answers',
-      version: 'v1',
-      status: 'active',
-      visibility: 'model',
-      source: { id: 'prompt-memory:user', kind: 'file', uri: 'prompt-memory/USER.md' },
-      createdAt: '2026-08-22T00:00:00.000Z',
-      updatedAt: '2026-08-22T00:00:00.000Z',
+  test('dispatches memory cognition queries and generic catalog paths are gone', async () => {
+    const field = {
+      ownerId: 'rin',
+      version: 0,
+      updatedAt: '1970-01-01T00:00:00.000Z',
+      participants: [],
+      goals: [],
+      affect: { valence: 0, arousal: 0, control: 0.5 },
+      predictions: [],
+      predictionErrors: [],
+      activeOpenLoops: [],
+      candidateActions: [],
+      candidateActionSources: [],
+      activeMemoryCoalition: [],
+      uncertainty: [],
     }
     const memory = {
-      getManifest: () => ({ schemaVersion: 1, root: '.', projections: [] }),
-      list: () => [item],
-      get: () => item,
-      upsert: () => item,
-      revoke: () => ({ ...item, status: 'revoked' }),
-      delete: () => true,
-      listInjections: () => [],
-      exportData: () => ({ schemaVersion: 1, exportedAt: 'now', items: [item], injections: [] }),
+      getManifest: () => ({ schemaVersion: 2, root: '.', projections: [] }),
+      getCurrentField: () => field,
+      readCognitionState: () => ({ version: 0, memories: [], erasedMemoryIds: [], links: [] }),
+      requestErasePreview: () => ({
+        rootMemoryIds: [],
+        erasedMemoryIds: [],
+        retractedLinkIds: [],
+        dependentMemoryIds: [],
+        unaffectedMemoryIds: [],
+        scopeHash: 'hash',
+      }),
+      exportCognitionJournal: () => [],
+      restoreCognitionJournal: () => 0,
     }
     const s = services({ memory: () => memory })
     expect(await routeApi('/api/memory/manifest', '', 'GET', undefined, s, config)).toEqual({
       status: 200,
-      body: { mounted: true, schemaVersion: 1, root: '.', projections: [] },
+      body: { mounted: true, schemaVersion: 2, root: '.', projections: [] },
     })
-    expect(await routeApi('/api/memory', '', 'GET', undefined, s, config)).toEqual({
+    expect(await routeApi('/api/memory/field', '', 'GET', undefined, s, config)).toEqual({
       status: 200,
-      body: { mounted: true, items: [item] },
+      body: { mounted: true, field },
     })
-    expect((await routeApi('/api/memory/prompt-memory%3Auser', '', 'GET', undefined, s, config))?.status).toBe(200)
-    expect((await routeApi('/api/memory/prompt-memory%3Auser', '', 'DELETE', undefined, s, config))?.body).toEqual({ mounted: true, deleted: true })
+    expect(await routeApi('/api/memory/scenes', '', 'GET', undefined, s, config)).toEqual({
+      status: 200,
+      body: { mounted: true, scenes: [] },
+    })
+    expect(await routeApi('/api/memory/journal', '', 'GET', undefined, s, config)).toEqual({
+      status: 200,
+      body: { mounted: true, transactions: [] },
+    })
+    // The generic v1 catalog routes no longer exist (M8-01): they fall through
+    // to the router's not-found response instead of serving catalog data.
+    expect(await routeApi('/api/memory', '', 'GET', undefined, s, config)).toBeNull()
+    expect(await routeApi('/api/memory', '', 'POST', { content: 'legacy' }, s, config)).toBeNull()
+    expect(await routeApi('/api/memory/injections', '', 'GET', undefined, s, config)).toBeNull()
+    expect(await routeApi('/api/memory/export', '', 'GET', undefined, s, config)).toBeNull()
   })
 
   test('dispatches evolution pathname', async () => {

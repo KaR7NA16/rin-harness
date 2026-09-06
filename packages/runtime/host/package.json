@@ -139,6 +139,7 @@
     "@rin/automation": "workspace:^",
     "@rin/backup": "workspace:^",
     "@rin/collaboration": "workspace:^",
+    "@rin/contracts": "workspace:^",
     "@rin/computer-use": "workspace:^",
     "@rin/context": "workspace:^",
     "@rin/evolution": "workspace:^",
