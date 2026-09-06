@@ -16,6 +16,8 @@ import {
   readPromptMemoryReviewLogs,
 } from '@rin/memory/prompt'
 import type { PromptMemoryInsights, PromptMemoryRoots } from '@rin/memory/prompt'
+import { projectDispositionToSkill } from '@rin/memory'
+import type { DispositionSkillProjection, RinMemory } from '@rin/memory'
 import { createEvolutionApproval } from './approval.ts'
 import { createEvolutionReviewer } from './reviewer.ts'
 import { createEvolutionStore } from './store.ts'
@@ -98,6 +100,7 @@ export function createEvolution(deps: {
     isEventVisibleFromCwd: store.isEventVisibleFromCwd,
     listSkillMemoryOverview: store.listSkillMemoryOverview,
     projectPromptMemoryInsights,
+    projectDispositionSkill,
     // review loop
     executeReview: reviewer.executeReview,
     drainPendingReviews: reviewer.drainPendingReviews,
@@ -106,3 +109,8 @@ export function createEvolution(deps: {
 }
 
 export type Evolution = ReturnType<typeof createEvolution>
+
+/** Rebuild the approved skill projection from one canonical disposition version. */
+export function projectDispositionSkill(memory: RinMemory): DispositionSkillProjection {
+  return projectDispositionToSkill(memory)
+}

@@ -14,8 +14,6 @@ import { homedir } from 'node:os'
 import { readFile, readdir, realpath, stat } from 'node:fs/promises'
 import { basename, extname, isAbsolute, parse, relative, resolve } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
-import { removeMemoryProjectionSource, syncMemoryProjection } from '@rin/memory'
-import type { MemoryStore } from '@rin/memory'
 import { openKnowledgeDb } from './db.ts'
 import { extractWikilinkTargets, knowledgeDocumentNodeId } from './entities.ts'
 import type {
@@ -104,13 +102,11 @@ type ParsedDocument = {
 /** Indexing and search over a SQLite-backed knowledge base. */
 export class KnowledgeService {
   private readonly db: DatabaseSync
-  private readonly memory: MemoryStore | undefined
   private readonly jobs = new Map<string, Promise<void>>()
   private readonly cancelled = new Set<string>()
 
   /** @param dbPath - absolute path to the SQLite database file, created on demand. */
-  constructor(dbPath: string, memory?: MemoryStore) {
-    this.memory = memory
+  constructor(dbPath: string) {
     this.db = openKnowledgeDb(dbPath)
     this.db.exec(`
       UPDATE knowledge_sources
@@ -463,23 +459,6 @@ export class KnowledgeService {
     )
     this.storeDocumentLinks(documentId, parsed.links)
 
-    if (this.memory !== undefined) {
-      syncMemoryProjection(this.memory, {
-        id: 'knowledge:' + documentId,
-        projection: 'knowledge',
-        kind: 'document',
-        content: parsed.content || title + '\n' + file.relativePath,
-        visibility: 'model',
-        confidence: parsed.content ? 0.8 : 0.3,
-        source: {
-          id: 'knowledge:' + documentId,
-          kind: 'file',
-          uri: 'file://' + file.path,
-          label: title,
-        },
-        metadata: { documentId, sourceId: source.id, path: file.path, title, indexMode },
-      })
-    }
     if (!source.indexContent) return
 
     const chunks = parsed.content
@@ -580,7 +559,6 @@ export class KnowledgeService {
   }
 
   private deleteDocument(documentId: string): void {
-    if (this.memory !== undefined) removeMemoryProjectionSource(this.memory, 'knowledge', 'knowledge:' + documentId)
     const chunks = this.db.prepare(`
       SELECT id FROM knowledge_chunks WHERE document_id = ?
     `).all(documentId) as { id: number }[]

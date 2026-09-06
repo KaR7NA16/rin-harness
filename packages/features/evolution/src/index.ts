@@ -16,7 +16,7 @@ import { registerSeam, type EvolutionSeam } from './seam.ts'
 import type { EvolutionAdapters, EvolutionRoots, EvolutionReviewModel } from './types.ts'
 
 export * from './types.ts'
-export { createEvolution, projectPromptMemoryInsights } from './evolution.ts'
+export { createEvolution, projectDispositionSkill, projectPromptMemoryInsights } from './evolution.ts'
 export type { Evolution } from './evolution.ts'
 export { createEvolutionStore } from './store.ts'
 export type { EvolutionStore } from './store.ts'
@@ -94,6 +94,7 @@ export abstract class EvolutionService extends Service {
   abstract rejectCandidate(...args: Parameters<Evolution['rejectCandidate']>): ReturnType<Evolution['rejectCandidate']>
   abstract executeReview(...args: Parameters<Evolution['executeReview']>): ReturnType<Evolution['executeReview']>
   abstract projectPromptMemoryInsights(...args: Parameters<Evolution['projectPromptMemoryInsights']>): ReturnType<Evolution['projectPromptMemoryInsights']>
+  abstract projectDispositionSkill(...args: Parameters<Evolution['projectDispositionSkill']>): ReturnType<Evolution['projectDispositionSkill']>
 }
 
 /** File-backed implementation delegating to createEvolution. */
@@ -135,6 +136,10 @@ export class FileEvolutionService extends EvolutionService {
 
   override projectPromptMemoryInsights(...args: Parameters<Evolution['projectPromptMemoryInsights']>) {
     return this.evolution.projectPromptMemoryInsights(...args)
+  }
+
+  override projectDispositionSkill(...args: Parameters<Evolution['projectDispositionSkill']>) {
+    return this.evolution.projectDispositionSkill(...args)
   }
 }
 

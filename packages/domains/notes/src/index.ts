@@ -11,8 +11,6 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import { removeMemoryProjectionSource, syncMemoryProjection } from '@rin/memory'
-import type { MemoryStore } from '@rin/memory'
 import { NotesVault, resolveVaultRoot } from './vault.ts'
 import {
   NOTES_TOOL_DESCRIPTION,
@@ -147,13 +145,11 @@ export abstract class NotesStore extends Service {
 export class FileNotesStore extends NotesStore {
   private readonly vault: NotesVault
   private readonly vaultPath: string
-  private readonly memory: MemoryStore | undefined
 
   constructor(ctx: Context, config: NotesConfig = {}) {
     super(ctx)
     this.vaultPath = resolveVaultRoot(config.vaultRoot)
     this.vault = new NotesVault(this.vaultPath)
-    this.memory = ctx.get('memory') as MemoryStore | undefined
   }
 
   override vaultRoot() {
@@ -173,26 +169,19 @@ export class FileNotesStore extends NotesStore {
   }
 
   override async updateProperties(path: string, properties: Record<string, unknown>) {
-    const document = await this.vault.updateProperties(path, properties)
-    this.syncMemory(document)
-    return document
+    return this.vault.updateProperties(path, properties)
   }
 
   override async renameTag(from: string, to: string) {
-    const result = await this.vault.renameTag(from, to)
-    for (const path of result.paths) this.syncMemory(await this.vault.read(path))
-    return result
+    return this.vault.renameTag(from, to)
   }
 
   override async write(path: string, content: string) {
-    const document = await this.vault.write(path, content)
-    this.syncMemory(document)
-    return document
+    return this.vault.write(path, content)
   }
 
   override async delete(path: string) {
     await this.vault.delete(path)
-    if (this.memory !== undefined) removeMemoryProjectionSource(this.memory, 'notes', 'notes:' + path)
   }
 
   override listSnapshots(path: string) {
@@ -224,9 +213,7 @@ export class FileNotesStore extends NotesStore {
   }
 
   override async backupSession(title: string, content: string) {
-    const document = await this.vault.backupSession(title, content)
-    this.syncMemory(document)
-    return document
+    return this.vault.backupSession(title, content)
   }
 
   override saveAsset(fileName: string, content: Buffer) {
@@ -236,33 +223,10 @@ export class FileNotesStore extends NotesStore {
   override readAsset(path: string) {
     return this.vault.readAsset(path)
   }
-
-  private syncMemory(document: NoteDocument): void {
-    if (this.memory === undefined) return
-    syncMemoryProjection(this.memory, {
-      id: 'notes:' + document.path,
-      projection: 'notes',
-      kind: 'document',
-      content: document.title + '\n' + document.content,
-      visibility: 'model',
-      source: {
-        id: 'notes:' + document.path,
-        kind: 'file',
-        uri: 'notes://' + document.path,
-        label: document.title,
-      },
-      metadata: {
-        path: document.path,
-        title: document.title,
-        tags: document.tags,
-        links: document.links.map(link => link.target),
-      },
-    })
-  }
 }
 
 export const name = 'notes'
-export const inject = ['tools', 'memory']
+export const inject = ['tools']
 
 /** Stable knowledge-graph node id for a note (mirrored by @rin/knowledge/graph). */
 export function noteNodeId(path: string): string {
