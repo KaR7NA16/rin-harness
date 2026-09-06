@@ -548,9 +548,9 @@ function readRecallRecord(db: DatabaseSync, cycleId: string): MemoryRecallRecord
 /**
  * Durable event journal for Rin's unified cognition model.
  *
- * This journal shares the memory database file with the legacy catalog, but
- * its schema marker and tables are independent. It is the canonical write
- * substrate for the unified model; materialization is a later replay step.
+ * The journal owns its schema marker and tables inside the memory database
+ * file. It is the canonical write substrate for the unified model;
+ * materialization is a later replay step.
  */
 export class MemoryCognitionDatabase {
   constructor(private readonly dbPath: string) {}
