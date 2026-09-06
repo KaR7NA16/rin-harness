@@ -204,6 +204,8 @@ describe('SessionSearchCore', () => {
     const searchResult = await searchTool().execute({ query: 'desktop' }) as SessionSearchToolResult
     if ('error' in searchResult) throw new Error('unexpected search error: ' + searchResult.error)
     expect(searchResult.results.length).toBeGreaterThanOrEqual(1)
+    expect(searchResult.candidateOnly).toBe(true)
+    expect(searchResult.results[0]?.snippet).toBeUndefined()
 
     const db = openSessionSearchDb(config.dbPath)
     let anchorId = 0
@@ -218,6 +220,7 @@ describe('SessionSearchCore', () => {
     const scrollResult = await searchTool().execute({ sessionId: 'temporary', aroundMessageId: anchorId }) as SessionSearchScrollResult
     if ('error' in scrollResult) throw new Error('unexpected scroll error: ' + scrollResult.error)
     expect(scrollResult.scroll.messages.some(message => message.anchor)).toBe(true)
+    expect(scrollResult.scroll.messages.every(message => message.content === undefined)).toBe(true)
 
     const statsResult = statsTool().execute({}) as SessionSearchStatsResult
     if ('error' in statsResult) throw new Error('unexpected stats error: ' + statsResult.error)
@@ -264,6 +267,7 @@ describe('SessionSearchCore', () => {
         sessionId: 's',
         projectPath: 'p',
         title: 't',
+        candidateOnly: true,
         messages: [{ id: 1, role: 'user', type: 'user', content: 'hi', line: 1, anchor: true }],
         messagesBefore: 2,
         messagesAfter: 3,
@@ -271,7 +275,8 @@ describe('SessionSearchCore', () => {
     })
     expect(scrollRender).toHaveLength(1)
     expect(scrollRender[0]?.text).toContain('t — 2 earlier, 3 later')
-    expect(scrollRender[0]?.text).toContain('user (line 1): hi [anchor]')
+    expect(scrollRender[0]?.text).toContain('user (line 1): message=1 [anchor]')
+    expect(scrollRender[0]?.text).not.toContain('hi')
 
     expect(tool.output.render({}, { results: [] })).toEqual([{
       type: 'text',
@@ -284,6 +289,13 @@ describe('SessionSearchCore', () => {
     expect(resultsRender[0]?.text).toContain('Found 1 session(s)')
     expect(resultsRender[0]?.text).toContain('1. T [/p] (score 1)')
     expect(resultsRender[0]?.text).toContain('snip')
+
+    const candidateRender = tool.output.render({}, {
+      candidateOnly: true, query: 'desktop',
+      results: [{ sessionKey: 'p:s', path: '/p', title: 'T', snippet: 'snip', score: 1 }],
+    })
+    expect(candidateRender[0]?.text).toContain('Candidate index returned')
+    expect(candidateRender[0]?.text).not.toContain('snip')
   })
 
   test('renders every stats tool output branch', () => {

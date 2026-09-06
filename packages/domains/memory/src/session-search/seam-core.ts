@@ -112,8 +112,9 @@ function errorMessage(error: unknown): string {
 }
 
 const SEARCH_DESCRIPTION =
-  'Search the rin cross-workspace session index by free text and return the strongest matching sessions '
-  + 'with their project path, title, snippet, and relevance score. This index covers full transcripts, '
+  'Search the rin cross-workspace session index as a candidate source for the Rin memory workspace. '
+  + 'Return matching sessions with project path, title, stable session key, and relevance score for coalition evaluation; '
+  + 'transcript text remains outside the model-visible result. '
   + 'history logs, and derived project memories across every workspace, complementing the per-workspace '
   + 'event-level dsh session_search tool. To page within one already-found session, pass sessionId plus '
   + 'aroundMessageId to scroll a window around that message instead.'
@@ -158,13 +159,21 @@ export class SessionSearchCore {
   }
 
   /** Keyword search over the derived index (the rin_session_search execute body). */
-  search(args: Record<string, unknown>): Promise<SessionSearchToolResult> {
-    return searchSessionIndex({
+  async search(args: Record<string, unknown>): Promise<SessionSearchToolResult> {
+    const query = typeof args.query === 'string' ? args.query : ''
+    const result = await searchSessionIndex({
       dbPath: this.config.dbPath,
-      query: typeof args.query === 'string' ? args.query : '',
+      query,
       ...(typeof args.limit === 'number' ? { limit: args.limit } : {}),
       ...(typeof args.scope === 'string' ? { scope: args.scope } : {}),
     })
+    if ('error' in result) return result
+    return {
+      ...result,
+      candidateOnly: true,
+      query,
+      results: result.results.map(({ snippet: _snippet, ...hit }) => hit),
+    }
   }
 
   /** Scroll around one message (the rin_session_search execute body in scroll mode). */
@@ -183,6 +192,15 @@ export class SessionSearchCore {
       aroundMessageId,
       ...(typeof args.window === 'number' ? { window: args.window } : {}),
       ...(typeof args.projectPath === 'string' ? { projectPath: args.projectPath } : {}),
+    }).then(result => {
+      if ('error' in result) return result
+      return {
+        scroll: {
+          ...result.scroll,
+          candidateOnly: true,
+          messages: result.scroll.messages.map(({ content: _content, ...message }) => message),
+        },
+      }
     })
   }
 
@@ -300,11 +318,12 @@ export class SessionSearchCore {
                       sessionKey: { type: 'string', required: true },
                       path: { type: 'string', required: true },
                       title: { type: 'string', required: true },
-                      snippet: { type: 'string', required: true },
                       score: { type: 'number', required: true },
                     },
                   },
                 },
+                candidateOnly: { type: 'boolean' },
+                query: { type: 'string' },
               },
             },
             {
@@ -319,6 +338,7 @@ export class SessionSearchCore {
                     sessionId: { type: 'string', required: true },
                     projectPath: { type: 'string', required: true },
                     title: { type: 'string', required: true },
+                    candidateOnly: { type: 'boolean' },
                     messages: {
                       type: 'array',
                       required: true,
@@ -329,7 +349,6 @@ export class SessionSearchCore {
                           id: { type: 'integer', required: true },
                           role: { type: 'string', required: true },
                           type: { type: 'string', required: true },
-                          content: { type: 'string', required: true },
                           line: { type: 'integer', required: true },
                           timestamp: { type: 'string' },
                           model: { type: 'string' },
@@ -359,11 +378,25 @@ export class SessionSearchCore {
               return [{ type: 'text', text: 'No messages around that point.' }]
             }
             const lines = scroll.messages.map(
-              message => `${message.role} (line ${message.line}): ${message.content}${message.anchor ? ' [anchor]' : ''}`,
+              message => `${message.role} (line ${message.line}): message=${message.id}${message.anchor ? ' [anchor]' : ''}`,
             )
             return [{
               type: 'text',
               text: `${scroll.title} — ${scroll.messagesBefore} earlier, ${scroll.messagesAfter} later:\n\n${lines.join('\n\n')}`,
+            }]
+          }
+          if (result.candidateOnly === true) {
+            if (result.results.length === 0) {
+              return [{ type: 'text', text: 'No matching candidates in the rin session index.' }]
+            }
+            const candidates = result.results.map(
+              (hit, index) => index + 1 + '. ' + hit.title + ' [' + hit.path + '] (score ' + hit.score + ')',
+            )
+            return [{
+              type: 'text',
+              text: 'Candidate index returned ' + result.results.length
+                + ' result(s) for coalition evaluation; raw transcript text remains outside model input.\n\n'
+                + candidates.join('\n'),
             }]
           }
           const hits = result.results

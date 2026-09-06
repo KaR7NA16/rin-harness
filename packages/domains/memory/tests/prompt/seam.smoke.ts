@@ -3,42 +3,63 @@ import {
   PROMPT_MEMORY_SECTION_ORDER,
   registerPromptMemorySeam,
 } from '../../src/prompt/seam.ts'
-import { buildPromptMemorySectionText } from '../../src/prompt/projection.ts'
-import { USER_PROMPT_MEMORY_CHAR_LIMIT } from '../../src/prompt/types.ts'
 
-function makeFile(content) {
-  return {
-    target: null,
-    filename: '',
-    path: '',
-    exists: content.length > 0,
-    content,
-    entries: [],
-    format: 'plain',
-    charCount: content.length,
-    limit: Infinity,
-    overLimit: false,
-  }
-}
-
-function makeStatus({ soul, brief, user }) {
-  return {
-    files: {
-      soul: makeFile(soul),
-      brief: makeFile(brief),
-      user: makeFile(user),
-    },
-  }
-}
+/**
+ * Strip-types smoke for the canonical prompt-memory seam: the section renders
+ * the cognition workspace, refreshes on every assemble, keeps its projection
+ * checkpoint clean, and refuses to mount without the canonical surface.
+ */
 
 const sections = []
 const listeners = []
 const disposers = []
-let status = makeStatus({
-  soul: 'You are Rin.',
-  brief: '',
-  user: 'The user prefers TypeScript.',
-})
+
+let workspaceText = 'You are Rin.\nThe user prefers TypeScript.'
+let workspaceHash = 'ws-hash-1'
+let checkpointCalls = []
+
+function makeMemorySurface() {
+  return {
+    recall: async () => ({
+      workspace: {
+        schemaVersion: 2,
+        cycleId: 'smoke-cycle-' + workspaceHash,
+        materializedVersion: 1,
+        query: {},
+        budget: { maxItems: 4, maxTokens: 600, usedItems: 1, usedTokens: 40 },
+        currentField: undefined,
+        items: [{
+          id: 'scene-1',
+          role: 'support',
+          memory: undefined,
+          external: { content: workspaceText },
+          epistemic: 'observed',
+          influence: 'permitted',
+          confidence: 0.9,
+          score: 0.5,
+          scoreBreakdown: { cueFit: 0.1, contextualFit: 0.1, accessibility: 0.1, salience: 0.1, utility: 0, openLoopPressure: 0, relationRelevance: 0, predictionRelevance: 0, inhibition: 0, contradictionCost: 0, uncertaintyPenalty: 0, invalidityPenalty: 0, total: 0.5 },
+          uncertainty: [],
+          selectionReasons: ['smoke'],
+        }],
+        links: [],
+        uncertainty: [],
+        hash: workspaceHash,
+      },
+      trace: { candidates: [], selectedIds: ['scene-1'] },
+    }),
+    readCognitionState: () => ({ version: 1, memories: [] }),
+    getProjectionCheckpoint: () => ({ status: 'dirty', materializedVersion: 0, stateHash: 'stale' }),
+    requireProjectionReady: () => {
+      checkpointCalls.push('require')
+      return { status: 'clean', materializedVersion: 1, stateHash: workspaceHash }
+    },
+    markProjectionDirty: () => ({ status: 'dirty' }),
+    markProjectionCleanAtCurrent: (projection, version, hash) => {
+      checkpointCalls.push({ projection, version, hash })
+      return { status: 'clean', materializedVersion: version, stateHash: hash }
+    },
+  }
+}
 
 const fakeSeam = {
   systemPrompt: {
@@ -58,13 +79,10 @@ const fakeSeam = {
     }
   },
   effect(fn) {
-    disposers.push(fn)
+    const disposer = fn()
+    if (typeof disposer === 'function') disposers.push(disposer)
   },
-  promptMemory: {
-    async getStatus() {
-      return status
-    },
-  },
+  memory: makeMemorySurface(),
 }
 
 const emptyAssembly = () => ({
@@ -81,16 +99,17 @@ if (sections.length !== 1) throw new Error('expected one section, got ' + sectio
 if (sections[0].name !== PROMPT_MEMORY_SECTION_NAME) throw new Error('wrong section name: ' + sections[0].name)
 if (sections[0].order !== PROMPT_MEMORY_SECTION_ORDER) throw new Error('wrong section order: ' + sections[0].order)
 
-// 2. section text contains soul and user memory
+// 2. section text renders the canonical cognition workspace
 const initialText = sections[0].text
-if (!initialText.includes('You are Rin.')) throw new Error('soul missing from section text')
+if (!initialText.includes('You are Rin.')) throw new Error('workspace content missing from section text')
 if (!initialText.includes('The user prefers TypeScript.')) throw new Error('user memory missing from section text')
 
-// 3. assemble listener registered, and it refreshes from the store (fresh content)
+// 3. assemble listener registered, and it re-renders the refreshed workspace
 if (listeners.length !== 1 || listeners[0].event !== 'system-prompt/assemble') {
   throw new Error('assemble listener not registered')
 }
-status = makeStatus({ soul: 'You are Rin.', brief: '', user: 'Now the user prefers Rust.' })
+workspaceText = 'You are Rin.\nNow the user prefers Rust.'
+workspaceHash = 'ws-hash-2'
 const refreshed = await listeners[0].listener(emptyAssembly(), null, async () => emptyAssembly())
 if (!refreshed.sections[0].text.includes('Now the user prefers Rust.')) {
   throw new Error('assemble listener did not refresh section text')
@@ -99,16 +118,11 @@ if (refreshed.sections[0].text.includes('The user prefers TypeScript.')) {
   throw new Error('assemble listener returned stale text')
 }
 
-// 4. budget truncation when user memory exceeds its limit
-status = makeStatus({
-  soul: 'You are Rin.',
-  brief: '',
-  user: 'x'.repeat(USER_PROMPT_MEMORY_CHAR_LIMIT + 100),
-})
-const truncated = await listeners[0].listener(emptyAssembly(), null, async () => emptyAssembly())
-if (!truncated.sections[0].text.includes('[Truncated USER.md')) {
-  throw new Error('budget truncation notice missing')
-}
+// 4. the projection checkpoint was repaired toward the fresh workspace hash
+const repairs = checkpointCalls.filter(entry => typeof entry === 'object')
+if (repairs.length === 0) throw new Error('checkpoint repair was not invoked')
+if (!repairs.every(entry => entry.projection === 'prompt-memory')) throw new Error('checkpoint repair targeted the wrong projection')
+if (!repairs.some(entry => entry.hash === 'ws-hash-2')) throw new Error('checkpoint repair did not bind the fresh workspace hash')
 
 // 5. disposer cleans up the section and listener
 if (disposers.length !== 1) throw new Error('expected one effect disposer, got ' + disposers.length)
@@ -116,27 +130,18 @@ disposers.forEach(fn => fn())
 if (sections.length !== 0) throw new Error('section not removed by disposer')
 if (listeners.length !== 0) throw new Error('listener not removed by disposer')
 
-// 6. pure builder honours the component switches
-const withAll = buildPromptMemorySectionText(
-  makeStatus({ soul: 'S', brief: 'B', user: 'U' }),
-  { injectSoul: true, injectBrief: true },
-)
-if (!withAll.includes('S') || !withAll.includes('B') || !withAll.includes('U')) {
-  throw new Error('builder should include soul, brief, and user')
+// 6. the seam refuses to mount without the canonical cognition surface
+let rejected = false
+try {
+  await registerPromptMemorySeam({
+    systemPrompt: { section: () => () => {} },
+    on: () => () => {},
+    effect: () => {},
+    memory: {},
+  }, { injectSoul: true, injectBrief: true })
+} catch (error) {
+  rejected = String(error).includes('canonical cognition surface is required')
 }
-const withoutExtras = buildPromptMemorySectionText(
-  makeStatus({ soul: 'S', brief: 'B', user: 'U' }),
-  { injectSoul: false, injectBrief: false },
-)
-if (withoutExtras.includes('S')) throw new Error('soul should be omitted when injectSoul=false')
-if (withoutExtras.includes('B')) throw new Error('brief should be omitted when injectBrief=false')
-if (!withoutExtras.includes('U')) throw new Error('user memory should always be included')
-
-// 7. empty status produces empty text
-const empty = buildPromptMemorySectionText(
-  makeStatus({ soul: '', brief: '', user: '' }),
-  { injectSoul: true, injectBrief: true },
-)
-if (empty !== '') throw new Error('empty status should produce empty text, got: ' + JSON.stringify(empty))
+if (!rejected) throw new Error('seam must reject a missing canonical cognition surface')
 
 console.log('PROMPT-MEMORY-SEAM-SMOKE-OK')

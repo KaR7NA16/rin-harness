@@ -20,14 +20,14 @@ export interface SessionSearchToolHit {
   /** Session title. */
   title: string
   /** Best-matching text excerpt. */
-  snippet: string
+  snippet?: string
   /** Relevance rank in descending result order (higher is better). */
   score: number
 }
 
 /** Search result, or an explicit error when the index is unavailable. */
 export type SessionSearchToolResult =
-  | { results: SessionSearchToolHit[] }
+  | { results: SessionSearchToolHit[]; candidateOnly?: boolean; query?: string }
   | { error: string }
 
 /** One scroll-window message exposed to the model. */
@@ -35,7 +35,7 @@ export interface SessionSearchScrollToolMessage {
   id: number
   role: string
   type: string
-  content: string
+  content?: string
   line: number
   timestamp?: string
   model?: string
@@ -47,6 +47,7 @@ export interface SessionSearchScrollToolResult {
   sessionId: string
   projectPath: string
   title: string
+  candidateOnly?: boolean
   messages: SessionSearchScrollToolMessage[]
   messagesBefore: number
   messagesAfter: number

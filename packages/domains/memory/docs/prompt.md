@@ -1,6 +1,7 @@
 # @rin/memory/prompt
 
-rin prompt memory — file-backed **identity and prompt memory** persistence.
+rin prompt memory — editable prompt-memory files plus Rin's canonical
+materialized cognition projection.
 
 It owns deterministic character budgets, provenance-aware insight projection,
 file layout, configuration, seed identity, serialized entry mutations, and
@@ -9,7 +10,9 @@ identity file at the root and a `prompt-memory/` directory holding `BRIEF.md`,
 `USER.md`, `config.json`, and the `AUTO_REVIEW_LOG.jsonl` audit log. The
 Cordis plugin entry (`index.ts`) exposes `ctx.promptMemory` with a service
 bound to one configuration root, and projects the memory into the system
-prompt as an ordered `rin:prompt-memory` section.
+prompt as an ordered rin:prompt-memory section. When ctx.memory exposes the
+canonical cognition surface, this section is generated from replayed Rin state;
+the files are not model-input authority.
 
 ## Service API
 
@@ -38,27 +41,31 @@ the system prompt projection: `injectPromptMemory` (master, default true),
 
 ### What the model sees
 
-One ordered `rin:prompt-memory` section, refreshed from the store on every
-prompt assembly. It renders the `SOUL.md` identity, the `BRIEF.md` working
-brief, and the `USER.md` user memory under `# Identity`, `# Working brief`,
-and `# User memory` headings. `SOUL.md` is bounded to its own character
-limit, and `BRIEF.md`/`USER.md` share the combined prompt-memory budget;
-over-limit content is truncated with an explicit `[Truncated …]` notice.
-Empty components are omitted, so an empty store contributes nothing.
+One ordered rin:prompt-memory section, refreshed from Rin's materialized
+cognition state on every prompt assembly. Eligible self, current-field, scene,
+person, relationship, disposition, structure, and open-loop representations
+are rendered with epistemic state, confidence, and model-input influence
+boundary. Blocked, archived, erased, superseded, rejected, or non-model-input
+representations are omitted. The projection is bounded by
+PROMPT_MEMORY_TOTAL_CHAR_LIMIT; an empty eligible state contributes nothing.
+Contexts without the canonical surface retain the file-backed builder as an
+explicit fallback for structural compatibility.
 
 ### Token effect
 
-Up to `SOUL_CHAR_LIMIT` (3000) plus `PROMPT_MEMORY_TOTAL_CHAR_LIMIT` (3575)
-characters of model-visible prose, depending on the populated files.
+Up to PROMPT_MEMORY_TOTAL_CHAR_LIMIT (3575) characters of canonical
+model-visible prose, depending on the eligible cognition state.
 
 ### KV Cache effect
 
-Varies with the memory content — the section joins the system prompt prefix,
-so changes to the memory files shift the prefix and its cached state.
+Varies with the eligible cognition state — the section joins the system prompt
+prefix, so changes to canonical state shift the prefix and its cached state.
 
 ## Known Limitations and Deferred Work
 
 - **No automatic model review.** The review log is written and read by callers;
   automatic model-driven review and REPL hooks are deferred.
-- **File-backed only.** Memory is persisted as markdown and JSONL files; there
-  is no SQLite or other database backing yet.
+- **Canonical projection is not full recall.** Prompt projection currently
+  consumes the materialized state directly; multi-cue retrieval, coalition
+  optimization, and use-trace driven consolidation remain later wave work.
+- **Editable files remain a fallback surface.** The canonical Host path does

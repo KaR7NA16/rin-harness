@@ -17,7 +17,7 @@ const PROJECTIONS: MemoryProjectionDescriptor[] = [
     owner: '@rin/memory/prompt',
     role: 'projection',
     path: 'prompt-memory',
-    rebuildable: false,
+    rebuildable: true,
     modelVisible: true,
   },
   {

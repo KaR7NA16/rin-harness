@@ -3,8 +3,8 @@
  *
  * Exposes a ctx.promptMemory service (file-backed prompt memory) plus the
  * domain model: paths, budgets, insights, review log, config, seed, and store.
- * The service is also projected into the system prompt as an ordered section
- * (SOUL identity + BRIEF/USER memory, budget-bounded) kept in sync per assembly.
+ * The host composition root projects canonical memory into the system prompt as
+ * an ordered section kept in sync per assembly.
  *
  * @module @rin/memory/prompt
  */
@@ -18,7 +18,7 @@ import {
   appendPromptMemoryReviewLogs,
   readPromptMemoryReviewLogs,
 } from './reviewLog.ts'
-import { registerPromptMemorySeam, type PromptMemorySeam } from './seam.ts'
+import type { PromptMemorySeam } from './seam.ts'
 import { createPromptMemoryStore } from './store.ts'
 import type {
   PromptMemoryAutoReviewLogEntry,
@@ -75,7 +75,8 @@ export {
   type PromptMemorySeam,
 } from './seam.ts'
 export {
-  buildPromptMemorySectionText,
+  buildCanonicalPromptMemorySectionText,
+  hashCanonicalPromptMemoryProjection,
   type PromptMemoryProjectionOptions,
 } from './projection.ts'
 
@@ -212,21 +213,12 @@ export const name = 'prompt-memory'
 export const inject = ['systemPrompt', 'memory']
 
 /**
- * Install the file-backed prompt memory service and project it into the
- * system prompt.
- * @param ctx - the plugin context (must inject systemPrompt).
+ * Install the file-backed prompt memory service.
+ * @param ctx - the plugin context that owns the service.
  * @param config - the resolved plugin configuration.
  */
 export function apply(ctx: Context, config: PromptMemoryPluginConfig): void {
   ctx.plugin(FilePromptMemoryService, config)
-  const resolved = resolvePluginConfig(config)
-  if (!resolved.injectPromptMemory) return
-  registerPromptMemorySeam(ctx as unknown as PromptMemorySeam, {
-    injectSoul: resolved.injectSoul,
-    injectBrief: resolved.injectBrief,
-  }).catch((error: unknown) => {
-    ctx.logger.error('rin prompt-memory: system prompt projection failed: ' + String(error))
-  })
 }
 
 /** Validate the plugin config and resolve the configuration root. */

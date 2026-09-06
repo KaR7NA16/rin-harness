@@ -93,7 +93,8 @@ try {
   const hit = hitResult.results[0]
   if (hit.title !== 'Fix the payment retry bug') throw new Error('wrong hit title: ' + hit.title)
   if (hit.sessionKey !== '/workspace/demo:session-1') throw new Error('wrong session key: ' + hit.sessionKey)
-  if (!hit.snippet) throw new Error('hit snippet missing')
+  if (hitResult.candidateOnly !== true) throw new Error('search result must be candidate-only')
+  if (hit.snippet !== undefined) throw new Error('candidate result leaked transcript snippet')
   if (typeof hit.score !== 'number') throw new Error('hit score missing')
 
   const missResult = await searchTool.execute({ query: 'nonexistent-token' }) as SessionSearchToolResult
