@@ -33,6 +33,9 @@
       "path": "../../features/context"
     },
     {
+      "path": "../contracts"
+    },
+    {
       "path": "../../features/evolution"
     },
     {
