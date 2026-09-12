@@ -86,8 +86,8 @@ const coverageThresholds = Object.fromEntries([
 ])
 
 export default defineConfig({
-  // Vite 8 resolves the root tsconfig paths natively; keeping this in the
-  // shared config also makes both Vitest projects use the same aliases.
+  // Each Vitest 4 project explicitly inherits source aliases and transforms
+  // so clean checkouts do not resolve workspace imports through built lib/.
   resolve: { tsconfigPaths: true },
   plugins: [standardDecoratorPlugin()],
   test: {
@@ -95,7 +95,7 @@ export default defineConfig({
     // two-project workspace, mirroring the dsh config's project layout.
     projects: [
       {
-        plugins: [standardDecoratorPlugin()],
+        extends: true,
         test: {
           name: 'host',
           environment: 'node',
@@ -105,7 +105,7 @@ export default defineConfig({
         },
       },
       {
-        plugins: [standardDecoratorPlugin()],
+        extends: true,
         test: {
           name: 'web',
           environment: 'jsdom',

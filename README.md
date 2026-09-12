@@ -70,6 +70,10 @@ pnpm run smoke
 
 pnpm run check runs metadata and hygiene gates, TypeScript project checks, lint, the Vitest suite, desktop release verification, and smoke tests.
 
+Both Vitest projects explicitly inherit the root configuration, including
+TypeScript source-path resolution and decorator transforms. Unit tests run
+against workspace source without requiring generated `lib/` artifacts.
+
 Recent evidence:
 
 - [CI #8](https://github.com/KaR7NA16/rin-harness/actions/runs/32685813652): 193 test files and 1695 test results passed.
