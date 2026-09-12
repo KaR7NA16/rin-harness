@@ -416,6 +416,16 @@ describe('runtime event formation', () => {
     expect(oldScene.data.runtimeEventRefs?.some(ref => ref.eventType === 'tool/result')).toBe(false)
     expect(finalState.currentField.sceneId).toBe(currentScene.id)
     expect(finalState.currentField.activeOpenLoops).toEqual([])
+    const journal = database.listAllTransactions()
+    let prefixState = materializer.replay([])
+    for (let index = 0; index < journal.length; index += 1) {
+      const snapshot = JSON.stringify(prefixState)
+      const next = materializer.apply(journal[index]!, prefixState)
+      expect(JSON.stringify(prefixState)).toBe(snapshot)
+      expect(materializer.replay(journal.slice(0, index + 1))).toEqual(next)
+      prefixState = next
+    }
+    expect(prefixState).toEqual(finalState)
     expect(materializer.replay(database.listTransactions())).toEqual(finalState)
   })
 

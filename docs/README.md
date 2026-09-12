@@ -16,6 +16,7 @@
 
 ## 证据快照
 
+- [2026-09-12 记忆回放性能记录](audits/2026-09-12-MEMORY-REPLAY-PERFORMANCE.md)：回放实现、旧实现对照、分页查询计划与本地覆盖率证据。
 - audits/AUDIT-OPENSOURCE.md：开源发布审计。
 - audits/AUDIT-REPORT.md：代码质量与冗余审计。
 - audits/REPOSITORY-LAYOUT-CLOSEOUT.md：当前 21 包、`rin/` 缺失与旧路径审计收口。

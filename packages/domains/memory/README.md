@@ -29,6 +29,14 @@ the bounded journal query is not used for complete reconstruction. Restore
 validates and replays the complete input before committing it atomically, and
 rejects a nonempty target even when the input stream is empty.
 
+Bulk replay retains its maps and transaction-id set until the final immutable
+snapshot. Prediction errors are indexed by referenced memory and refreshed when
+behavior records or their canonical ordering change; ordinary memory writes
+reconcile only changed scenes. CurrentField still advances after every
+transaction, and public apply() preserves the preceding snapshot. Journal pages
+seek through first-event sequence numbers without aggregating the entire journal
+for each page.
+
 Owner data rights run through owner-only intent commands: correctUnderstanding
 (in-place revision with journal history), restrictInfluence, revokeInfluence,
 and the erase preview → authorize → commit flow whose scope is bound by a
@@ -55,5 +63,8 @@ checkpoints; static prompt files are no longer a model-input source.
 - The §12-mandated Host smokes cover E-01/E-10 (memory-runtime.smoke.ts) and
   E-13/E-16/E-18 (memory-lifecycle.smoke.ts); the remaining E-scenarios hold
   domain-level evidence only.
+- Active-scene CurrentField derivation still examines the current memory/link
+  collection, and behavior changes rebuild the prediction-error index. The replay
+  optimization does not establish linear cost for every mixed-event workload.
 - `pnpm run bench:memory` records the single-machine performance baseline; the
   numbers are not a production-hardware claim.

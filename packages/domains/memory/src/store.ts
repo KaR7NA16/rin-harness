@@ -929,17 +929,14 @@ export class MemoryCognitionDatabase {
         throw new MemoryProtocolError('journal cutoff cannot be ahead of the current event sequence')
       }
       const rows = db.prepare(`
-        SELECT transaction_json, first_event_seq
-        FROM (
-          SELECT transactions.transaction_json, MIN(events.event_seq) AS first_event_seq
-          FROM memory_cognition_transactions AS transactions
-          JOIN memory_cognition_events AS events
-            ON events.transaction_id = transactions.transaction_id
-          GROUP BY transactions.transaction_id
-        ) AS ordered_transactions
-        WHERE first_event_seq > ?
-          AND first_event_seq <= ?
-        ORDER BY first_event_seq ASC
+        SELECT transactions.transaction_json, events.event_seq AS first_event_seq
+        FROM memory_cognition_events AS events
+        JOIN memory_cognition_transactions AS transactions
+          ON transactions.transaction_id = events.transaction_id
+        WHERE events.position = 0
+          AND events.event_seq > ?
+          AND events.event_seq <= ?
+        ORDER BY events.event_seq ASC
         LIMIT ?
       `).all(afterEventSeq, throughEventSeq, boundedLimit + 1) as Array<{ transaction_json: string; first_event_seq: number }>
       const pageRows = rows.slice(0, boundedLimit)
@@ -1611,8 +1608,8 @@ function deriveCandidateActionSources(
 }
 function buildCurrentField(
   previous: CurrentField,
-  memories: readonly RinMemory[],
-  links: readonly MemoryLink[],
+  memoryIndex: ReadonlyMap<string, RinMemory>,
+  linkIndex: ReadonlyMap<string, MemoryLink>,
   events: readonly MemoryEvent[],
   version: number,
   committedAt: string,
@@ -1620,11 +1617,11 @@ function buildCurrentField(
   const eventScene = sceneFromCurrentFieldEvents(events)
   const previousScene = previous.sceneId === undefined
     ? undefined
-    : memories.find(memory => memory.id === previous.sceneId)
+    : memoryIndex.get(previous.sceneId)
   const sceneCandidate = eventScene ?? previousScene
   const scene = sceneCandidate === undefined
     ? undefined
-    : memories.find(memory => memory.id === sceneCandidate.id)
+    : memoryIndex.get(sceneCandidate.id)
   const updatedAt = Date.parse(committedAt) < Date.parse(previous.updatedAt)
     ? previous.updatedAt
     : committedAt
@@ -1645,6 +1642,8 @@ function buildCurrentField(
       uncertainty: [],
     })
   }
+  const memories = [...memoryIndex.values()]
+  const links = [...linkIndex.values()]
   const related = memories
     .filter(memory =>
       memory.id !== scene.id
@@ -2093,13 +2092,12 @@ function predictionErrorMagnitude(outcome: MemoryOutcomeRecord, prediction: Memo
   return normalizePredictionText(outcome.description) === normalizePredictionText(prediction.expectedOutcome) ? 0 : 0.5
 }
 
-function reconcilePredictionErrors(
-  memories: Map<string, RinMemory>,
+function derivePredictionErrors(
   predictions: ReadonlyMap<string, MemoryPredictionRecord>,
   actions: ReadonlyMap<string, MemoryActionRecord>,
   outcomes: ReadonlyMap<string, MemoryOutcomeRecord>,
   feedback: ReadonlyMap<string, MemoryFeedbackVector>,
-): void {
+): Map<string, MemoryPredictionError[]> {
   const derived = new Map<string, MemoryPredictionError[]>()
   const add = (sceneId: string, error: MemoryPredictionError): void => {
     const errors = derived.get(sceneId) ?? []
@@ -2123,7 +2121,7 @@ function reconcilePredictionErrors(
       ...action.sourceMemoryIds.map(String),
     ])
     for (const sceneId of sceneIds) {
-      if (memories.get(sceneId)?.form === 'scene') add(sceneId, error)
+      add(sceneId, error)
     }
   }
   for (const vector of feedback.values()) {
@@ -2149,12 +2147,21 @@ function reconcilePredictionErrors(
       ...(action?.sourceMemoryIds.map(String) ?? []),
     ])
     for (const sceneId of sceneIds) {
-      if (memories.get(sceneId)?.form === 'scene') add(sceneId, error)
+      add(sceneId, error)
     }
   }
-  for (const [id, memory] of memories) {
-    if (memory.form !== 'scene') continue
-    const errors = derived.get(String(id)) ?? []
+  return derived
+}
+
+function reconcilePredictionErrors(
+  memories: Map<string, RinMemory>,
+  derived: ReadonlyMap<string, readonly MemoryPredictionError[]>,
+  changedMemoryIds: ReadonlySet<string>,
+): void {
+  for (const id of changedMemoryIds) {
+    const memory = memories.get(id)
+    if (memory?.form !== 'scene') continue
+    const errors = derived.get(id) ?? []
     if (!isDeepStrictEqual(memory.data.predictionErrors, errors)) {
       memories.set(id, createMemory({
         ...memory,
@@ -2446,46 +2453,142 @@ function applyMaterializedEvent(
   }
 }
 
+/** Tracks writes without copying every existing record for each transaction. */
+class MaterializedMap<T> extends Map<string, T> {
+  readonly changedIds = new Set<string>()
+  private orderDirty = false
+
+  constructor(entries: Iterable<readonly [string, T]>) {
+    super()
+    for (const [id, value] of entries) super.set(id, value)
+  }
+
+  override set(id: string, value: T): this {
+    if (!this.has(id)) this.orderDirty = true
+    if (this.get(id) !== value) this.changedIds.add(id)
+    return super.set(id, value)
+  }
+
+  override delete(id: string): boolean {
+    if (!super.delete(id)) return false
+    this.changedIds.add(id)
+    return true
+  }
+
+  beginTransaction(sort: boolean): boolean {
+    const reordered = sort && this.orderDirty
+    if (reordered) {
+      const entries = [...this].sort(([left], [right]) => left.localeCompare(right))
+      super.clear()
+      for (const [id, value] of entries) super.set(id, value)
+      this.orderDirty = false
+    }
+    this.changedIds.clear()
+    return reordered
+  }
+}
+
+function sortedMaterializedValues<T extends { id: string }>(values: ReadonlyMap<string, T>): T[] {
+  return [...values.values()].sort((left, right) => left.id.localeCompare(right.id))
+}
+
+/** Mutable only within one apply/replay call; snapshots never expose its maps. */
+class MaterializationDraft {
+  private readonly memories: MaterializedMap<RinMemory>
+  private readonly links: MaterializedMap<MemoryLink>
+  private readonly predictions: MaterializedMap<MemoryPredictionRecord>
+  private readonly actions: MaterializedMap<MemoryActionRecord>
+  private readonly outcomes: MaterializedMap<MemoryOutcomeRecord>
+  private readonly feedback: MaterializedMap<MemoryFeedbackVector>
+  private readonly erasedMemoryIds: Set<MemoryId>
+  private readonly eraseAuthorizations: Map<string, MemoryEraseAuthorization>
+  private readonly appliedTransactionIds: Set<string>
+  private predictionErrors: Map<string, MemoryPredictionError[]>
+  private readonly initialSceneIds: Set<string>
+  private version: number
+  private eventCount: number
+  private currentField: CurrentField
+  private lastTransactionId: string | undefined
+
+  constructor(previous: MemoryMaterializedState) {
+    this.memories = new MaterializedMap(previous.memories.map(memory => [memory.id, memory]))
+    this.links = new MaterializedMap(previous.links.map(link => [link.id, link]))
+    this.predictions = new MaterializedMap(previous.predictions.map(prediction => [prediction.id, prediction]))
+    this.actions = new MaterializedMap(previous.actions.map(action => [action.id, action]))
+    this.outcomes = new MaterializedMap(previous.outcomes.map(outcome => [outcome.id, outcome]))
+    this.feedback = new MaterializedMap(previous.feedback.map(vector => [vector.id, vector]))
+    this.erasedMemoryIds = new Set(previous.erasedMemoryIds)
+    this.eraseAuthorizations = new Map(previous.eraseAuthorizations.map(authorization => [authorization.authorizationId, authorization]))
+    this.appliedTransactionIds = new Set(previous.appliedTransactionIds)
+    this.predictionErrors = derivePredictionErrors(this.predictions, this.actions, this.outcomes, this.feedback)
+    this.initialSceneIds = new Set(previous.memories.filter(memory => memory.form === 'scene').map(memory => String(memory.id)))
+    this.version = previous.version
+    this.eventCount = previous.eventCount
+    this.currentField = previous.currentField
+    this.lastTransactionId = previous.lastTransactionId
+  }
+
+  apply(transaction: MemoryTransaction): void {
+    if (this.appliedTransactionIds.has(transaction.transactionId)) return
+    this.memories.beginTransaction(false)
+    this.links.beginTransaction(true)
+    // Public snapshots sort records. Preserve that order at the next transaction
+    // because error arrays and deterministic learning consume record order.
+    const behaviorMaps = [this.predictions, this.actions, this.outcomes, this.feedback]
+    const reordered = behaviorMaps.map(records => records.beginTransaction(true)).some(Boolean)
+    for (const event of transaction.events) {
+      applyMaterializedEvent(event, this.memories, this.links, this.erasedMemoryIds,
+        this.eraseAuthorizations, this.predictions, this.actions, this.outcomes, this.feedback)
+    }
+    const changedScenes = new Set([...this.initialSceneIds, ...this.memories.changedIds])
+    this.initialSceneIds.clear()
+    if (reordered || behaviorMaps.some(records => records.changedIds.size > 0)) {
+      const nextErrors = derivePredictionErrors(this.predictions, this.actions, this.outcomes, this.feedback)
+      for (const id of this.predictionErrors.keys()) changedScenes.add(id)
+      for (const id of nextErrors.keys()) changedScenes.add(id)
+      this.predictionErrors = nextErrors
+    }
+    reconcilePredictionErrors(this.memories, this.predictionErrors, changedScenes)
+    this.version += 1
+    this.eventCount += transaction.events.length
+    this.currentField = buildCurrentField(this.currentField, this.memories, this.links,
+      transaction.events, this.version, transaction.committedAt)
+    this.lastTransactionId = transaction.transactionId
+    this.appliedTransactionIds.add(transaction.transactionId)
+  }
+
+  snapshot(): MemoryMaterializedState {
+    return freezeMaterializedState({
+      version: this.version,
+      eventCount: this.eventCount,
+      currentField: this.currentField,
+      ...(this.lastTransactionId === undefined ? {} : { lastTransactionId: this.lastTransactionId }),
+      memories: sortedMaterializedValues(this.memories),
+      predictions: sortedMaterializedValues(this.predictions),
+      actions: sortedMaterializedValues(this.actions),
+      outcomes: sortedMaterializedValues(this.outcomes),
+      feedback: sortedMaterializedValues(this.feedback),
+      links: sortedMaterializedValues(this.links),
+      erasedMemoryIds: [...this.erasedMemoryIds].sort((left, right) => left.localeCompare(right)),
+      eraseAuthorizations: [...this.eraseAuthorizations.values()].sort((left, right) => left.authorizationId.localeCompare(right.authorizationId)),
+      appliedTransactionIds: [...this.appliedTransactionIds],
+    })
+  }
+}
+
 export class MemoryMaterializer {
   apply(transaction: MemoryTransaction, previous = createEmptyMaterializedState()): MemoryMaterializedState {
     const normalized = normalizeCognitionTransaction(transaction)
     if (previous.appliedTransactionIds.includes(normalized.transactionId)) return previous
-    const memories = new Map(previous.memories.map(memory => [memory.id, memory]))
-    const erasedMemoryIds = new Set(previous.erasedMemoryIds)
-    const links = new Map(previous.links.map(link => [link.id, link]))
-    const eraseAuthorizations = new Map(previous.eraseAuthorizations.map(authorization => [authorization.authorizationId, authorization]))
-    const predictions = new Map(previous.predictions.map(prediction => [prediction.id, prediction]))
-    const actions = new Map(previous.actions.map(action => [action.id, action]))
-    const outcomes = new Map(previous.outcomes.map(outcome => [outcome.id, outcome]))
-    const feedback = new Map(previous.feedback.map(vector => [vector.id, vector]))
-    for (const event of normalized.events) {
-      applyMaterializedEvent(event, memories, links, erasedMemoryIds, eraseAuthorizations, predictions, actions, outcomes, feedback)
-    }
-    reconcilePredictionErrors(memories, predictions, actions, outcomes, feedback)
-    const version = previous.version + 1
-    const materializedMemories = [...memories.values()].sort((left, right) => left.id.localeCompare(right.id))
-    const currentField = buildCurrentField(previous.currentField, materializedMemories, [...links.values()], normalized.events, version, normalized.committedAt)
-    return freezeMaterializedState({
-      version,
-      eventCount: previous.eventCount + normalized.events.length,
-      currentField,
-      lastTransactionId: normalized.transactionId,
-      memories: materializedMemories,
-      predictions: [...predictions.values()].sort((left, right) => left.id.localeCompare(right.id)),
-      actions: [...actions.values()].sort((left, right) => left.id.localeCompare(right.id)),
-      outcomes: [...outcomes.values()].sort((left, right) => left.id.localeCompare(right.id)),
-      feedback: [...feedback.values()].sort((left, right) => left.id.localeCompare(right.id)),
-      links: [...links.values()].sort((left, right) => left.id.localeCompare(right.id)),
-      erasedMemoryIds: [...erasedMemoryIds].sort((left, right) => left.localeCompare(right)) as MemoryId[],
-      eraseAuthorizations: [...eraseAuthorizations.values()].sort((left, right) => left.authorizationId.localeCompare(right.authorizationId)),
-      appliedTransactionIds: [...previous.appliedTransactionIds, normalized.transactionId],
-    })
+    const draft = new MaterializationDraft(previous)
+    draft.apply(normalized)
+    return draft.snapshot()
   }
 
   replay(transactions: readonly MemoryTransaction[]): MemoryMaterializedState {
-    let state = createEmptyMaterializedState()
-    for (const transaction of transactions) state = this.apply(transaction, state)
-    return state
+    const draft = new MaterializationDraft(createEmptyMaterializedState())
+    for (const transaction of transactions) draft.apply(normalizeCognitionTransaction(transaction))
+    return draft.snapshot()
   }
 
   replayFrom(database: MemoryCognitionDatabase): MemoryMaterializedState {

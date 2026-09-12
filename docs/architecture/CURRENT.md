@@ -100,6 +100,10 @@ graph read model。它可以读取 memory、notes、assets 与 codegraph 的公�
   journal 导出与重放拒绝。
 - journal 导出与恢复（M7-07）：GET /api/memory/journal 导出按提交顺序的事务流；
   restoreCognitionJournal 仅接受空库并按确定性重放恢复，重放结果与源 store 一致。
+  2026-09-12：批量重放在调用内复用 Map/Set，仅在返回时生成不可变快照；
+  普通记忆写入仅协调变动场景的预测误差，行为记录或其排序改变时重建误差索引。
+  CurrentField 仍逐事务推进；分页通过首事件序号范围查询读取完整事务。
+  性能与等价验证见 [回放性能记录](../audits/2026-09-12-MEMORY-REPLAY-PERFORMANCE.md)。
 - 长程行为场景集 E-01 至 E-20（§12）已有领域级可执行断言；其中 E-01、E-10 由
   memory-runtime.smoke.ts、E-13（授权擦除只清除授权范围）、E-16（投影更新崩溃
   回滚且过期投影不进入模型输入）与 E-18（给定回复 cycle 重建实际模型输入顺序与

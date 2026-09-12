@@ -57,6 +57,20 @@ import type { MemoryCommand, MemoryEvent, MemoryTransaction } from '../src/event
 import { MEMORY_RECALL_SCHEMA_VERSION } from '../src/recall.ts'
 import type { MemoryRecallRecord } from '../src/recall.ts'
 
+function expectReplayPrefixes(transactions: readonly MemoryTransaction[]): void {
+  const materializer = new MemoryMaterializer()
+  let previous = materializer.replay([])
+  for (let index = 0; index < transactions.length; index += 1) {
+    const snapshot = JSON.stringify(previous)
+    const next = materializer.apply(transactions[index]!, previous)
+    expect(JSON.stringify(previous)).toBe(snapshot)
+    expect(Object.isFrozen(next.memories)).toBe(true)
+    expect(materializer.apply(transactions[index]!, next)).toBe(next)
+    expect(materializer.replay(transactions.slice(0, index + 1))).toEqual(next)
+    previous = next
+  }
+}
+
 function eraseTransaction(transactionId: string, commandId: string, targetMemoryId = createMemoryId('memory-1')): MemoryTransaction {
   const owner = createOwnerActor('owner-1')
   const authorizationId = createMemoryAuthorizationId('auth-1')
@@ -430,6 +444,22 @@ describe('M1-03 cognition journal', () => {
     expect(fromDatabase.memories[0].state.persistence).toBe('encoded')
     expect(Object.isFrozen(fromDatabase)).toBe(true)
     expect(Object.isFrozen(fromDatabase.memories)).toBe(true)
+  })
+
+  test('a failed transaction leaves the prior snapshot and later replays intact', () => {
+    const memory = sceneMemory()
+    const observed = observedTransaction('immutable-observe', 'immutable-command', memory)
+    const encoded = encodedTransaction(memory)
+    const event = encoded.events[0] as Extract<MemoryEvent, { type: 'memory-transitioned' }>
+    const invalid = { ...encoded, events: [{ ...event, payload: { ...event.payload, memory } }] }
+    const materializer = new MemoryMaterializer()
+    const previous = materializer.replay([observed])
+    const snapshot = JSON.stringify(previous)
+    expect(() => materializer.apply(invalid, previous)).toThrow('result does not match deterministic transition')
+    expect(() => materializer.replay([observed, invalid])).toThrow('result does not match deterministic transition')
+    expect(JSON.stringify(previous)).toBe(snapshot)
+    expect(materializer.replay([observed, encoded])).toEqual(materializer.apply(encoded, previous))
+    expectReplayPrefixes([observed, observed, encoded])
   })
 
   test('rejects a transitioned result that diverges from the deterministic model', () => {
@@ -1210,10 +1240,46 @@ test('replays one behavior chain in the cognition journal and erases its derived
     behaviorTransaction,
   ])))
 
+  // A later record sorts before the earlier record in the next snapshot.
+  // Derived error order must remain identical between bulk and stepwise replay.
+  const lateOutcome = {
+    ...outcome,
+    id: createOutcomeId('behavior-outcome-0'),
+    description: 'a delayed result contradicted the first outcome',
+    occurredAt: '2026-01-01T00:00:06.000Z',
+    delayed: true,
+  }
+  database.appendTransaction(createMemoryOutcomeTransaction({
+    actor: createRuntimeActor('runtime-behavior'),
+    outcome: lateOutcome,
+    commandId: createMemoryCommandId('command-late-outcome'),
+    eventId: createMemoryEventId('event-late-outcome'),
+    transactionId: createMemoryTransactionId('tx-late-outcome'),
+    correlationId: createMemoryCorrelationId('correlation-late-outcome'),
+    issuedAt: lateOutcome.occurredAt,
+    committedAt: lateOutcome.occurredAt,
+  }))
+  const afterLateOutcome = new MemoryMaterializer().replayFrom(database)
+  const sceneAfterLateOutcome = afterLateOutcome.memories.find(item => item.id === memory.id)
+  expect(sceneAfterLateOutcome?.data.predictionErrors).toEqual([
+    { expected: prediction.expectedOutcome, actual: outcome.description, magnitude: 0.5 },
+    { expected: prediction.expectedOutcome, actual: lateOutcome.description, magnitude: 0.5 },
+    { expected: prediction.expectedOutcome, actual: feedback.factualCorrection, magnitude: 1 },
+  ])
+
   const authorization = eraseTransaction('tx-behavior-erase-authorize', 'command-behavior-erase-authorize')
   const commit = eraseCommitTransaction('tx-behavior-erase-commit', 'command-behavior-erase-commit')
   database.appendTransaction(authorization)
+  const afterAuthorization = new MemoryMaterializer().replayFrom(database)
+  const authorizedScene = afterAuthorization.memories.find(item => item.id === memory.id)
+  expect(authorizedScene?.data.predictionErrors).toEqual([
+    { expected: prediction.expectedOutcome, actual: lateOutcome.description, magnitude: 0.5 },
+    { expected: prediction.expectedOutcome, actual: outcome.description, magnitude: 0.5 },
+    { expected: prediction.expectedOutcome, actual: feedback.factualCorrection, magnitude: 1 },
+  ])
+  expect(JSON.stringify(beforeErase)).not.toContain(lateOutcome.description)
   database.appendTransaction(commit)
+  expectReplayPrefixes(database.listAllTransactions())
   const erased = new MemoryMaterializer().replayFrom(database)
   expect(erased.memories).toEqual([survivor])
   expect(erased.memories[0]?.data.predictionErrors).toEqual([])
