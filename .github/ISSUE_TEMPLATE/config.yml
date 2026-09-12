@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation / 文档
+    url: https://github.com/KaR7NA16/rin-harness/blob/main/docs/README.md
+    about: Architecture, commands, and current implementation / 架构、命令与当前实现
+  - name: Security reporting / 安全报告
+    url: https://github.com/KaR7NA16/rin-harness/blob/main/SECURITY.md
+    about: Read before reporting a vulnerability; do not post exploit details publicly / 漏洞细节请勿公开

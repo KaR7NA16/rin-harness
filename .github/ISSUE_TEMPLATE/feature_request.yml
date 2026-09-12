@@ -1,0 +1,28 @@
+name: Feature request / 功能请求
+description: Explain a user need and the expected behavior / 描述用户需求和预期行为
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: User need / 用户需求
+      description: What task is difficult today, and who is affected?
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected behavior / 预期行为
+      description: Describe an observable outcome, including owner control and data handling where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and scope / 替代方式与范围
+      description: Existing workarounds, related issues, and what this request does not cover.
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation / 验证方式
+      description: How could someone verify the requested behavior? Separate proposed benefits from measured results.

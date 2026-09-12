@@ -49,6 +49,6 @@ Pull Request 应说明：
 
 ## Issue 与安全问题
 
-如果当前 checkout 已启用仓库 issue tracker，请使用仓库 issue。安全报告或隐私敏感材料请遵循 [SECURITY.md](SECURITY.md)，不要直接把细节公开在 issue 中。
+Bug 报告和功能请求请使用 [Issue 模板入口](https://github.com/KaR7NA16/rin-harness/issues/new/choose)，支持中文和英文。PR 模板沿用上面的范围与验证要求。安全报告或隐私敏感材料请遵循 [SECURITY.md](SECURITY.md)，不要直接把细节公开在 issue 中。社区行为问题的反馈方式见 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
 
 Rin 依赖 @deepseek-ai/* scope 下的外部运行时包。未经记录许可和来源影响，不要把这些依赖的源码复制或 vendor 到本仓库。

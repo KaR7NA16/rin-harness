@@ -1,17 +1,18 @@
 # Security Policy
 
 Thank you for helping keep rin-harness and its users safe. This document records
-the pre-release security boundary for the current private development checkout.
+the security boundary for the public [Rin repository](https://github.com/KaR7NA16/rin-harness).
 
-> rin-harness is pre-1.0 developer-preview software and has not been published as
-> an independent project yet. No public release line or public reporting channel
-> exists at this stage.
+> Rin is pre-1.0 developer-preview software. Public source availability does not
+> imply a stable release, production security certification, or support for
+> exposing the Host directly to the Internet.
 
 ## Supported Versions
 
 | Version | Supported |
 | ------- | --------- |
-| Unreleased development checkout | Best effort |
+| Current `main` development branch | Best effort |
+| Older commits and untagged builds | No backport commitment |
 
 Security support, release branches, and backport promises will be defined before
 the first public release.
@@ -21,13 +22,13 @@ the first public release.
 **Do not open a public issue for a security vulnerability.** Report it privately
 so it can be fixed before it is disclosed.
 
-### Current private channel
+### Reporting channel
 
-rin does not currently have a public repository, GitHub Security Advisory
-channel, or security email. Do not disclose a vulnerability in a public issue,
-discussion, or upstream dsh forum. Send it through the private project channel
-used by the maintainer who provided this checkout. A permanent reporting channel
-will be documented before the first public release. Include:
+Use GitHub's [private vulnerability report form](https://github.com/KaR7NA16/rin-harness/security/advisories/new).
+Private vulnerability reporting is enabled for this repository. Reports are
+shared with the repository maintainers through GitHub's security advisory workflow.
+
+In the private report, include:
 
 - affected version(s);
 - a description of the vulnerability and its impact;

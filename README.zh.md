@@ -1,5 +1,11 @@
 # Rin
 
+[![CI](https://github.com/KaR7NA16/rin-harness/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/KaR7NA16/rin-harness/actions/workflows/ci.yml)
+[![Desktop E2E](https://github.com/KaR7NA16/rin-harness/actions/workflows/desktop-e2e.yml/badge.svg?branch=main)](https://github.com/KaR7NA16/rin-harness/actions/workflows/desktop-e2e.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+[文档](docs/README.md) · [报告问题](https://github.com/KaR7NA16/rin-harness/issues/new/choose) · [贡献指南](CONTRIBUTING.zh.md) · [安全政策](SECURITY.md)
+
 [English](README.md) | 中文
 
 > **Rin** 是一个本地优先、可审计的长期 AI 陪伴运行时与开发者平台。
@@ -70,10 +76,10 @@ pnpm run smoke
 
 pnpm run check 会依次运行 metadata 和 hygiene、TypeScript project checks、lint、Vitest、桌面 release verification 以及 smoke tests。
 
-最近的证据：
+已完成的代表性运行（历史证据；当前工作流状态见顶部徽章）：
 
-- [CI #8](https://github.com/KaR7NA16/rin-harness/actions/runs/32685813652)：193 个测试文件、1695 个测试结果通过。
-- [Desktop clean-machine E2E #5](https://github.com/KaR7NA16/rin-harness/actions/runs/32685813649)：Linux、Windows、macOS Apple Silicon 和 macOS Intel 的安装/启动路径通过。
+- [CI #14](https://github.com/KaR7NA16/rin-harness/actions/runs/34695690356)：质量工作流通过。
+- [Desktop clean-machine E2E #10](https://github.com/KaR7NA16/rin-harness/actions/runs/34222705204)：Linux、Windows、macOS Apple Silicon 和 macOS Intel 的安装/启动路径通过。
 
 这些运行只证明已经执行的链路；它们尚未证明签名/公证分发、真实 updater 回滚、每一种 provider/container 生命周期，或完整的陪伴产品已经完成。
 

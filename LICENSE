@@ -2,8 +2,6 @@ MIT License
 
 Copyright (c) 2026 Rin project contributors
 
-This license applies to first-party Rin source in this repository. External dependencies, including packages under the @deepseek-ai/* scope, retain their own copyright and license terms; see THIRD_PARTY_NOTICES.md.
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights

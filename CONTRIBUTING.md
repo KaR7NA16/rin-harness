@@ -49,6 +49,11 @@ Avoid mixing a structural migration with an unrelated feature. Preserve provenan
 
 ## Issues and security
 
-Use the repository issue tracker when it is enabled for the checkout. For security reports or privacy-sensitive material, follow [SECURITY.md](SECURITY.md) rather than publishing details in an issue.
+Use the [issue chooser](https://github.com/KaR7NA16/rin-harness/issues/new/choose)
+for bug reports and feature requests. English and Chinese are welcome. The
+repository's PR template follows the scope and evidence requirements above.
+For security reports or privacy-sensitive material, follow [SECURITY.md](SECURITY.md)
+rather than publishing details in an issue. Conduct reporting is described in
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 Rin depends on external runtime packages under the @deepseek-ai/* scope. Do not copy or vendor their source into this repository without recording the license and provenance impact in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

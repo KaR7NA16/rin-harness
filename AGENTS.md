@@ -22,7 +22,7 @@ packages/     reusable runtime, domain, feature, and integration code
 tooling/      repository-only configuration, gates, scripts, and generators
 docs/         current architecture, decisions, roadmap, audits, and archive
 patches/      local patches applied to registry dependencies
-.github/      CI workflows
+.github/      CI workflows, issue forms, and pull request template
 package.json  root scripts and selected workspace development dependencies
 pnpm-workspace.yaml / pnpm-lock.yaml  workspace discovery and registry resolution
 tsconfig.base.json / tsconfig.json  shared aliases and solution references

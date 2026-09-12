@@ -1,0 +1,41 @@
+name: Bug report / 问题报告
+description: Report a reproducible problem in Rin / 报告可复现的问题
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English and Chinese reports are welcome. / 欢迎使用中文或英文。
+        For vulnerabilities, follow [SECURITY.md](https://github.com/KaR7NA16/rin-harness/blob/main/SECURITY.md). Do not include credentials or private conversations.
+        安全漏洞请遵循安全政策；不要上传密钥、私人对话或未脱敏日志。
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 运行环境
+      description: Commit or version, OS, CLI/Web/desktop, Node and pnpm versions when running from source.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce / 复现步骤
+      description: Include the smallest reproducible example and relevant configuration with secrets removed.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / 实际行为
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence / 相关证据
+      description: Sanitized error messages, logs, or screenshots; note anything not yet verified.

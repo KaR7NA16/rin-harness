@@ -1,5 +1,11 @@
 # Rin
 
+[![CI](https://github.com/KaR7NA16/rin-harness/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/KaR7NA16/rin-harness/actions/workflows/ci.yml)
+[![Desktop E2E](https://github.com/KaR7NA16/rin-harness/actions/workflows/desktop-e2e.yml/badge.svg?branch=main)](https://github.com/KaR7NA16/rin-harness/actions/workflows/desktop-e2e.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+[Documentation](docs/README.md) · [Report an issue](https://github.com/KaR7NA16/rin-harness/issues/new/choose) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+
 English | [中文](README.zh.md)
 
 > **Rin** is a local-first runtime and developer platform for building auditable, long-lived AI companions.
@@ -74,10 +80,10 @@ Both Vitest projects explicitly inherit the root configuration, including
 TypeScript source-path resolution and decorator transforms. Unit tests run
 against workspace source without requiring generated `lib/` artifacts.
 
-Recent evidence:
+Selected completed runs (historical evidence; badges above show current workflow status):
 
-- [CI #8](https://github.com/KaR7NA16/rin-harness/actions/runs/32685813652): 193 test files and 1695 test results passed.
-- [Desktop clean-machine E2E #5](https://github.com/KaR7NA16/rin-harness/actions/runs/32685813649): Linux, Windows, macOS Apple Silicon, and macOS Intel install/start paths passed.
+- [CI #14](https://github.com/KaR7NA16/rin-harness/actions/runs/34695690356): quality workflow passed.
+- [Desktop clean-machine E2E #10](https://github.com/KaR7NA16/rin-harness/actions/runs/34222705204): Linux, Windows, macOS Apple Silicon, and macOS Intel install/start paths passed.
 
 These runs verify the exercised paths. They do not yet prove signed/notarized distribution, real updater rollback, every provider/container lifecycle, or a finished companion product.
 

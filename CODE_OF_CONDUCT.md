@@ -58,10 +58,13 @@ representative at an online or offline event.
 
 ## Enforcement
 
-rin has no public community channel yet. During pre-release development, report
-instances of abusive, harassing, or otherwise unacceptable behavior privately
-through the project channel used by the maintainer who provided this checkout.
-A permanent reporting channel will be documented before the first public release.
+This policy applies to the public Rin repository's issues, pull requests, and
+other project spaces. The project is maintained by
+[KaR7NA16](https://github.com/KaR7NA16). To request a private conduct-reporting
+channel, open an [issue](https://github.com/KaR7NA16/rin-harness/issues/new)
+titled **Private conduct contact request** with only that request. Do not include
+incident details, names, or private messages. Share those details only after
+the maintainer provides a private channel.
 
 All complaints will be reviewed and investigated promptly and fairly.
 
