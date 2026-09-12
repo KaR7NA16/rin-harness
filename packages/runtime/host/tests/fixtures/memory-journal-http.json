@@ -1,0 +1,5 @@
+[
+  { "operation": "restore-large-journal", "status": 200, "complete": true },
+  { "operation": "export-restored-journal", "status": 200, "stateMatches": true },
+  { "operation": "restore-into-nonempty-journal", "status": 400, "unchanged": true }
+]

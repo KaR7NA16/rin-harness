@@ -1924,6 +1924,7 @@ export const ja = {
   'memoryCenter.erase.preview': '範囲をプレビュー',
   'memoryCenter.erase.commit': '消去をコミット',
   'memoryCenter.erase.rootsRequired': 'プレビューには少なくとも 1 つのメモリー ID を入力してください。',
+  'memoryCenter.erase.previewStale': '消去範囲が変わりました。承認する前にもう一度プレビューしてください。',
   'memoryCenter.erase.previewDone': 'プレビュー:{erased} 件を消去、依存 {dependents} 件、影響なし {unaffected} 件',
   'memoryCenter.erase.commitDone': '{count} 件の記憶を消去しました',
   'memoryCenter.erase.erased': '消去',

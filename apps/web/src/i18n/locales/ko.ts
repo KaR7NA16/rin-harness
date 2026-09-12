@@ -1924,6 +1924,7 @@ export const ko = {
   'memoryCenter.erase.preview': '범위 미리보기',
   'memoryCenter.erase.commit': '삭제 커밋',
   'memoryCenter.erase.rootsRequired': '미리보려면 최소한 하나의 메모리 ID 를 입력하세요.',
+  'memoryCenter.erase.previewStale': '삭제 범위가 변경되었습니다. 승인하기 전에 다시 미리 보세요.',
   'memoryCenter.erase.previewDone': '미리보기:{erased} 항목 삭제, 종속 {dependents} 항목, 영향 없음 {unaffected} 항목',
   'memoryCenter.erase.commitDone': '{count} 개의 기억을 삭제했습니다',
   'memoryCenter.erase.erased': '삭제',

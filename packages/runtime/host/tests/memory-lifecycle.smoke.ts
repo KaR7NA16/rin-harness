@@ -381,6 +381,7 @@ async function main(): Promise<void> {
       'the preview must keep the unrelated scene in the unaffected set',
     )
     const authorized = ctx.memory.authorizeErase({
+      expectedScopeHash: preview.scopeHash,
       rootMemoryIds: [createMemoryId('e13-root-scene')],
       ownerId: 'lifecycle-owner',
       at: '2026-01-01T00:10:00.000Z',

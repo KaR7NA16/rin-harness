@@ -2039,6 +2039,7 @@ export const zh: Record<TranslationKey, string> = {
   'memoryCenter.erase.preview': '预览范围',
   'memoryCenter.erase.commit': '提交擦除',
   'memoryCenter.erase.rootsRequired': '请至少输入一个记忆 ID。',
+  'memoryCenter.erase.previewStale': '擦除范围已变化,请重新预览后再授权。',
   'memoryCenter.erase.previewDone': '预览:擦除 {erased} 项,{dependents} 个依赖,{unaffected} 项不受影响',
   'memoryCenter.erase.commitDone': '已擦除 {count} 条记忆',
   'memoryCenter.erase.erased': '擦除',

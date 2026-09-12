@@ -14,7 +14,7 @@ import z from '@deepseek-ai/schemastery'
 import type { Config as RinWebConfig, SmartPruningRef, TokenOptimizationRef } from './types.ts'
 import type { KnowledgeGraphService } from '@rin/knowledge/graph'
 import { errorMessage } from './http.ts'
-import { createWebServer } from './server.ts'
+import { createWebServer, DEFAULT_JOURNAL_IMPORT_MAX_BYTES } from './server.ts'
 import type { AgentMigrationService } from '@rin/agent-migration'
 import type { MonitorService } from '@rin/health/monitor'
 import type { DoctorService } from '@rin/health/doctor'
@@ -82,6 +82,7 @@ export const Config: z<RinWebConfig> = z.object({
   host: z.string().default('127.0.0.1'),
   enabled: z.boolean().default(true),
   authToken: z.string(),
+  journalImportMaxBytes: z.natural().min(1).max(Number.MAX_SAFE_INTEGER).default(DEFAULT_JOURNAL_IMPORT_MAX_BYTES),
   repositoryRoot: z.string(),
   staticRoot: z.string(),
   knowledgeDbPath: z.string(),

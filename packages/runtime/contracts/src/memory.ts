@@ -347,6 +347,7 @@ export interface MemoryEraseAuthorizationDto {
 
 export interface MemoryEraseAuthorizeRequestDto {
   rootMemoryIds: string[]
+  expectedScopeHash: string
   ownerId: string
   ttlMinutes?: number
 }

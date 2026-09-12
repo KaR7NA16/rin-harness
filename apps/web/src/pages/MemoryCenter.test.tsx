@@ -176,7 +176,62 @@ describe('MemoryCenter', () => {
     expect(previewPanel).toHaveTextContent('Dependents losing evidence: structure-1')
 
     fireEvent.click(commit)
+    await waitFor(() => expect(eraseAuthorize).toHaveBeenCalledWith({
+      rootMemoryIds: ['scene-1'],
+      expectedScopeHash: 'hash-1',
+      ownerId: 'rin-owner',
+    }))
     await waitFor(() => expect(eraseCommit).toHaveBeenCalledWith({ authorizationId: 'auth-1', ownerId: 'rin-owner' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Erased 1 memories')
+  })
+
+  it('clears an erase preview when the root input changes', async () => {
+    erasePreview.mockResolvedValue({
+      rootMemoryIds: ['scene-1'],
+      erasedMemoryIds: ['scene-1'],
+      retractedLinkIds: [],
+      dependentMemoryIds: [],
+      unaffectedMemoryIds: ['scene-2'],
+      scopeHash: 'hash-1',
+    })
+
+    render(<MemoryCenter />)
+
+    const commit = screen.getByRole('button', { name: 'Commit erasure' })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Erase roots' }), { target: { value: 'scene-1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Preview scope' }))
+    await waitFor(() => expect(document.querySelector('[data-erase-preview]')).not.toBeNull())
+    expect(commit).not.toBeDisabled()
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Erase roots' }), { target: { value: 'scene-2' } })
+    expect(commit).toBeDisabled()
+    expect(document.querySelector('[data-erase-preview]')).toBeNull()
+  })
+
+  it('clears a drifted preview and asks the owner to preview again', async () => {
+    erasePreview.mockResolvedValue({
+      rootMemoryIds: ['scene-1'],
+      erasedMemoryIds: ['scene-1'],
+      retractedLinkIds: [],
+      dependentMemoryIds: [],
+      unaffectedMemoryIds: ['scene-2'],
+      scopeHash: 'hash-1',
+    })
+    eraseAuthorize.mockRejectedValue(new Error('rin memory: erase authorization scope has drifted; request a new authorization'))
+
+    render(<MemoryCenter />)
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Erase roots' }), { target: { value: 'scene-1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Preview scope' }))
+    await waitFor(() => expect(document.querySelector('[data-erase-preview]')).not.toBeNull())
+    fireEvent.click(screen.getByRole('button', { name: 'Commit erasure' }))
+
+    await waitFor(() => expect(eraseAuthorize).toHaveBeenCalledWith({
+      rootMemoryIds: ['scene-1'],
+      expectedScopeHash: 'hash-1',
+      ownerId: 'rin-owner',
+    }))
+    expect(await screen.findByRole('status')).toHaveTextContent('The erase scope changed; preview it again before authorizing.')
+    expect(screen.getByRole('button', { name: 'Commit erasure' })).toBeDisabled()
   })
 })

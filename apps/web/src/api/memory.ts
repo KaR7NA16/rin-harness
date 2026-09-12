@@ -6,6 +6,7 @@ import type {
   MemoryRecallCycleSummaryDto,
   MemoryRecallCycleDto,
   MemoryErasePreviewDto,
+  MemoryEraseAuthorizeRequestDto,
   MemoryEraseAuthorizeResponseDto,
 } from '@rin/contracts'
 import { api } from './client'
@@ -90,11 +91,7 @@ export const memoryApi = {
     return response.mounted ? response.preview ?? null : null
   },
 
-  eraseAuthorize: async (request: {
-    rootMemoryIds: string[]
-    ownerId: string
-    ttlMinutes?: number
-  }): Promise<MemoryEraseAuthorizeResponseDto | null> => {
+  eraseAuthorize: async (request: MemoryEraseAuthorizeRequestDto): Promise<MemoryEraseAuthorizeResponseDto | null> => {
     const response = await api.post<Mounted & MemoryEraseAuthorizeResponseDto>('/api/memory/erase/authorize', request)
     return response.mounted
       ? {

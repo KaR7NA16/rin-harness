@@ -42,7 +42,7 @@ describe('memoryApi', () => {
     await expect(memoryApi.recallCycles()).resolves.toEqual([])
     await expect(memoryApi.recallCycle('missing')).resolves.toBeNull()
     await expect(memoryApi.erasePreview(['scene-1'])).resolves.toBeNull()
-    await expect(memoryApi.eraseAuthorize({ rootMemoryIds: ['scene-1'], ownerId: 'owner' })).resolves.toBeNull()
+    await expect(memoryApi.eraseAuthorize({ rootMemoryIds: ['scene-1'], expectedScopeHash: 'scope-hash', ownerId: 'owner' })).resolves.toBeNull()
     await expect(memoryApi.eraseCommit({ authorizationId: 'auth', ownerId: 'owner' })).resolves.toBeNull()
   })
 
@@ -68,7 +68,7 @@ describe('memoryApi', () => {
     await memoryApi.restrictInfluence({ memoryId: 'scene-1', surfaces: ['recall'], reason: 'limit', ownerId: 'owner-1' })
     await memoryApi.revokeInfluence({ memoryId: 'scene-1', reason: 'withdraw', ownerId: 'owner-1' })
     await memoryApi.erasePreview(['scene-1'])
-    await memoryApi.eraseAuthorize({ rootMemoryIds: ['scene-1'], ownerId: 'owner-1' })
+    await memoryApi.eraseAuthorize({ rootMemoryIds: ['scene-1'], expectedScopeHash: 'scope-hash', ownerId: 'owner-1' })
     await memoryApi.eraseCommit({ authorizationId: 'auth-1', ownerId: 'owner-1' })
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:8320/api/memory/scenes', expect.objectContaining({ method: 'GET' }))
@@ -87,7 +87,14 @@ describe('memoryApi', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(6, 'http://127.0.0.1:8320/api/memory/influence/restrict', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenNthCalledWith(7, 'http://127.0.0.1:8320/api/memory/influence/revoke', expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenNthCalledWith(8, 'http://127.0.0.1:8320/api/memory/erase/preview', expect.objectContaining({ method: 'POST' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(9, 'http://127.0.0.1:8320/api/memory/erase/authorize', expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(9, 'http://127.0.0.1:8320/api/memory/erase/authorize', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({
+        rootMemoryIds: ['scene-1'],
+        expectedScopeHash: 'scope-hash',
+        ownerId: 'owner-1',
+      }),
+    }))
     expect(fetchMock).toHaveBeenNthCalledWith(10, 'http://127.0.0.1:8320/api/memory/erase/commit', expect.objectContaining({ method: 'POST' }))
   })
 })

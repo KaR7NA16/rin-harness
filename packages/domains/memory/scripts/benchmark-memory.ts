@@ -137,7 +137,7 @@ const store = new FileMemoryStore(new Context(), {
   manifestPath: join(root, 'manifest.json'),
   homeRoot: root,
 })
-const transactions = database.listTransactions()
+const transactions = database.listAllTransactions()
 const state = store.readCognitionState()
 
 const replayRuns = []

@@ -4,7 +4,8 @@
  * Wires the JSON API routes and the static frontend into one node:http
  * server. Owns no cordis concepts; index.ts wraps it as a Cordis service.
  * GET/HEAD serve the API and static files; POST is accepted for /api/*
- * (JSON body, capped at 1 MiB) so the write endpoints can mutate host state.
+ * (ordinary JSON bodies capped at 1 MiB). Journal restore uses its separately
+ * configured byte budget and the same Host, Origin, and token checks.
  *
  * @module @rin/host/web-server
  */
@@ -30,6 +31,9 @@ const MAX_BODY_BYTES = 1024 * 1024
 /** Maximum accepted binary session-import body (64 MiB). */
 const MAX_IMPORT_BODY_BYTES = 64 * 1024 * 1024
 
+/** Default byte budget for the dedicated cognition journal restore request. */
+export const DEFAULT_JOURNAL_IMPORT_MAX_BYTES = 64 * 1024 * 1024
+
 /** A startable HTTP server handle owned by the plugin. */
 export interface RinWebServer {
   /** Start listening; resolves with the bound address once the socket is open. */
@@ -49,11 +53,15 @@ export interface RinWebServer {
  */
 export function createWebServer(config: Config, services: RinServiceRefs): RinWebServer {
   const staticRoot = config.staticRoot ?? DEFAULT_STATIC_ROOT
+  const journalImportMaxBytes = config.journalImportMaxBytes ?? DEFAULT_JOURNAL_IMPORT_MAX_BYTES
+  if (!Number.isSafeInteger(journalImportMaxBytes) || journalImportMaxBytes < 1) {
+    throw new Error('journalImportMaxBytes must be a positive safe integer')
+  }
   // Actual bound port, captured after listen(); Host/Origin validation compares
   // against this rather than config.port so ephemeral ports (port 0) still work.
   let boundPort = config.port
   const server: Server = createServer((req, res) => {
-    handleRequest(req, res, services, config, staticRoot, boundPort).catch((err: unknown) => {
+    handleRequest(req, res, services, config, staticRoot, boundPort, journalImportMaxBytes).catch((err: unknown) => {
       if (res.headersSent || res.writableEnded) {
         res.destroy()
         return
@@ -98,6 +106,7 @@ async function handleRequest(
   config: Config,
   staticRoot: string,
   boundPort: number,
+  journalImportMaxBytes: number,
 ): Promise<void> {
   const method = req.method ?? 'GET'
   const url = new URL(req.url ?? '/', 'http://localhost')
@@ -267,7 +276,9 @@ async function handleRequest(
       }
       return
     }
-    const bodyResult = await readJsonBody(req)
+    const bodyResult = method === 'POST' && url.pathname === '/api/memory/journal/restore'
+      ? await readJsonBody(req, journalImportMaxBytes, 'journal restore body exceeds configured byte limit')
+      : await readJsonBody(req)
     if (!bodyResult.ok) {
       respondError(res, bodyResult.status, bodyResult.message)
       return
@@ -306,13 +317,15 @@ async function readBody(req: IncomingMessage, maxBytes: number, message: string)
   return Buffer.concat(chunks)
 }
 
-/** Read and parse an API JSON body, enforcing the 1 MiB cap and JSON syntax. */
+/** Read JSON within the route's byte budget; ordinary API requests use 1 MiB. */
 async function readJsonBody(
   req: IncomingMessage,
+  maxBytes = MAX_BODY_BYTES,
+  limitMessage = 'request body exceeds 1 MiB',
 ): Promise<{ ok: true; value: unknown } | { ok: false; status: number; message: string }> {
   let body: Buffer
   try {
-    body = await readBody(req, MAX_BODY_BYTES, 'request body exceeds 1 MiB')
+    body = await readBody(req, maxBytes, limitMessage)
   } catch (err) {
     if (err instanceof BodyTooLargeError) return { ok: false, status: err.statusCode, message: err.message }
     throw err

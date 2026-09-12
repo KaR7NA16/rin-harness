@@ -120,6 +120,8 @@ export type {
   MemoryEraseAuthorization,
   MemoryMaterializedState,
   MemoryLinkQuery,
+  MemoryTransactionPage,
+  MemoryTransactionPageOptions,
 } from './store.ts'
 
 declare module '@deepseek-ai/cordis' {
@@ -200,6 +202,7 @@ export type MemoryInfluenceRevocationInput = Readonly<{
 /** Owner intent that binds one erase scope, its computed preview hash, and an expiry. */
 export type MemoryEraseAuthorizeInput = Readonly<{
   rootMemoryIds: readonly MemoryId[]
+  expectedScopeHash: string
   ownerId: string
   ttlMinutes?: number
   at?: string
@@ -376,7 +379,7 @@ export class FileMemoryStore extends MemoryStore {
   }
 
   override exportCognitionJournal(): readonly MemoryTransaction[] {
-    return this.cognitionDatabase.listTransactions(1_000_000)
+    return this.cognitionDatabase.listAllTransactions()
   }
 
   /**
@@ -388,15 +391,7 @@ export class FileMemoryStore extends MemoryStore {
    * can never be merged into unrelated cognition state.
    */
   override restoreCognitionJournal(transactions: readonly MemoryTransaction[]): number {
-    if (this.cognitionDatabase.listTransactions(1).length > 0) {
-      throw new Error('rin memory: cognition journal restore requires an empty store')
-    }
-    let restored = 0
-    for (const transaction of transactions) {
-      this.cognitionDatabase.appendTransaction(transaction)
-      restored += 1
-    }
-    return restored
+    return this.cognitionDatabase.restoreTransactions(transactions).length
   }
 
   override ingestRuntimeEvent(sessionId: string, event: RuntimeSessionEvent, hint?: RuntimeSceneHint): MemoryTransaction | null {
@@ -789,7 +784,7 @@ export class FileMemoryStore extends MemoryStore {
       throw new Error('rin memory: representation formation source version is stale')
     }
     const proposal = this.cognitionDatabase
-      .listTransactions(10_000)
+      .listAllTransactions()
       .flatMap(transaction => transaction.events)
       .find((event): event is Extract<MemoryEvent, { type: 'memory-proposed' }> =>
         event.type === 'memory-proposed'
@@ -1012,6 +1007,9 @@ export class FileMemoryStore extends MemoryStore {
   override authorizeErase(input: MemoryEraseAuthorizeInput): MemoryEraseAuthorizationResult {
     const state = this.readCognitionState()
     const preview = computeEraseScope(state, input.rootMemoryIds)
+    if (preview.scopeHash !== input.expectedScopeHash) {
+      throw new Error('rin memory: erase authorization scope has drifted; request a new preview')
+    }
     const at = input.at ?? new Date().toISOString()
     const ttlMinutes = input.ttlMinutes ?? 15
     if (!Number.isFinite(ttlMinutes) || ttlMinutes <= 0) {

@@ -2039,6 +2039,7 @@ export const en = {
   'memoryCenter.erase.preview': 'Preview scope',
   'memoryCenter.erase.commit': 'Commit erasure',
   'memoryCenter.erase.rootsRequired': 'Enter at least one memory id to preview.',
+  'memoryCenter.erase.previewStale': 'The erase scope changed; preview it again before authorizing.',
   'memoryCenter.erase.previewDone': 'Preview: {erased} erased, {dependents} dependents, {unaffected} unaffected',
   'memoryCenter.erase.commitDone': 'Erased {count} memories',
   'memoryCenter.erase.erased': 'Erased',

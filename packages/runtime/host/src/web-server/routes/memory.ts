@@ -345,16 +345,18 @@ function eraseAuthorizeRoute(method: string, body: unknown, services: RinService
   const request = asObject(body)
   if (request === undefined) return error(400, 'erase authorization request must be an object')
   const rootMemoryIds = readStringArray(request, 'rootMemoryIds')
+  const expectedScopeHash = readString(request, 'expectedScopeHash')
   const ownerId = readString(request, 'ownerId')
   const ttlMinutes = typeof request.ttlMinutes === 'number' ? request.ttlMinutes : undefined
-  if (rootMemoryIds === undefined || rootMemoryIds.length === 0 || ownerId === undefined) {
-    return error(400, 'erase authorization requires rootMemoryIds and ownerId')
+  if (rootMemoryIds === undefined || rootMemoryIds.length === 0 || expectedScopeHash === undefined || ownerId === undefined) {
+    return error(400, 'erase authorization requires rootMemoryIds, expectedScopeHash, and ownerId')
   }
   const memory = services.memory()
   if (memory === undefined) return notMounted()
   try {
     const result = memory.authorizeErase({
       rootMemoryIds: rootMemoryIds.map(createMemoryId),
+      expectedScopeHash,
       ownerId,
       ...(ttlMinutes === undefined ? {} : { ttlMinutes }),
     })

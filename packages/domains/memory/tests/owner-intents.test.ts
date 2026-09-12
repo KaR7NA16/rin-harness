@@ -359,7 +359,7 @@ describe('M7-03 and M7-04 owner authorization and atomic erase commit', () => {
     const scene1 = sceneMemory(createMemoryId('scene-1'))
     const { database, store } = await makeStore('rin-erase-authorize-', [scene1])
     const result = store.authorizeErase({
-      rootMemoryIds: [createMemoryId('scene-1')],
+      rootMemoryIds: [createMemoryId('scene-1')], expectedScopeHash: store.requestErasePreview([createMemoryId('scene-1')]).scopeHash,
       ownerId: 'owner-1',
       at: AT.intent,
     })
@@ -369,7 +369,7 @@ describe('M7-03 and M7-04 owner authorization and atomic erase commit', () => {
       .toContain(result.authorization.authorizationId)
     expect(database.listTransactions().some(tx => tx.command.type === 'authorize-erase')).toBe(true)
     expect(() => store.authorizeErase({
-      rootMemoryIds: [createMemoryId('scene-1')],
+      rootMemoryIds: [createMemoryId('scene-1')], expectedScopeHash: store.requestErasePreview([createMemoryId('scene-1')]).scopeHash,
       ownerId: 'owner-1',
       ttlMinutes: 0,
       at: AT.intent,
@@ -387,7 +387,7 @@ describe('M7-03 and M7-04 owner authorization and atomic erase commit', () => {
     const before = store.readCognitionState()
     store.markProjectionCleanAtCurrent('canonical', before.version, 'seed-state-hash', AT.link)
     const authorized = store.authorizeErase({
-      rootMemoryIds: [createMemoryId('scene-1')],
+      rootMemoryIds: [createMemoryId('scene-1')], expectedScopeHash: store.requestErasePreview([createMemoryId('scene-1')]).scopeHash,
       ownerId: 'owner-1',
       at: AT.intent,
     })
@@ -417,7 +417,7 @@ describe('M7-03 and M7-04 owner authorization and atomic erase commit', () => {
       at: AT.intent,
     })).toThrow('unknown authorization')
     const expired = store.authorizeErase({
-      rootMemoryIds: [createMemoryId('scene-1')],
+      rootMemoryIds: [createMemoryId('scene-1')], expectedScopeHash: store.requestErasePreview([createMemoryId('scene-1')]).scopeHash,
       ownerId: 'owner-1',
       ttlMinutes: 1,
       at: AT.intent,
@@ -428,7 +428,7 @@ describe('M7-03 and M7-04 owner authorization and atomic erase commit', () => {
       at: '2026-01-01T00:30:00.000Z',
     })).toThrow('expired')
     const authorized = store.authorizeErase({
-      rootMemoryIds: [createMemoryId('scene-1')],
+      rootMemoryIds: [createMemoryId('scene-1')], expectedScopeHash: store.requestErasePreview([createMemoryId('scene-1')]).scopeHash,
       ownerId: 'owner-1',
       at: AT.intent,
     })
@@ -449,7 +449,7 @@ describe('M7-03 and M7-04 owner authorization and atomic erase commit', () => {
     const structure1 = structureMemory(createMemoryId('structure-1'))
     const { database, store } = await makeStore('rin-erase-drift-', [scene1, structure1])
     const authorized = store.authorizeErase({
-      rootMemoryIds: [createMemoryId('scene-1')],
+      rootMemoryIds: [createMemoryId('scene-1')], expectedScopeHash: store.requestErasePreview([createMemoryId('scene-1')]).scopeHash,
       ownerId: 'owner-1',
       at: AT.intent,
     })
@@ -473,7 +473,7 @@ describe('M7-07 cognition journal export and replay restore', () => {
       link('link-supports-1', 'supports', scene1, structure1),
     ])
     const authorized = store.authorizeErase({
-      rootMemoryIds: [createMemoryId('scene-1')],
+      rootMemoryIds: [createMemoryId('scene-1')], expectedScopeHash: store.requestErasePreview([createMemoryId('scene-1')]).scopeHash,
       ownerId: 'owner-1',
       at: AT.intent,
     })
@@ -497,5 +497,91 @@ describe('M7-07 cognition journal export and replay restore', () => {
     expect(restoredStore.readCognitionState().erasedMemoryIds).toEqual(['scene-1'])
     // A restore into a non-empty journal is refused.
     expect(() => restoredStore.restoreCognitionJournal(journal)).toThrow('requires an empty store')
+  })
+})
+
+describe('journal completeness and restore boundaries', () => {
+  test.each([999, 1000, 1001, 10000, 10001])('exports and replays all %i transactions after reopening', async count => {
+    const { database, store, dbPath } = await makeStore('rin-journal-boundary-')
+    const transactions = Array.from({ length: count }, (_, i) => observedTransaction('boundary-tx-' + i, 'boundary-command-' + i, sceneMemory(createMemoryId('boundary-scene-' + i))))
+    database.appendTransactions(transactions)
+    expect(store.exportCognitionJournal()).toEqual(transactions)
+    const state = new MemoryCognitionDatabase(dbPath).readMaterializedState()
+    expect(state.appliedTransactionIds).toHaveLength(count)
+    expect(state.memories.some(memory => memory.id === 'boundary-scene-' + (count - 1))).toBe(true)
+    if (count === 1001) {
+      const roots = [createMemoryId('boundary-scene-1000')]
+      const authorized = store.authorizeErase({ rootMemoryIds: roots, expectedScopeHash: store.requestErasePreview(roots).scopeHash, ownerId: 'owner-1', at: AT.intent })
+      store.commitAuthorizedErase({ authorizationId: authorized.authorization.authorizationId, ownerId: 'owner-1', at: AT.commit })
+      expect(store.readCognitionState().erasedMemoryIds).toContain(roots[0])
+      const target = await makeStore('rin-journal-roundtrip-')
+      target.store.restoreCognitionJournal(store.exportCognitionJournal())
+      expect(target.store.readCognitionState()).toEqual(store.readCognitionState())
+    }
+  }, 120_000)
+
+  test('pages retain their cutoff when another connection appends', async () => {
+    const { database, dbPath } = await makeStore('rin-journal-cutoff-')
+    const original = Array.from({ length: 3 }, (_, i) => observedTransaction('page-tx-' + i, 'page-command-' + i, sceneMemory(createMemoryId('page-scene-' + i))))
+    database.appendTransactions(original)
+    const first = database.listTransactionPage({ limit: 1 })
+    new MemoryCognitionDatabase(dbPath).appendTransaction(observedTransaction('later-tx', 'later-command', sceneMemory(createMemoryId('later-scene'))))
+    const rest = database.listTransactionPage({ afterEventSeq: first.nextCursor!, throughEventSeq: first.throughEventSeq, limit: 10 })
+    expect([...first.transactions, ...rest.transactions]).toEqual(original)
+    expect(rest.nextCursor).toBeNull()
+    expect(database.listAllTransactions(1)).toHaveLength(4)
+  })
+
+  test('one-transaction pages preserve every event in runtime transactions', async () => {
+    const { database, store } = await makeStore('rin-journal-multiple-events-')
+    for (let seq = 1; seq <= 3; seq += 1) {
+      store.ingestRuntimeEvent('paged-session', {
+        type: 'user/message', seq, time: 1767225600000 + seq * 1000,
+        data: { source: { kind: 'user' }, content: [{ type: 'text', text: 'message ' + seq }] },
+      }, { continuityKey: 'task-' + seq, boundary: 'open' })
+    }
+    const journal = store.exportCognitionJournal()
+    expect(journal.some(transaction => transaction.events.length > 1)).toBe(true)
+    expect(database.listAllTransactions(1)).toEqual(journal)
+    expect(new MemoryMaterializer().replay(journal)).toEqual(store.readCognitionState())
+  })
+
+  test('restore rolls back the complete batch and rejects duplicate or invalid streams', async () => {
+    const { database, store } = await makeStore('rin-journal-atomic-')
+    const first = observedTransaction('restore-first', 'restore-command-first', sceneMemory())
+    const second = observedTransaction('restore-second', 'restore-command-second', sceneMemory(createMemoryId('scene-2')))
+    expect(() => database.restoreTransactions([first, second], point => {
+      if (point.stage === 'event-row' && point.transactionId === second.transactionId) throw new Error('injected failure')
+    })).toThrow('injected failure')
+    expect(database.listAllTransactions()).toEqual([])
+    expect(() => store.restoreCognitionJournal([first, first])).toThrow('duplicate transaction')
+    const duplicateCommand = observedTransaction('another-transaction', 'restore-command-first', sceneMemory(createMemoryId('scene-3')))
+    expect(() => store.restoreCognitionJournal([first, duplicateCommand])).toThrow('duplicate command')
+    const duplicateEvent = { ...second, events: second.events.map(event => ({ ...event, eventId: first.events[0]!.eventId })) }
+    expect(() => store.restoreCognitionJournal([first, duplicateEvent])).toThrow('duplicate event')
+    expect(() => store.restoreCognitionJournal([first, { ...second, events: [] }])).toThrow()
+    expect(() => store.restoreCognitionJournal([first, linkedTransaction('invalid-link-tx', 'invalid-link-command', [link('missing-link', 'supports', sceneMemory(), structureMemory())])])).toThrow()
+    expect(database.listAllTransactions()).toEqual([])
+    expect(store.restoreCognitionJournal([])).toBe(0)
+    expect(store.restoreCognitionJournal([first, second])).toBe(2)
+    expect(() => store.restoreCognitionJournal([])).toThrow('requires an empty store')
+    expect(() => store.restoreCognitionJournal([first])).toThrow('requires an empty store')
+    expect(store.exportCognitionJournal()).toEqual([first, second])
+  })
+
+  test('rejects a stale preview after a new support link without persisting authorization', async () => {
+    const scene = sceneMemory()
+    const structure = structureMemory()
+    const { database, store } = await makeStore('rin-preview-drift-', [scene, structure])
+    const roots = [scene.id]
+    const preview = store.requestErasePreview(roots)
+    database.appendTransaction(linkedTransaction('new-link-tx', 'new-link-command', [link('new-support', 'supports', scene, structure)]))
+    const before = store.exportCognitionJournal()
+    expect(() => store.authorizeErase({ rootMemoryIds: roots, expectedScopeHash: preview.scopeHash, ownerId: 'owner-1', at: AT.intent })).toThrow('drifted')
+    expect(store.exportCognitionJournal()).toEqual(before)
+    const refreshed = store.requestErasePreview(roots)
+    expect(refreshed.scopeHash).not.toBe(preview.scopeHash)
+    const authorized = store.authorizeErase({ rootMemoryIds: roots, expectedScopeHash: refreshed.scopeHash, ownerId: 'owner-1', at: AT.intent })
+    expect(authorized.authorization.scopeHash).toBe(refreshed.scopeHash)
   })
 })

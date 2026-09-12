@@ -6,6 +6,8 @@ import { join } from 'node:path'
 import { WebSocket } from 'ws'
 import { createWebServer } from '../../src/web-server/server.ts'
 import { FileScheduledTaskStore } from '@rin/automation'
+import { Context } from '@deepseek-ai/cordis'
+import { FileMemoryStore, hashMaterializedState } from '@rin/memory'
 import type { RinServiceRefs } from '../../src/web-server/routes.ts'
 import type { Config } from '../../src/web-server/types.ts'
 
@@ -229,6 +231,55 @@ describe('web-server note-asset binary routes', () => {
 })
 
 describe('web-server request body limits', () => {
+  test('restores a journal larger than 1 MiB and preserves the exported state', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'rin-journal-http-'))
+    const makeStore = (name: string) => new FileMemoryStore(new Context(), {
+      dbPath: join(root, name, 'memory.db'),
+      manifestPath: join(root, name, 'manifest.json'),
+      homeRoot: join(root, name),
+    })
+    const source = makeStore('source')
+    source.ingestRuntimeEvent('journal-http-session', {
+      type: 'user/message', seq: 1, time: 1767225600000,
+      data: { source: { kind: 'user' }, content: [{ type: 'text', text: 'journal evidence '.repeat(40_000) }] },
+    })
+    const target = makeStore('target')
+    const s = await startServer({}, { ...emptyServices(), memory: () => target })
+    try {
+      const transactions = source.exportCognitionJournal()
+      const body = JSON.stringify({ transactions })
+      expect(Buffer.byteLength(body)).toBeGreaterThan(1024 * 1024)
+      const restored = await rawRequest(s.port, '/api/memory/journal/restore', { method: 'POST', body })
+      expect(restored.status).toBe(200)
+      expect(restored.body).toEqual({ mounted: true, restored: transactions.length })
+      expect(hashMaterializedState(target.readCognitionState())).toBe(hashMaterializedState(source.readCognitionState()))
+      const exported = await rawRequest(s.port, '/api/memory/journal')
+      expect(exported.body).toEqual({ mounted: true, transactions })
+    } finally {
+      await s.close()
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  test('rejects journals beyond their configured byte budget before writing', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'rin-journal-limit-'))
+    const memory = new FileMemoryStore(new Context(), {
+      dbPath: join(root, 'memory.db'), manifestPath: join(root, 'manifest.json'), homeRoot: root,
+    })
+    const s = await startServer({ journalImportMaxBytes: 128 }, { ...emptyServices(), memory: () => memory })
+    try {
+      const response = await rawRequest(s.port, '/api/memory/journal/restore', {
+        method: 'POST', body: JSON.stringify({ transactions: [], padding: 'x'.repeat(128) }),
+      })
+      expect(response.status).toBe(413)
+      expect(response.body).toEqual({ error: 'journal restore body exceeds configured byte limit' })
+      expect(memory.exportCognitionJournal()).toEqual([])
+    } finally {
+      await s.close()
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   test('rejects invalid JSON and bodies over the 1 MiB cap before routing', async () => {
     const s = await startServer()
     try {

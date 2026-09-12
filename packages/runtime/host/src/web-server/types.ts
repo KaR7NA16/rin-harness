@@ -19,6 +19,8 @@ export interface Config {
   enabled?: boolean
   /** Optional bearer token; when set, every /api/* request must present it via Authorization: Bearer or ?token=. */
   authToken?: string
+  /** Maximum JSON bytes accepted by journal restore; defaults to 64 MiB. */
+  journalImportMaxBytes?: number
   /** Optional default repository root, used when a request omits ?root=. */
   repositoryRoot?: string
   /** Optional static frontend root; defaults to the package's static/ directory. */

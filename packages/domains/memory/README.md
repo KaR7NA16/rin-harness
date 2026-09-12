@@ -23,12 +23,19 @@ explicit cognition schema marker, global event sequence, atomic commit, and
 projection checkpoint state. MemoryMaterializer provides deterministic replay;
 prepareForArchive() checkpoints the WAL before a portable archive is read;
 exportCognitionJournal() exports the committed transaction stream in order, and
-restoreCognitionJournal() rebuilds an empty store from that export.
+restoreCognitionJournal() rebuilds an empty store from that export. Export and
+state replay traverse every transaction under a fixed event-sequence cutoff;
+the bounded journal query is not used for complete reconstruction. Restore
+validates and replays the complete input before committing it atomically, and
+rejects a nonempty target even when the input stream is empty.
 
 Owner data rights run through owner-only intent commands: correctUnderstanding
 (in-place revision with journal history), restrictInfluence, revokeInfluence,
 and the erase preview → authorize → commit flow whose scope is bound by a
-deterministic scope hash and a one-time, expiring authorization. Prompt Memory
+deterministic scope hash and a one-time, expiring authorization. Authorization
+requires the owner's preview hash as `expectedScopeHash` and rejects drift
+before writing an authorization; HTTP callers receive 409 and must preview
+again. Prompt Memory
 is generated from the canonical cognition workspace and refuses stale
 checkpoints; static prompt files are no longer a model-input source.
 

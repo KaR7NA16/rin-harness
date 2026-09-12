@@ -26,6 +26,10 @@ rin 装配层。把 dsh 底座（`@deepseek-ai/dsh-base`）与 @rin 全家 host 
 
 ## 构建 Web UI
 
+记忆擦除授权接口 `POST /api/memory/erase/authorize` 要求携带预览返回的
+`scopeHash`，请求字段为 `expectedScopeHash`。缺失字段返回 400，范围变化
+返回 409；拒绝请求不会写入授权事务，客户端需要重新预览后再授权。
+
 `web-server` 的 `staticRoot` 指向 `@rin/web` 的生产构建目录，启动 `rin` 前先构建一次：
 
 ```sh
@@ -64,6 +68,13 @@ resolver paths, host smoke boot, and CI lockfile check all agree.
 
 ## Known Limitations and Deferred Work
 
+- `POST /api/memory/journal/restore` has a dedicated `journalImportMaxBytes`
+  configuration field (default 64 MiB); other JSON routes retain the 1 MiB
+  request limit. Oversized journal requests return 413 before the memory
+  service is called. Restore currently buffers and parses the bounded JSON
+  document in memory; this is not a streaming import. The configurable budget
+  should match available memory. `memory-journal-http.smoke.ts` boots the real
+  Host and checks a >1 MiB restore/export round trip against a fixed transcript.
 - **`@rin/evolution` 的 `reviewModel` 是 boot 时适配器**：`src/index.ts` 导出的 `defaultConfig.evolution.reviewModel` 是 fail-loud 占位（需要 dsh llm seam，只在 boot 上下文存在）；真正可用的默认在 `src/cordis.yml` 的 `!!js` 里。该适配器已把消息内容构造成 `text` 内容块并检测 provider 错误 finish 分块（`tests/seam.smoke.ts` 用 fake llm 验证），完整真机 boot 仍由 `@rin/cli` 验收。
 - **`cordis.yml` 与 `src/index.ts` 是两份平行来源**：路径与默认值需手工同步；冒烟测试只断言包名列表，不断言两份配置逐字一致。
 - **`baseBundlePatchPath()` 依赖 `@deepseek-ai/dsh-base` 的 `./cordis.patch.yml` 公开导出**：上游移动该导出时需同步更新。

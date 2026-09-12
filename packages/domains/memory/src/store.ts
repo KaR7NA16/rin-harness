@@ -118,6 +118,24 @@ type CognitionWorkspaceMemberRow = {
   item_json: string
 }
 
+/** Options for one stable, event-sequence ordered cognition journal page. */
+export type MemoryTransactionPageOptions = Readonly<{
+  /** Return transactions whose first event sequence is greater than this cursor. */
+  afterEventSeq?: number
+  /** Inclusive upper event-sequence bound captured for the complete traversal. */
+  throughEventSeq?: number
+  /** Maximum number of transactions to return in this page. */
+  limit?: number
+}>
+
+/** One page of the cognition journal and the cutoff used to read it. */
+export type MemoryTransactionPage = Readonly<{
+  transactions: readonly MemoryTransaction[]
+  /** Cursor for the next page, or null when the cutoff has been reached. */
+  nextCursor: number | null
+  throughEventSeq: number
+}>
+
 const COGNITION_TABLES = [
   'memory_cognition_meta',
   'memory_cognition_transactions',
@@ -378,6 +396,42 @@ function assertNonNegativeInteger(value: number, label: string): void {
     throw new MemoryProtocolError(label + ' must be a non-negative integer')
   }
 }
+
+function boundedTransactionLimit(limit: number): number {
+  if (Number.isNaN(limit)) {
+    throw new MemoryProtocolError('journal transaction limit must be a number')
+  }
+  return Math.min(Math.max(Math.trunc(limit), 1), 10_000)
+}
+
+function assertPersistableTransactions(transactions: readonly MemoryTransaction[]): void {
+  const transactionIds = new Set<string>()
+  const commandIds = new Set<string>()
+  const eventIds = new Set<string>()
+  for (const transaction of transactions) {
+    if (transaction.events.length === 0) {
+      throw new MemoryProtocolError('cognition journal transactions must contain an event')
+    }
+    const transactionId = String(transaction.transactionId)
+    if (transactionIds.has(transactionId)) {
+      throw new MemoryProtocolError('cognition journal contains duplicate transaction ' + transactionId)
+    }
+    transactionIds.add(transactionId)
+    const commandId = String(transaction.commandId)
+    if (commandIds.has(commandId)) {
+      throw new MemoryProtocolError('cognition journal contains duplicate command ' + commandId)
+    }
+    commandIds.add(commandId)
+    for (const event of transaction.events) {
+      const eventId = String(event.eventId)
+      if (eventIds.has(eventId)) {
+        throw new MemoryProtocolError('cognition journal contains duplicate event ' + eventId)
+      }
+      eventIds.add(eventId)
+    }
+  }
+}
+
 function mapProjectionCheckpoint(row: CognitionProjectionCheckpointRow): MemoryProjectionCheckpoint {
   assertProjection(row.projection)
   assertNonNegativeInteger(row.last_event_seq, 'last event sequence')
@@ -676,87 +730,153 @@ export class MemoryCognitionDatabase {
       db.close()
     }
   }
+  /**
+   * Appends one validated transaction atomically, preserving the existing
+   * single-transaction idempotency behavior.
+   *
+   * @param value - Transaction envelope to append.
+   * @param faultInjector - Optional failure hook used by transaction tests.
+   * @returns The committed transaction, or the existing identical transaction.
+   */
   appendTransaction(value: MemoryTransaction, faultInjector?: MemoryCommitFaultInjector): MemoryTransaction {
-    const transaction = normalizeCognitionTransaction(value)
-    const transactionJson = JSON.stringify(transaction)
+    const [transaction] = this.appendTransactions([value], faultInjector)
+    if (transaction === undefined) throw new MemoryProtocolError('cognition journal append produced no transaction')
+    return transaction
+  }
+
+  /**
+   * Appends a batch in one SQLite transaction.
+   *
+   * @param values - Transaction envelopes to append in journal order.
+   * @param faultInjector - Optional failure hook used by transaction tests.
+   * @returns The normalized transactions in input order.
+   */
+  appendTransactions(values: readonly MemoryTransaction[], faultInjector?: MemoryCommitFaultInjector): MemoryTransaction[] {
+    const transactions = values.map(normalizeCognitionTransaction)
+    assertPersistableTransactions(transactions)
+    return this.commitTransactions(transactions, false, faultInjector)
+  }
+
+  /**
+   * Restores a complete journal into an empty database as one atomic write.
+   *
+   * The full stream is normalized, checked for duplicate identifiers, and
+   * replayed before any durable row is written. The empty-database check is
+   * repeated inside BEGIN IMMEDIATE so a concurrent writer cannot turn restore
+   * into an implicit merge.
+   *
+   * @param values - Exported transaction stream in committed order.
+   * @param faultInjector - Optional failure hook used by transaction tests.
+   * @returns The normalized transactions in input order.
+   */
+  restoreTransactions(values: readonly MemoryTransaction[], faultInjector?: MemoryCommitFaultInjector): MemoryTransaction[] {
+    const transactions = values.map(normalizeCognitionTransaction)
+    assertPersistableTransactions(transactions)
+    new MemoryMaterializer().replay(transactions)
+    return this.commitTransactions(transactions, true, faultInjector)
+  }
+
+  private commitTransactions(
+    transactions: readonly MemoryTransaction[],
+    requireEmpty: boolean,
+    faultInjector?: MemoryCommitFaultInjector,
+  ): MemoryTransaction[] {
+    if (transactions.length === 0 && !requireEmpty) return []
     const db = openCognitionDatabase(this.dbPath)
     try {
       db.exec('BEGIN IMMEDIATE')
-      const existing = db.prepare(`
-        SELECT transaction_id, command_id, transaction_json
-        FROM memory_cognition_transactions
-        WHERE transaction_id = ?
-      `).get(transaction.transactionId) as CognitionTransactionRow | undefined
-      if (existing !== undefined) {
-        const eventCount = db.prepare(`
+      if (requireEmpty) {
+        const count = (db.prepare(`
           SELECT COUNT(*) AS count
-          FROM memory_cognition_events
-          WHERE transaction_id = ?
-        `).get(transaction.transactionId) as { count: number }
-        if (existing.transaction_json === transactionJson && eventCount.count === transaction.events.length) {
-          db.exec('ROLLBACK')
-          return transaction
+          FROM memory_cognition_transactions
+        `).get() as { count: number }).count
+        if (count > 0) {
+          throw new Error('rin memory: cognition journal restore requires an empty store')
         }
-        throw new Error('rin memory cognition: transaction already exists with different content')
       }
 
-      const commandConflict = db.prepare(`
-        SELECT transaction_id
-        FROM memory_cognition_transactions
-        WHERE command_id = ?
-      `).get(transaction.commandId) as { transaction_id: string } | undefined
-      if (commandConflict !== undefined) {
-        throw new Error('rin memory cognition: command is already bound to transaction ' + commandConflict.transaction_id)
-      }
-
-      db.prepare(`
+      const insertTransaction = db.prepare(`
         INSERT INTO memory_cognition_transactions (
           transaction_id, command_id, correlation_id, actor_kind, actor_id,
           opened_at, committed_at, transaction_json
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        transaction.transactionId,
-        transaction.commandId,
-        transaction.correlationId,
-        transaction.actor.kind,
-        transaction.actor.id,
-        transaction.openedAt,
-        transaction.committedAt,
-        transactionJson,
-      )
-      faultInjector?.({ stage: 'transaction-row', transactionId: transaction.transactionId })
-
+      `)
       const insertEvent = db.prepare(`
         INSERT INTO memory_cognition_events (
           transaction_id, position, event_id, command_id, event_type, occurred_at, event_json
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
       `)
-      for (const event of transaction.events) {
-        insertEvent.run(
+      let firstInsertedEventSeq: number | undefined
+      for (const transaction of transactions) {
+        const transactionJson = JSON.stringify(transaction)
+        const existing = db.prepare(`
+          SELECT transaction_id, command_id, transaction_json
+          FROM memory_cognition_transactions
+          WHERE transaction_id = ?
+        `).get(transaction.transactionId) as CognitionTransactionRow | undefined
+        if (existing !== undefined) {
+          const eventCount = db.prepare(`
+            SELECT COUNT(*) AS count
+            FROM memory_cognition_events
+            WHERE transaction_id = ?
+          `).get(transaction.transactionId) as { count: number }
+          if (existing.transaction_json === transactionJson && eventCount.count === transaction.events.length) {
+            continue
+          }
+          throw new Error('rin memory cognition: transaction already exists with different content')
+        }
+
+        const commandConflict = db.prepare(`
+          SELECT transaction_id
+          FROM memory_cognition_transactions
+          WHERE command_id = ?
+        `).get(transaction.commandId) as { transaction_id: string } | undefined
+        if (commandConflict !== undefined) {
+          throw new Error('rin memory cognition: command is already bound to transaction ' + commandConflict.transaction_id)
+        }
+
+        insertTransaction.run(
           transaction.transactionId,
-          event.position,
-          event.eventId,
-          event.commandId,
-          event.type,
-          event.occurredAt,
-          JSON.stringify(event),
+          transaction.commandId,
+          transaction.correlationId,
+          transaction.actor.kind,
+          transaction.actor.id,
+          transaction.openedAt,
+          transaction.committedAt,
+          transactionJson,
         )
-        faultInjector?.({
-          stage: 'event-row',
-          transactionId: transaction.transactionId,
-          position: event.position,
-        })
+        faultInjector?.({ stage: 'transaction-row', transactionId: transaction.transactionId })
+
+        for (const event of transaction.events) {
+          insertEvent.run(
+            transaction.transactionId,
+            event.position,
+            event.eventId,
+            event.commandId,
+            event.type,
+            event.occurredAt,
+            JSON.stringify(event),
+          )
+          faultInjector?.({
+            stage: 'event-row',
+            transactionId: transaction.transactionId,
+            position: event.position,
+          })
+        }
+        const latestEventSeq = readLatestEventSeq(db)
+        firstInsertedEventSeq ??= latestEventSeq - transaction.events.length + 1
       }
-      const latestEventSeq = (db.prepare(`
-        SELECT COALESCE(MAX(event_seq), 0) AS event_seq
-        FROM memory_cognition_events
-      `).get() as { event_seq: number }).event_seq
-      db.prepare(`
-        UPDATE memory_cognition_projection_checkpoints
-        SET status = 'dirty', dirty_since_event_seq = COALESCE(dirty_since_event_seq, ?), updated_at = ?
-      `).run(latestEventSeq, transaction.committedAt)
+
+      if (firstInsertedEventSeq !== undefined) {
+        const latestCommittedAt = transactions[transactions.length - 1]?.committedAt
+        if (latestCommittedAt === undefined) throw new MemoryProtocolError('cognition journal append has no committed timestamp')
+        db.prepare(`
+          UPDATE memory_cognition_projection_checkpoints
+          SET status = 'dirty', dirty_since_event_seq = COALESCE(dirty_since_event_seq, ?), updated_at = ?
+        `).run(firstInsertedEventSeq, latestCommittedAt)
+      }
       db.exec('COMMIT')
-      return transaction
+      return [...transactions]
     } catch (error) {
       try {
         db.exec('ROLLBACK')
@@ -786,25 +906,88 @@ export class MemoryCognitionDatabase {
     }
   }
 
-  listTransactions(limit = 1000): MemoryTransaction[] {
-    const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 10000)
+  /**
+   * Reads one ordered page of transactions under a fixed event-sequence cutoff.
+   *
+   * The first call captures the latest committed event sequence. Callers that
+   * request later pages must pass the returned throughEventSeq unchanged; new
+   * commits after the first call then remain outside this traversal.
+   *
+   * @param options - Cursor, cutoff, and page-size options.
+   * @returns The ordered page and cursor for the same journal snapshot.
+   */
+  listTransactionPage(options: MemoryTransactionPageOptions = {}): MemoryTransactionPage {
+    const afterEventSeq = options.afterEventSeq ?? 0
+    assertNonNegativeInteger(afterEventSeq, 'journal cursor')
+    const boundedLimit = boundedTransactionLimit(options.limit ?? 1000)
     const db = openCognitionDatabase(this.dbPath)
     try {
+      const latestEventSeq = readLatestEventSeq(db)
+      const throughEventSeq = options.throughEventSeq ?? latestEventSeq
+      assertNonNegativeInteger(throughEventSeq, 'journal cutoff')
+      if (throughEventSeq > latestEventSeq) {
+        throw new MemoryProtocolError('journal cutoff cannot be ahead of the current event sequence')
+      }
       const rows = db.prepare(`
-        SELECT transaction_json
-        FROM memory_cognition_transactions AS transactions
-        JOIN (
-          SELECT transaction_id, MIN(event_seq) AS first_event_seq
-          FROM memory_cognition_events
-          GROUP BY transaction_id
-        ) AS sequence ON sequence.transaction_id = transactions.transaction_id
-        ORDER BY sequence.first_event_seq ASC
+        SELECT transaction_json, first_event_seq
+        FROM (
+          SELECT transactions.transaction_json, MIN(events.event_seq) AS first_event_seq
+          FROM memory_cognition_transactions AS transactions
+          JOIN memory_cognition_events AS events
+            ON events.transaction_id = transactions.transaction_id
+          GROUP BY transactions.transaction_id
+        ) AS ordered_transactions
+        WHERE first_event_seq > ?
+          AND first_event_seq <= ?
+        ORDER BY first_event_seq ASC
         LIMIT ?
-      `).all(boundedLimit) as Array<{ transaction_json: string }>
-      return rows.map(row => normalizeCognitionTransaction(parseCognitionJson(row.transaction_json, 'transaction')))
+      `).all(afterEventSeq, throughEventSeq, boundedLimit + 1) as Array<{ transaction_json: string; first_event_seq: number }>
+      const pageRows = rows.slice(0, boundedLimit)
+      const transactions = pageRows.map(row => normalizeCognitionTransaction(parseCognitionJson(row.transaction_json, 'transaction')))
+      const lastEventSeq = pageRows[pageRows.length - 1]?.first_event_seq
+      return Object.freeze({
+        transactions: Object.freeze(transactions),
+        nextCursor: rows.length > boundedLimit && lastEventSeq !== undefined ? lastEventSeq : null,
+        throughEventSeq,
+      })
     } finally {
       db.close()
     }
+  }
+
+  /**
+   * Traverses every event-bearing transaction using one stable cutoff.
+   *
+   * @param pageSize - Maximum transactions read per database page.
+   * @returns All transactions in committed event order.
+   */
+  listAllTransactions(pageSize = 1000): MemoryTransaction[] {
+    let page = this.listTransactionPage({ limit: pageSize })
+    const transactions = [...page.transactions]
+    while (page.nextCursor !== null) {
+      const next = this.listTransactionPage({
+        afterEventSeq: page.nextCursor,
+        throughEventSeq: page.throughEventSeq,
+        limit: pageSize,
+      })
+      if (next.transactions.length === 0) {
+        throw new MemoryProtocolError('journal traversal advanced without reading a transaction')
+      }
+      transactions.push(...next.transactions)
+      page = next
+    }
+    return transactions
+  }
+
+  /**
+   * Reads a bounded prefix of the journal for callers that intentionally need
+   * a small query result.
+   *
+   * @param limit - Maximum number of transactions to return.
+   * @returns The earliest transactions in committed event order.
+   */
+  listTransactions(limit = 1000): MemoryTransaction[] {
+    return [...this.listTransactionPage({ limit }).transactions]
   }
   readMaterializedState(): MemoryMaterializedState {
     return new MemoryMaterializer().replayFrom(this)
@@ -2306,7 +2489,7 @@ export class MemoryMaterializer {
   }
 
   replayFrom(database: MemoryCognitionDatabase): MemoryMaterializedState {
-    return this.replay(database.listTransactions())
+    return this.replay(database.listAllTransactions())
   }
 }
 

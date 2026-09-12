@@ -85,6 +85,7 @@ export function MemoryCenter() {
   }
 
   const submitCorrection = () => {
+    setPreview(null)
     void runIntent(async () => {
       await memoryApi.correct({
         memoryId: correctionId,
@@ -97,6 +98,7 @@ export function MemoryCenter() {
   }
 
   const restrictScene = (memoryId: string) => {
+    setPreview(null)
     void runIntent(async () => {
       await memoryApi.restrictInfluence({
         memoryId,
@@ -109,6 +111,7 @@ export function MemoryCenter() {
   }
 
   const revokeScene = (memoryId: string) => {
+    setPreview(null)
     void runIntent(async () => {
       await memoryApi.revokeInfluence({
         memoryId,
@@ -125,6 +128,7 @@ export function MemoryCenter() {
       setFeedback({ kind: 'error', text: t('memoryCenter.erase.rootsRequired') })
       return
     }
+    setPreview(null)
     void runIntent(async () => {
       const nextPreview = await memoryApi.erasePreview(roots)
       setPreview(nextPreview)
@@ -141,19 +145,26 @@ export function MemoryCenter() {
   const authorizeAndCommit = () => {
     if (preview === null) return
     void runIntent(async () => {
-      const authorized = await memoryApi.eraseAuthorize({
-        rootMemoryIds: [...preview.rootMemoryIds],
-        ownerId: OWNER_ID,
-      })
-      if (authorized === null) return t('memoryCenter.notMounted')
-      const committed = await memoryApi.eraseCommit({
-        authorizationId: authorized.authorization.authorizationId,
-        ownerId: OWNER_ID,
-      })
-      setPreview(null)
-      return committed === null
-        ? t('memoryCenter.notMounted')
-        : t('memoryCenter.erase.commitDone', { count: committed.erasedMemoryIds.length })
+      try {
+        const authorized = await memoryApi.eraseAuthorize({
+          rootMemoryIds: [...preview.rootMemoryIds],
+          expectedScopeHash: preview.scopeHash,
+          ownerId: OWNER_ID,
+        })
+        if (authorized === null) return t('memoryCenter.notMounted')
+        const committed = await memoryApi.eraseCommit({
+          authorizationId: authorized.authorization.authorizationId,
+          ownerId: OWNER_ID,
+        })
+        setPreview(null)
+        return committed === null
+          ? t('memoryCenter.notMounted')
+          : t('memoryCenter.erase.commitDone', { count: committed.erasedMemoryIds.length })
+      } catch (error) {
+        if (!isEraseScopeDriftError(error)) throw error
+        setPreview(null)
+        throw new Error(t('memoryCenter.erase.previewStale'))
+      }
     })
   }
 
@@ -332,7 +343,10 @@ export function MemoryCenter() {
           <input
             aria-label={t('memoryCenter.erase.rootsLabel')}
             value={eraseRootIds}
-            onChange={(event) => setEraseRootIds(event.target.value)}
+            onChange={(event) => {
+              setEraseRootIds(event.target.value)
+              setPreview(null)
+            }}
             placeholder="memory-id, memory-id"
             className="min-w-0 flex-1 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface-container-low)] px-3 py-2 text-[13px] text-[var(--color-text-primary)]"
           />
@@ -376,6 +390,10 @@ function formatTimestamp(iso: string): string {
   if (Number.isNaN(parsed.getTime())) return iso
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`
+}
+
+function isEraseScopeDriftError(error: unknown): boolean {
+  return error instanceof Error && /scope.*drifted/i.test(error.message)
 }
 
 export default MemoryCenter

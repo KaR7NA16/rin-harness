@@ -248,7 +248,19 @@ async function main(): Promise<void> {
       'the preview must keep the unrelated scene unaffected',
     )
 
+    const beforeRejectedAuthorization = ctx.memory.exportCognitionJournal().length
+    const missingHash = await api(port, 'POST', '/api/memory/erase/authorize', {
+      rootMemoryIds: ['http-root-scene'], ownerId: 'http-owner',
+    })
+    assert(missingHash.status === 400, 'authorization must require the preview hash')
+    const staleHash = await api(port, 'POST', '/api/memory/erase/authorize', {
+      rootMemoryIds: ['http-root-scene'], ownerId: 'http-owner', expectedScopeHash: 'stale-preview',
+    })
+    assert(staleHash.status === 409, 'a mismatched preview must return conflict')
+    assert(ctx.memory.exportCognitionJournal().length === beforeRejectedAuthorization, 'rejected previews must not append authorization events')
+    console.log('ERASE-PREVIEW-HASH-HTTP-OK', JSON.stringify({ missing: missingHash.status, stale: staleHash.status, unchanged: true }))
     const authorized = await api(port, 'POST', '/api/memory/erase/authorize', {
+      expectedScopeHash: previewBody.preview.scopeHash,
       rootMemoryIds: ['http-root-scene'],
       ownerId: 'http-owner',
     })
